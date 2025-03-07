@@ -1,0 +1,399 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+ ```mdc
+# 错误处理规范
+
+## 全局错误处理
+
+### 1. 全局错误捕获
+```typescript
+// main.ts
+app.config.errorHandler = (err, instance, info) => {
+  // 1. 错误日志上报
+  errorLogger.error({
+    error: err,
+    component: instance?.$options.name,
+    info,
+    url: window.location.href,
+    timestamp: new Date().toISOString()
+  })
+
+  // 2. 用户提示
+  ElMessage.error('系统出现错误，请稍后重试')
+}
+
+// 捕获 Promise 错误
+window.addEventListener('unhandledrejection', event => {
+  event.preventDefault()
+  errorLogger.error({
+    error: event.reason,
+    type: 'unhandledrejection',
+    url: window.location.href,
+    timestamp: new Date().toISOString()
+  })
+})
+```
+
+### 2. 错误边界组件
+```vue
+<!-- components/ErrorBoundary.vue -->
+<template>
+  <div v-if="error" class="error-boundary">
+    <div class="error-content">
+      <h2>{{ title }}</h2>
+      <p>{{ message }}</p>
+      <el-button @click="handleRetry">重试</el-button>
+    </div>
+  </div>
+  <slot v-else />
+</template>
+
+<script setup lang="ts">
+import { ref, onErrorCaptured } from 'vue'
+
+const props = defineProps<{
+  title?: string
+  fallbackMessage?: string
+}>()
+
+const error = ref<Error | null>(null)
+const message = ref(props.fallbackMessage || '页面出现错误')
+
+const handleRetry = () => {
+  error.value = null
+}
+
+onErrorCaptured((err: Error) => {
+  error.value = err
+  return false // 阻止错误继续传播
+})
+</script>
+```
+
+## API 错误处理
+
+### 1. 请求拦截器
+```typescript
+// utils/request.ts
+import axios from 'axios'
+import type { AxiosError } from 'axios'
+
+const request = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  timeout: 10000
+})
+
+// 响应拦截器
+request.interceptors.response.use(
+  response => response.data,
+  (error: AxiosError) => {
+    if (error.response) {
+      switch (error.response.status) {
+        case 401:
+          handleUnauthorized()
+          break
+        case 403:
+          handleForbidden()
+          break
+        case 404:
+          handleNotFound()
+          break
+        case 500:
+          handleServerError()
+          break
+        default:
+          handleUnknownError(error)
+      }
+    } else if (error.request) {
+      handleNetworkError()
+    } else {
+      handleUnknownError(error)
+    }
+    return Promise.reject(error)
+  }
+)
+```
+
+### 2. 错误处理函数
+```typescript
+// utils/errorHandlers.ts
+import { ElMessage } from 'element-plus'
+import router from '@/router'
+import { useUserStore } from '@/stores/user'
+
+// 未授权处理
+export const handleUnauthorized = () => {
+  const userStore = useUserStore()
+  userStore.logout()
+  router.push({
+    path: '/login',
+    query: { redirect: router.currentRoute.value.fullPath }
+  })
+  ElMessage.error('登录已过期，请重新登录')
+}
+
+// 禁止访问处理
+export const handleForbidden = () => {
+  router.push('/403')
+  ElMessage.error('您没有权限访问该资源')
+}
+
+// 资源不存在处理
+export const handleNotFound = () => {
+  router.push('/404')
+  ElMessage.error('请求的资源不存在')
+}
+
+// 服务器错误处理
+export const handleServerError = () => {
+  ElMessage.error('服务器错误，请稍后重试')
+}
+
+// 网络错误处理
+export const handleNetworkError = () => {
+  ElMessage.error('网络连接失败，请检查网络设置')
+}
+
+// 未知错误处理
+export const handleUnknownError = (error: unknown) => {
+  console.error('未知错误:', error)
+  ElMessage.error('系统出现未知错误，请稍后重试')
+}
+```
+
+### 3. 业务错误处理
+```typescript
+// types/error.ts
+export interface BusinessError {
+  code: string
+  message: string
+  data?: any
+}
+
+// utils/businessError.ts
+export class BusinessError extends Error {
+  constructor(
+    public code: string,
+    message: string,
+    public data?: any
+  ) {
+    super(message)
+    this.name = 'BusinessError'
+  }
+}
+
+// 业务错误处理
+export const handleBusinessError = (error: BusinessError) => {
+  switch (error.code) {
+    case 'USER_NOT_FOUND':
+      ElMessage.error('用户不存在')
+      break
+    case 'INVALID_PARAMS':
+      ElMessage.error('参数错误：' + error.message)
+      break
+    case 'OPERATION_FAILED':
+      ElMessage.error('操作失败：' + error.message)
+      break
+    default:
+      ElMessage.error(error.message || '操作失败')
+  }
+}
+```
+
+## 组件错误处理
+
+### 1. 异步组件加载错误
+```typescript
+// router/index.ts
+const UserProfile = defineAsyncComponent({
+  loader: () => import('@/views/user/UserProfile.vue'),
+  loadingComponent: LoadingComponent,
+  errorComponent: ErrorComponent,
+  delay: 200,
+  timeout: 10000
+})
+```
+
+### 2. Props 验证错误
+```typescript
+// 使用 TypeScript 类型和运行时验证
+interface Props {
+  id: string
+  status: 'active' | 'inactive'
+  count: number
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  status: 'active',
+  count: 0
+})
+
+// 运行时验证
+watch(() => props.count, (newValue) => {
+  if (newValue < 0) {
+    throw new Error('Count cannot be negative')
+  }
+})
+```
+
+### 3. 生命周期错误处理
+```typescript
+onMounted(() => {
+  try {
+    // 初始化逻辑
+  } catch (error) {
+    handleError(error)
+  }
+})
+
+onErrorCaptured((error, instance, info) => {
+  // 处理子组件错误
+  console.error('Component Error:', error)
+  console.error('Component Instance:', instance)
+  console.error('Error Info:', info)
+  return false // 阻止错误继续传播
+})
+```
+
+## 表单错误处理
+
+### 1. 表单验证错误
+```typescript
+const validateForm = async (form: FormInstance) => {
+  try {
+    await form.validate()
+    return true
+  } catch (errors) {
+    console.error('Form validation failed:', errors)
+    ElMessage.error('表单验证失败，请检查输入')
+    return false
+  }
+}
+```
+
+### 2. 文件上传错误
+```typescript
+const handleUploadError = (error: Error) => {
+  if (error instanceof UploadError) {
+    switch (error.code) {
+      case 'FILE_TOO_LARGE':
+        ElMessage.error('文件大小超出限制')
+        break
+      case 'INVALID_TYPE':
+        ElMessage.error('不支持的文件类型')
+        break
+      default:
+        ElMessage.error('上传失败：' + error.message)
+    }
+  } else {
+    ElMessage.error('文件上传失败，请重试')
+  }
+}
+```
+
+## 错误日志
+
+### 1. 日志配置
+```typescript
+// utils/logger.ts
+import type { ErrorLogInfo } from '@/types/error'
+
+export const errorLogger = {
+  error(info: ErrorLogInfo) {
+    // 1. 控制台输出
+    console.error(info)
+
+    // 2. 上报到日志服务
+    reportErrorLog(info)
+
+    // 3. 本地存储
+    saveErrorLog(info)
+  }
+}
+
+// 上报错误日志
+const reportErrorLog = async (info: ErrorLogInfo) => {
+  try {
+    await axios.post('/api/logs/error', info)
+  } catch (error) {
+    console.error('Error reporting failed:', error)
+  }
+}
+
+// 本地存储错误日志
+const saveErrorLog = (info: ErrorLogInfo) => {
+  const logs = JSON.parse(localStorage.getItem('errorLogs') || '[]')
+  logs.push({
+    ...info,
+    timestamp: new Date().toISOString()
+  })
+  localStorage.setItem('errorLogs', JSON.stringify(logs.slice(-100))) // 只保留最近100条
+}
+```
+
+### 2. 错误监控
+```typescript
+// 性能监控
+window.addEventListener('error', event => {
+  if (event.target instanceof HTMLImageElement) {
+    // 图片加载错误
+    errorLogger.error({
+      type: 'IMAGE_LOAD_ERROR',
+      url: event.target.src,
+      timestamp: new Date().toISOString()
+    })
+  }
+}, true)
+
+// 网络状态监控
+window.addEventListener('online', () => {
+  ElMessage.success('网络已连接')
+})
+
+window.addEventListener('offline', () => {
+  ElMessage.warning('网络已断开')
+})
+```
+
+## 错误恢复策略
+
+### 1. 自动重试
+```typescript
+const retryRequest = async (
+  fn: () => Promise<any>,
+  retries = 3,
+  delay = 1000
+) => {
+  try {
+    return await fn()
+  } catch (error) {
+    if (retries === 0) throw error
+    await new Promise(resolve => setTimeout(resolve, delay))
+    return retryRequest(fn, retries - 1, delay * 2)
+  }
+}
+```
+
+### 2. 降级处理
+```typescript
+const fetchData = async () => {
+  try {
+    // 尝试从API获取数据
+    return await api.getData()
+  } catch (error) {
+    // 降级：使用缓存数据
+    const cachedData = localStorage.getItem('cachedData')
+    if (cachedData) {
+      ElMessage.warning('使用缓存数据')
+      return JSON.parse(cachedData)
+    }
+    // 降级：使用默认数据
+    ElMessage.warning('使用默认数据')
+    return defaultData
+  }
+}
+```
+```

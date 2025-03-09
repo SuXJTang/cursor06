@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "fetch": {
+      "command": "python",
+      "args": ["-m", "mcp_server_fetch"]
+    },
+    "playwright": {
+      "command": "node",
+      "args": ["C:/Users/1024/AppData/Roaming/npm/node_modules/@executeautomation/playwright-mcp-server/dist/index.js"]
+    }
+  }
+} 

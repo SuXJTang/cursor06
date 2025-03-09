@@ -1,0 +1,9 @@
+{
+  "servers": [
+    {
+      "type": "stdio",
+      "name": "sequential-thinking",
+      "command": "node C:\\Users\\1024\\AppData\\Roaming\\npm\\node_modules\\@modelcontextprotocol\\server-sequential-thinking\\dist\\index.js"
+    }
+  ]
+} 

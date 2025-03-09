@@ -1,0 +1,250 @@
+# Vue3 + TypeScript 项目规则
+
+## General rules
+
+- Do not apologize
+- Do not thank me
+- Talk to me like a human
+- Verify information before making changes
+- Preserve existing code structures
+- Provide concise and relevant responses
+- Verify all information before making changes
+
+You will be penalized if you:
+- Skip steps in your thought process
+- Add placeholders or TODOs for other developers
+- Deliver code that is not production-ready
+
+## File-by-file changes
+
+- Make changes in small, incremental steps
+- Test changes thoroughly before committing
+- Document changes clearly in commit messages
+
+## Code style and formatting
+
+### Vue Component Rules
+- Use Vue3 Composition API with <script setup>
+- Use TypeScript for type safety
+- Follow 2-space indentation
+- Max line length: 120 characters
+- Use PascalCase for component names
+- Use kebab-case for events
+- Use scoped styles with SCSS
+
+### Example Component Structure
+```vue
+<template>
+  <div class="component-name">
+    <!-- Template content -->
+  </div>
+</template>
+
+<script setup lang="ts">
+// Imports
+import { ref, computed } from 'vue'
+import type { PropType } from 'vue'
+
+// Types
+interface ComponentProps {
+  prop1: string
+  prop2?: number
+}
+
+// Props
+const props = defineProps<ComponentProps>()
+
+// Emits
+const emit = defineEmits<{
+  (e: 'update', value: string): void
+}>()
+
+// State
+const state = ref('')
+
+// Methods
+const handleEvent = () => {
+  // Method implementation
+}
+</script>
+
+<style scoped lang="scss">
+.component-name {
+  // Styles
+}
+</style>
+```
+
+### TypeScript Rules
+- Use strict type checking
+- No any types unless absolutely necessary
+- Use interfaces for object types
+- Use type for complex types
+- Use enums for constants
+
+### Store Rules (Pinia)
+- Use composition API style stores
+- Define types for state
+- Use storeToRefs for reactive store properties
+- Split stores by domain
+
+## Project structure
+
+### Directory Structure
+```
+src/
+├── api/                # API calls
+├── assets/            # Static assets
+├── components/        # Shared components
+├── composables/       # Shared composables
+├── config/           # App configuration
+├── router/           # Vue router
+├── stores/           # Pinia stores
+├── styles/           # Global styles
+├── types/            # TypeScript types
+├── utils/            # Utility functions
+└── views/            # Page components
+```
+
+## Naming conventions
+
+### Files and Directories
+- Components: PascalCase.vue
+- Utilities: camelCase.ts
+- Types: PascalCase.types.ts
+- Styles: kebab-case.scss
+- Views: PascalCase.vue
+- Stores: camelCase.ts
+
+### Variables and Functions
+- Variables: camelCase
+- Functions: camelCase
+- Components: PascalCase
+- Interfaces/Types: PascalCase
+- Constants: UPPER_SNAKE_CASE
+
+## Comments and Documentation
+
+### Component Documentation
+```typescript
+/**
+ * @description Component description
+ * @param {string} prop1 - Prop description
+ * @param {number} [prop2] - Optional prop description
+ * @emits {update} - Event description
+ */
+```
+
+### Function Documentation
+```typescript
+/**
+ * Function description
+ * @param {string} param1 - Parameter description
+ * @returns {Promise<void>} Return value description
+ * @throws {Error} Error description
+ */
+```
+
+## Testing Requirements
+
+### Unit Tests
+- Test component rendering
+- Test component props
+- Test component events
+- Test component methods
+
+### Integration Tests
+- Test component interactions
+- Test store integration
+- Test router navigation
+- Test API calls
+
+## Performance Guidelines
+
+### Component Optimization
+- Use computed properties over methods
+- Use v-show for frequent toggles
+- Use v-if for conditional rendering
+- Use key attribute for lists
+- Avoid deep watchers
+- Use keep-alive for expensive components
+
+### State Management
+- Use local state when possible
+- Use Pinia for shared state
+- Use storeToRefs for reactive store properties
+- Avoid storing computed values
+
+## Security Guidelines
+
+### Data Security
+- No sensitive data in code
+- Use environment variables
+- Sanitize user inputs
+- Validate API responses
+
+### XSS Prevention
+- No v-html unless necessary
+- Sanitize dynamic content
+- Use Vue's built-in XSS protections
+
+## Error Handling
+
+### API Errors
+- Use try/catch blocks
+- Show user-friendly error messages
+- Log errors for debugging
+- Handle network errors gracefully
+
+### Component Errors
+- Use error boundaries
+- Provide fallback content
+- Log component errors
+- Handle async errors
+
+## Accessibility
+
+### ARIA Guidelines
+- Use semantic HTML
+- Add ARIA labels
+- Ensure keyboard navigation
+- Test with screen readers
+
+## Internationalization
+
+### i18n Setup
+- Use Vue I18n
+- Separate translations by language
+- Use translation keys
+- Support RTL languages
+
+## Build and Deploy
+
+### Build Process
+- Use Vite for development
+- Optimize for production
+- Split chunks appropriately
+- Enable source maps
+
+### Deployment
+- Use CI/CD pipeline
+- Run tests before deploy
+- Check bundle size
+- Monitor performance
+
+## Version Control
+
+### Git Workflow
+- Use feature branches
+- Write clear commit messages
+- Follow conventional commits
+- Review code before merge
+
+## Dependencies
+
+### Package Management
+- Use pnpm
+- Lock dependencies
+- Regular updates
+- Security audits
+``` 

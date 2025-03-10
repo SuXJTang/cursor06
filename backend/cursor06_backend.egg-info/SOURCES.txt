@@ -1,7 +1,0 @@
-pyproject.toml
-setup.py
-cursor06_backend.egg-info/PKG-INFO
-cursor06_backend.egg-info/SOURCES.txt
-cursor06_backend.egg-info/dependency_links.txt
-cursor06_backend.egg-info/requires.txt
-cursor06_backend.egg-info/top_level.txt

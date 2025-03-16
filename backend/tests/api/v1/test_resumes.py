@@ -9,6 +9,8 @@ from app.core.config import settings
 from app.db.session import SessionLocal
 from app.tests.utils.resume import create_random_resume
 from app.tests.utils.user import create_random_user, authentication_token_from_email
+from app.tests.utils.utils import random_lower_string
+from app.schemas.resume import ResumeCreate, ResumeStatusUpdate
 
 def test_create_resume(
     client: TestClient, normal_user_token_headers: Dict[str, str], db: Session
@@ -208,4 +210,28 @@ def test_list_resumes(
     assert isinstance(content, list)
     assert len(content) >= 2
     assert any(r["id"] == resume1.id for r in content)
-    assert any(r["id"] == resume2.id for r in content) 
+    assert any(r["id"] == resume2.id for r in content)
+
+def test_read_resume(
+    client: TestClient,
+    normal_user_token_headers: Dict[str, str],
+    db: Session
+) -> None:
+    """测试读取简历"""
+    # 先创建一个简历
+    title = random_lower_string()
+    resume_content = random_lower_string()
+    resume_in = ResumeCreate(title=title, content=resume_content)
+    user = crud.user.get_by_email(db, email=settings.EMAIL_TEST_USER)
+    resume = crud.resume.create_with_owner(db=db, obj_in=resume_in, user_id=user.id)
+
+    response = client.get(
+        f"{settings.API_V1_STR}/resumes/{resume.id}",
+        headers=normal_user_token_headers,
+    )
+    assert response.status_code == 200
+    content = response.json()
+    assert content["title"] == title
+    assert content["content"] == resume_content
+    assert content["id"] == resume.id
+    assert content["user_id"] == user.id 

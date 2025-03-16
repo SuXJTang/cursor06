@@ -3,63 +3,69 @@ from typing import Any, List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app import crud, models, schemas
 from app.api import deps
-from app.crud import resume as crud_resume
-from app.models.user import User
-from app.schemas.resume import (
-    Resume, ResumeCreate, ResumeUpdate,
-    ResumeFileUpdate, ResumeStatusUpdate
-)
+from app.core.config import settings
 
 router = APIRouter()
 
-@router.get("/me", response_model=List[Resume])
-def get_my_resumes(
+@router.post("/me", response_model=schemas.Resume)
+def create_resume(
     *,
     db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_user)
+    resume_in: schemas.ResumeCreate,
+    current_user: models.User = Depends(deps.get_current_user),
 ) -> Any:
-    """
-    获取当前用户的所有简历
-    """
-    resumes = crud_resume.get_by_user_id(db, user_id=current_user.id)
+    """创建简历"""
+    resume = crud.resume.create_with_owner(
+        db=db, obj_in=resume_in, user_id=current_user.id
+    )
+    return resume
+
+@router.get("/me", response_model=List[schemas.Resume])
+def read_my_resumes(
+    db: Session = Depends(deps.get_db),
+    skip: int = 0,
+    limit: int = 100,
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    """获取当前用户的所有简历"""
+    resumes = crud.resume.get_multi_by_owner(
+        db=db, user_id=current_user.id, skip=skip, limit=limit
+    )
     return resumes
 
-@router.post("/me", response_model=Resume)
-def create_my_resume(
+@router.get("/{resume_id}", response_model=schemas.Resume)
+def read_resume(
     *,
     db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_user),
-    resume_in: ResumeCreate
+    resume_id: int,
+    current_user: models.User = Depends(deps.get_current_user),
 ) -> Any:
-    """
-    创建当前用户的简历
-    """
-    try:
-        resume = crud_resume.create_with_user(
-            db, 
-            obj_in=resume_in, 
-            user_id=current_user.id
-        )
-    except ValueError as e:
+    """获取指定简历"""
+    resume = crud.resume.get(db=db, id=resume_id)
+    if not resume:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="简历不存在"
+        )
+    if resume.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="没有权限访问此简历"
         )
     return resume
 
-@router.put("/me/{resume_id}", response_model=Resume)
-def update_my_resume(
+@router.put("/me/{resume_id}", response_model=schemas.Resume)
+def update_resume(
     *,
     db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_user),
     resume_id: int,
-    resume_in: ResumeUpdate
+    resume_in: schemas.ResumeUpdate,
+    current_user: models.User = Depends(deps.get_current_user),
 ) -> Any:
-    """
-    更新当前用户的指定简历
-    """
-    resume = crud_resume.get(db, id=resume_id)
+    """更新简历"""
+    resume = crud.resume.get(db=db, id=resume_id)
     if not resume:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -70,27 +76,64 @@ def update_my_resume(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="没有权限修改此简历"
         )
-    
-    try:
-        resume = crud_resume.update(db, db_obj=resume, obj_in=resume_in)
-    except ValueError as e:
+    resume = crud.resume.update(db=db, db_obj=resume, obj_in=resume_in)
+    return resume
+
+@router.put("/me/{resume_id}/status", response_model=schemas.Resume)
+def update_resume_status(
+    *,
+    db: Session = Depends(deps.get_db),
+    resume_id: int,
+    status_in: schemas.ResumeStatusUpdate,
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    """更新简历状态"""
+    resume = crud.resume.get(db=db, id=resume_id)
+    if not resume:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="简历不存在"
         )
+    if resume.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="没有权限修改此简历"
+        )
+    resume = crud.resume.update_status(db=db, db_obj=resume, status=status_in.status)
+    return resume
+
+@router.put("/me/{resume_id}/file", response_model=schemas.Resume)
+def update_resume_file(
+    *,
+    db: Session = Depends(deps.get_db),
+    resume_id: int,
+    file_in: schemas.ResumeFileUpdate,
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    """更新简历文件"""
+    resume = crud.resume.get(db=db, id=resume_id)
+    if not resume:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="简历不存在"
+        )
+    if resume.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="没有权限修改此简历"
+        )
+    resume = crud.resume.update_file_url(db=db, db_obj=resume, file_url=str(file_in.file_url))
     return resume
 
 @router.delete("/me/{resume_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_my_resume(
+def delete_resume(
     *,
     db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_user),
-    resume_id: int
-) -> None:
-    """
-    删除当前用户的指定简历
-    """
-    resume = crud_resume.get(db, id=resume_id)
+    resume_id: int,
+    current_user: models.User = Depends(deps.get_current_user),
+) -> Any:
+    """删除简历"""
+    resume = crud.resume.get(db=db, id=resume_id)
     if not resume:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -101,71 +144,19 @@ def delete_my_resume(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="没有权限删除此简历"
         )
-    
-    crud_resume.remove(db, id=resume_id)
+    crud.resume.remove(db=db, id=resume_id)
+    return None
 
-@router.put("/me/{resume_id}/file", response_model=Resume)
-def update_my_resume_file(
-    *,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_user),
-    resume_id: int,
-    resume_in: ResumeFileUpdate
-) -> Any:
-    """
-    更新简历文件
-    """
-    resume = crud_resume.get(db, id=resume_id)
-    if not resume:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="简历不存在"
-        )
-    if resume.user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="没有权限修改此简历"
-        )
-    
-    resume = crud_resume.update(db, db_obj=resume, obj_in={"file_url": str(resume_in.file_url)})
-    return resume
-
-@router.put("/me/{resume_id}/status", response_model=Resume)
-def update_my_resume_status(
-    *,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_user),
-    resume_id: int,
-    resume_in: ResumeStatusUpdate
-) -> Any:
-    """
-    更新简历状态
-    """
-    resume = crud_resume.get(db, id=resume_id)
-    if not resume:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="简历不存在"
-        )
-    if resume.user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="没有权限修改此简历"
-        )
-    
-    resume = crud_resume.update(db, db_obj=resume, obj_in={"status": resume_in.status})
-    return resume
-
-@router.get("/", response_model=List[Resume])
+@router.get("/", response_model=List[schemas.Resume])
 def list_resumes(
     *,
     db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_verified_user),
+    current_user: models.User = Depends(deps.get_current_verified_user),
     skip: int = 0,
     limit: int = 100
 ) -> Any:
     """
     列出所有简历（仅限已验证用户）
     """
-    resumes = crud_resume.get_multi(db, skip=skip, limit=limit)
+    resumes = crud.resume.get_multi(db, skip=skip, limit=limit)
     return resumes 

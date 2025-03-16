@@ -15,4 +15,16 @@ class JobCategory(Base):
     created_at = Column(DateTime, server_default=func.now(), comment='创建时间')
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), comment='更新时间')
 
-    parent = relationship('JobCategory', remote_side=[id], backref='children') 
+    parent = relationship('JobCategory', remote_side=[id], backref='children')
+    
+    def to_dict(self):
+        """将对象转换为字典"""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "parent_id": self.parent_id,
+            "level": self.level,
+            "description": self.description,
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None,
+            "updated_at": self.updated_at.strftime("%Y-%m-%d %H:%M:%S") if self.updated_at else None
+        } 

@@ -1,69 +1,43 @@
-import os
 import pandas as pd
-from datetime import datetime
+import os
 
-def create_test_jobs():
-    """创建测试职位数据"""
-    # 确保uploads目录存在
-    os.makedirs("uploads", exist_ok=True)
-    
-    # 创建测试数据
-    jobs_data = [
-        {
-            "title": "Python高级开发工程师",
-            "company": "智能科技有限公司",
-            "description": "负责公司核心业务系统的后端开发和优化，参与系统架构设计",
-            "requirements": "1. 精通Python编程，熟悉主流框架\n2. 有5年以上开发经验\n3. 熟悉分布式系统设计",
-            "skills": '["Python", "FastAPI", "Django", "MySQL", "Redis"]',
-            "benefits": '["五险一金", "年终奖", "带薪休假", "免费三餐"]',
-            "salary_range": "25k-45k",
-            "location": "深圳",
-            "job_type": "全职",
-            "category_id": 1,  # 后端开发
-            "experience_required": "5年以上",
-            "education_required": "本科",
-            "status": "active"
-        },
-        {
-            "title": "前端开发工程师",
-            "company": "创新网络科技",
-            "description": "负责公司产品的前端开发和优化",
-            "requirements": "1. 精通JavaScript、HTML5、CSS3\n2. 熟悉Vue.js或React\n3. 有3年以上前端开发经验",
-            "skills": '["JavaScript", "Vue.js", "React", "HTML5", "CSS3"]',
-            "benefits": '["五险一金", "年终奖", "弹性工作", "团队建设"]',
-            "salary_range": "15k-25k",
-            "location": "广州",
-            "job_type": "全职",
-            "category_id": 2,  # 前端开发
-            "experience_required": "3年以上",
-            "education_required": "本科",
-            "status": "active"
-        },
-        {
-            "title": "全栈开发工程师",
-            "company": "未来科技有限公司",
-            "description": "负责公司产品的全栈开发工作",
-            "requirements": "1. 精通前后端开发技术\n2. 熟悉微服务架构\n3. 有5年以上开发经验",
-            "skills": '["Python", "JavaScript", "Vue.js", "MySQL", "Docker"]',
-            "benefits": '["五险一金", "年终奖", "期权激励", "免费工作餐"]',
-            "salary_range": "30k-50k",
-            "location": "北京",
-            "job_type": "全职",
-            "category_id": 3,  # 全栈开发
-            "experience_required": "5年以上",
-            "education_required": "本科",
-            "status": "active"
-        }
-    ]
-    
-    # 创建DataFrame
-    df = pd.DataFrame(jobs_data)
-    
-    # 保存为Excel文件，指定sheet_name为'导入数据'
-    output_path = "uploads/test_jobs.xlsx"
-    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
-        df.to_excel(writer, sheet_name='导入数据', index=False)
-    print(f"测试数据已创建：{output_path}")
+# 创建测试数据
+data = {
+    'title': ['Python高级开发工程师', '前端开发工程师', '数据分析师'],
+    'company': ['科技有限公司', '互联网科技', '数据科技有限公司'],
+    'description': ['负责后端系统开发', '负责前端界面开发', '负责数据分析和报表'],
+    'requirements': ['精通Python', '精通JavaScript', '精通SQL和数据分析'],
+    'skills': ['Python,Django,FastAPI', 'JavaScript,Vue,React', 'SQL,Python,Excel'],
+    'education_required': ['本科', '本科', '硕士'],
+    'experience_required': ['3-5年', '2-3年', '1-3年'],
+    'salary_range': ['20k-30k', '15k-25k', '18k-28k'],
+    'location': ['北京', '上海', '广州'],
+    'job_type': ['全职', '全职', '全职'],
+    'status': ['active', 'active', 'active'],
+    'benefits': ['五险一金,年终奖', '五险一金,弹性工作', '五险一金,专业培训'],
+    'category_id': [1, 2, 3]
+}
 
-if __name__ == "__main__":
-    create_test_jobs() 
+# 创建DataFrame
+df = pd.DataFrame(data)
+
+# 创建Excel文件
+os.makedirs('uploads', exist_ok=True)
+with pd.ExcelWriter('test_jobs.xlsx', engine='openpyxl') as writer:
+    # 创建说明sheet
+    df_info = pd.DataFrame({
+        '字段名': ['title', 'company', 'description', 'requirements', 'skills', 'education_required', 
+                'experience_required', 'salary_range', 'location', 'job_type', 'status', 'benefits', 'category_id'],
+        '是否必填': ['是', '是', '是', '是', '否', '是', '是', '是', '是', '是', '是', '否', '是'],
+        '描述': ['职位标题', '公司名称', '职位描述', '职位要求', '所需技能', '学历要求', 
+               '所需工作经验', '薪资范围', '工作地点', '工作类型', '状态', '职位福利', '职位分类ID'],
+        '示例值': ['Python开发工程师', 'XX科技有限公司', '负责公司核心业务系统的开发...', 
+                '1. 熟练掌握Python编程...', 'Python,Django,FastAPI', '本科', 
+                '3-5年', '15k-25k', '北京', '全职', 'active', '五险一金,年终奖,带薪休假', '1']
+    })
+    df_info.to_excel(writer, sheet_name='职位信息', index=False)
+    
+    # 创建数据sheet
+    df.to_excel(writer, sheet_name='导入数据', index=False)
+
+print('测试文件已创建: test_jobs.xlsx') 

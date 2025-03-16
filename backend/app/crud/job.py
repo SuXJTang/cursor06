@@ -9,21 +9,13 @@ from app.schemas.job import JobCreate, JobUpdate, JobSearchParams
 class CRUDJob(CRUDBase[Job, JobCreate, JobUpdate]):
     def create(self, db: Session, *, obj_in: JobCreate) -> Job:
         """创建职位"""
-        db_obj = Job(
-            title=obj_in.title,
-            company=obj_in.company,
-            description=obj_in.description,
-            requirements=obj_in.requirements,
-            skills=obj_in.skills,
-            benefits=obj_in.benefits,
-            salary_range=obj_in.salary_range,
-            location=obj_in.location,
-            job_type=obj_in.job_type,
-            category_id=obj_in.category_id,
-            experience_required=obj_in.experience_required,
-            education_required=obj_in.education_required,
-            status=obj_in.status
-        )
+        # 将Pydantic模型转换为字典，以便处理可能的空值
+        obj_in_data = obj_in.dict(exclude_unset=True)
+        
+        # 创建Job模型实例
+        db_obj = Job(**obj_in_data)
+        
+        # 添加到数据库会话
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)

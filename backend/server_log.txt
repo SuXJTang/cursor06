@@ -1,0 +1,544 @@
+INFO:     Will watch for changes in these directories: ['D:\\graduationDesign\\cursor06\\backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [2816] using statreload
+2025-03-11 11:41:51.422 | DEBUG    | passlib.utils.compat:__getattr__:449 - loaded lazy attr 'SafeConfigParser': <class 'configparser.ConfigParser'>
+2025-03-11 11:41:51.422 | DEBUG    | passlib.utils.compat:__getattr__:449 - loaded lazy attr 'NativeStringIO': <class '_io.StringIO'>
+2025-03-11 11:41:51.422 | DEBUG    | passlib.utils.compat:__getattr__:449 - loaded lazy attr 'BytesIO': <class '_io.BytesIO'>
+2025-03-11 11:41:51.428 | DEBUG    | passlib.registry:register_crypt_handler:296 - registered 'bcrypt' handler: <class 'passlib.handlers.bcrypt.bcrypt'>
+2025-03-11 11:41:51.557 | INFO     | app.db.session:create_database_if_not_exists:24 - 确保数据库 cursor06 存在
+2025-03-11 11:41:51.585 | INFO     | app.db.session:<module>:44 - 数据库连接测试成功
+2025-03-11 11:41:51.606 | INFO     | app.db.session:<module>:54 - 数据库引擎创建成功
+2025-03-11 11:41:53.216 | INFO     | uvicorn.server:serve:84 - Started server process [30104]
+2025-03-11 11:41:53.216 | INFO     | uvicorn.server:serve:84 - Started server process [30104]
+2025-03-11 11:41:53.217 | INFO     | uvicorn.server:serve:84 - Started server process [30104]
+2025-03-11 11:41:53.217 | INFO     | uvicorn.lifespan.on:startup:45 - Waiting for application startup.
+2025-03-11 11:41:53.217 | INFO     | uvicorn.lifespan.on:startup:45 - Waiting for application startup.
+2025-03-11 11:41:53.217 | INFO     | uvicorn.lifespan.on:startup:45 - Waiting for application startup.
+2025-03-11 11:41:53.217 | INFO     | app.main:startup_event:29 - 应用启动
+2025-03-11 11:41:53.646 | INFO     | app.db.init_db:drop_all_tables:39 - 所有数据库表删除成功
+2025-03-11 11:41:54.530 | INFO     | app.db.init_db:create_all_tables:61 - 创建数据库表成功
+2025-03-11 11:41:54.602 | DEBUG    | passlib.handlers.bcrypt:_load_backend_mixin:625 - detected 'bcrypt' backend, version '3.2.0'
+2025-03-11 11:41:54.602 | DEBUG    | passlib.handlers.bcrypt:_finalize_backend_mixin:406 - 'bcrypt' backend lacks $2$ support, enabling workaround
+2025-03-11 11:41:54.921 | INFO     | app.db.init_db:init_db:99 - 超级用户创建成功
+2025-03-11 11:41:54.964 | INFO     | app.db.init_db:init_db:118 - 初始职位分类创建成功
+2025-03-11 11:41:54.964 | INFO     | app.main:startup_event:35 - 数据库初始化完成
+2025-03-11 11:41:54.965 | INFO     | uvicorn.lifespan.on:startup:59 - Application startup complete.
+2025-03-11 11:41:54.965 | INFO     | uvicorn.lifespan.on:startup:59 - Application startup complete.
+2025-03-11 11:41:54.965 | INFO     | uvicorn.lifespan.on:startup:59 - Application startup complete.
+2025-03-11 11:43:51.299 | INFO     | uvicorn.protocols.http.h11_impl:send:438 - 127.0.0.1:24212 - "POST /api/v1/jobs/ HTTP/1.1" 500
+2025-03-11 11:43:51.301 | ERROR    | uvicorn.protocols.http.h11_impl:run_asgi:376 - Exception in ASGI application
+
+Traceback (most recent call last):
+
+  File "<string>", line 1, in <module>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\multiprocessing\spawn.py", line 116, in spawn_main
+    exitcode = _main(fd, parent_sentinel)
+               │     │   └ 400
+               │     └ 3
+               └ <function _main at 0x000001DFE8443B80>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\multiprocessing\spawn.py", line 129, in _main
+    return self._bootstrap(parent_sentinel)
+           │    │          └ 400
+           │    └ <function BaseProcess._bootstrap at 0x000001DFE80DB700>
+           └ <SpawnProcess name='SpawnProcess-1' parent=2816 started>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\multiprocessing\process.py", line 315, in _bootstrap
+    self.run()
+    │    └ <function BaseProcess.run at 0x000001DFE80D9D30>
+    └ <SpawnProcess name='SpawnProcess-1' parent=2816 started>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    │    │        │    │        │    └ {'config': <uvicorn.config.Config object at 0x000001DFE7E62670>, 'target': <bound method Server.run of <uvicorn.server.Server...
+    │    │        │    │        └ <SpawnProcess name='SpawnProcess-1' parent=2816 started>
+    │    │        │    └ ()
+    │    │        └ <SpawnProcess name='SpawnProcess-1' parent=2816 started>
+    │    └ <function subprocess_started at 0x000001DFEA5C2670>
+    └ <SpawnProcess name='SpawnProcess-1' parent=2816 started>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\uvicorn\subprocess.py", line 76, in subprocess_started
+    target(sockets=sockets)
+    │              └ [<socket.socket fd=356, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=6, laddr=('127.0.0.1', 8000)>]
+    └ <bound method Server.run of <uvicorn.server.Server object at 0x000001DFE7E623A0>>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\uvicorn\server.py", line 68, in run
+    return asyncio.run(self.serve(sockets=sockets))
+           │       │   │    │             └ [<socket.socket fd=356, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=6, laddr=('127.0.0.1', 8000)>]
+           │       │   │    └ <function Server.serve at 0x000001DFEA5BFD30>
+           │       │   └ <uvicorn.server.Server object at 0x000001DFE7E623A0>
+           │       └ <function run at 0x000001DFE8446B80>
+           └ <module 'asyncio' from 'C:\\Users\\1024\\.pyenv\\pyenv-win\\versions\\3.9.7\\lib\\asyncio\\__init__.py'>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\asyncio\runners.py", line 44, in run
+    return loop.run_until_complete(main)
+           │    │                  └ <coroutine object Server.serve at 0x000001DFEA5DF540>
+           │    └ <function BaseEventLoop.run_until_complete at 0x000001DFE9E17670>
+           └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\asyncio\base_events.py", line 629, in run_until_complete
+    self.run_forever()
+    │    └ <function BaseEventLoop.run_forever at 0x000001DFE9E175E0>
+    └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\asyncio\base_events.py", line 596, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x000001DFE9E1C160>
+    └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\asyncio\base_events.py", line 1890, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x000001DFE9DCE280>
+    └ <Handle <TaskWakeupMethWrapper object at 0x000001DF9CDA8940>(<Future finished result=False>)>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\asyncio\events.py", line 80, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle <TaskWakeupMethWrapper object at 0x000001DF9CDA8940>(<Future finished result=False>)>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle <TaskWakeupMethWrapper object at 0x000001DF9CDA8940>(<Future finished result=False>)>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle <TaskWakeupMethWrapper object at 0x000001DF9CDA8940>(<Future finished result=False>)>
+
+> File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 373, in run_asgi
+    result = await app(self.scope, self.receive, self.send)
+                   │   │    │      │    │        │    └ <function RequestResponseCycle.send at 0x000001DFEA6A2670>
+                   │   │    │      │    │        └ <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>
+                   │   │    │      │    └ <function RequestResponseCycle.receive at 0x000001DFEA6A2700>
+                   │   │    │      └ <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>
+                   │   │    └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+                   │   └ <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>
+                   └ <uvicorn.middleware.proxy_headers.ProxyHeadersMiddleware object at 0x000001DFE8231850>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 75, in __call__
+    return await self.app(scope, receive, send)
+                 │    │   │      │        └ <bound method RequestResponseCycle.send of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>>
+                 │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+                 │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+                 │    └ <fastapi.applications.FastAPI object at 0x000001DFEABF8FA0>
+                 └ <uvicorn.middleware.proxy_headers.ProxyHeadersMiddleware object at 0x000001DFE8231850>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\fastapi\applications.py", line 208, in __call__
+    await super().__call__(scope, receive, send)
+                           │      │        └ <bound method RequestResponseCycle.send of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>>
+                           │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+                           └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+          │    │                │      │        └ <bound method RequestResponseCycle.send of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>>
+          │    │                │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │    │                └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <starlette.middleware.errors.ServerErrorMiddleware object at 0x000001DF9CD36B80>
+          └ <fastapi.applications.FastAPI object at 0x000001DFEABF8FA0>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\middleware\errors.py", line 181, in __call__
+    raise exc from None
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\middleware\errors.py", line 159, in __call__
+    await self.app(scope, receive, _send)
+          │    │   │      │        └ <function ServerErrorMiddleware.__call__.<locals>._send at 0x000001DF9D0DC160>
+          │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <starlette.middleware.cors.CORSMiddleware object at 0x000001DF9CD36B20>
+          └ <starlette.middleware.errors.ServerErrorMiddleware object at 0x000001DF9CD36B80>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\middleware\cors.py", line 78, in __call__
+    await self.app(scope, receive, send)
+          │    │   │      │        └ <function ServerErrorMiddleware.__call__.<locals>._send at 0x000001DF9D0DC160>
+          │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <starlette.exceptions.ExceptionMiddleware object at 0x000001DF9CD36AC0>
+          └ <starlette.middleware.cors.CORSMiddleware object at 0x000001DF9CD36B20>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\exceptions.py", line 82, in __call__
+    raise exc from None
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\exceptions.py", line 71, in __call__
+    await self.app(scope, receive, sender)
+          │    │   │      │        └ <function ExceptionMiddleware.__call__.<locals>.sender at 0x000001DF9D11B3A0>
+          │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <fastapi.routing.APIRouter object at 0x000001DFEA6A3610>
+          └ <starlette.exceptions.ExceptionMiddleware object at 0x000001DF9CD36AC0>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\routing.py", line 580, in __call__
+    await route.handle(scope, receive, send)
+          │     │      │      │        └ <function ExceptionMiddleware.__call__.<locals>.sender at 0x000001DF9D11B3A0>
+          │     │      │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │     │      └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │     └ <function Route.handle at 0x000001DFEABC21F0>
+          └ <fastapi.routing.APIRoute object at 0x000001DF9CDDBB80>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\routing.py", line 241, in handle
+    await self.app(scope, receive, send)
+          │    │   │      │        └ <function ExceptionMiddleware.__call__.<locals>.sender at 0x000001DF9D11B3A0>
+          │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <function request_response.<locals>.app at 0x000001DF9CDA2F70>
+          └ <fastapi.routing.APIRoute object at 0x000001DF9CDDBB80>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\routing.py", line 52, in app
+    response = await func(request)
+                     │    └ <starlette.requests.Request object at 0x000001DF9CC1E0A0>
+                     └ <function get_request_handler.<locals>.app at 0x000001DF9CDA2EE0>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\fastapi\routing.py", line 234, in app
+    response_data = await serialize_response(
+                          └ <function serialize_response at 0x000001DFEABAAE50>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\fastapi\routing.py", line 137, in serialize_response
+    raise ValidationError(errors, field.type_)
+          │               │       │     └ <member 'type_' of 'ModelField' objects>
+          │               │       └ ModelField(name='Response_create_job_api_v1_jobs__post', type=Optional[Job], required=False, default=None)
+          │               └ [ErrorWrapper(exc=DictError(), loc=('response',))]
+          └ <class 'pydantic.error_wrappers.ValidationError'>
+
+pydantic.error_wrappers.ValidationError: 1 validation error for Job
+response
+  value is not a valid dict (type=type_error.dict)
+2025-03-11 11:43:51.319 | ERROR    | uvicorn.protocols.http.h11_impl:run_asgi:376 - Exception in ASGI application
+
+Traceback (most recent call last):
+
+  File "<string>", line 1, in <module>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\multiprocessing\spawn.py", line 116, in spawn_main
+    exitcode = _main(fd, parent_sentinel)
+               │     │   └ 400
+               │     └ 3
+               └ <function _main at 0x000001DFE8443B80>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\multiprocessing\spawn.py", line 129, in _main
+    return self._bootstrap(parent_sentinel)
+           │    │          └ 400
+           │    └ <function BaseProcess._bootstrap at 0x000001DFE80DB700>
+           └ <SpawnProcess name='SpawnProcess-1' parent=2816 started>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\multiprocessing\process.py", line 315, in _bootstrap
+    self.run()
+    │    └ <function BaseProcess.run at 0x000001DFE80D9D30>
+    └ <SpawnProcess name='SpawnProcess-1' parent=2816 started>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    │    │        │    │        │    └ {'config': <uvicorn.config.Config object at 0x000001DFE7E62670>, 'target': <bound method Server.run of <uvicorn.server.Server...
+    │    │        │    │        └ <SpawnProcess name='SpawnProcess-1' parent=2816 started>
+    │    │        │    └ ()
+    │    │        └ <SpawnProcess name='SpawnProcess-1' parent=2816 started>
+    │    └ <function subprocess_started at 0x000001DFEA5C2670>
+    └ <SpawnProcess name='SpawnProcess-1' parent=2816 started>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\uvicorn\subprocess.py", line 76, in subprocess_started
+    target(sockets=sockets)
+    │              └ [<socket.socket fd=356, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=6, laddr=('127.0.0.1', 8000)>]
+    └ <bound method Server.run of <uvicorn.server.Server object at 0x000001DFE7E623A0>>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\uvicorn\server.py", line 68, in run
+    return asyncio.run(self.serve(sockets=sockets))
+           │       │   │    │             └ [<socket.socket fd=356, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=6, laddr=('127.0.0.1', 8000)>]
+           │       │   │    └ <function Server.serve at 0x000001DFEA5BFD30>
+           │       │   └ <uvicorn.server.Server object at 0x000001DFE7E623A0>
+           │       └ <function run at 0x000001DFE8446B80>
+           └ <module 'asyncio' from 'C:\\Users\\1024\\.pyenv\\pyenv-win\\versions\\3.9.7\\lib\\asyncio\\__init__.py'>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\asyncio\runners.py", line 44, in run
+    return loop.run_until_complete(main)
+           │    │                  └ <coroutine object Server.serve at 0x000001DFEA5DF540>
+           │    └ <function BaseEventLoop.run_until_complete at 0x000001DFE9E17670>
+           └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\asyncio\base_events.py", line 629, in run_until_complete
+    self.run_forever()
+    │    └ <function BaseEventLoop.run_forever at 0x000001DFE9E175E0>
+    └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\asyncio\base_events.py", line 596, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x000001DFE9E1C160>
+    └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\asyncio\base_events.py", line 1890, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x000001DFE9DCE280>
+    └ <Handle <TaskWakeupMethWrapper object at 0x000001DF9CDA8940>(<Future finished result=False>)>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\asyncio\events.py", line 80, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle <TaskWakeupMethWrapper object at 0x000001DF9CDA8940>(<Future finished result=False>)>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle <TaskWakeupMethWrapper object at 0x000001DF9CDA8940>(<Future finished result=False>)>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle <TaskWakeupMethWrapper object at 0x000001DF9CDA8940>(<Future finished result=False>)>
+
+> File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 373, in run_asgi
+    result = await app(self.scope, self.receive, self.send)
+                   │   │    │      │    │        │    └ <function RequestResponseCycle.send at 0x000001DFEA6A2670>
+                   │   │    │      │    │        └ <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>
+                   │   │    │      │    └ <function RequestResponseCycle.receive at 0x000001DFEA6A2700>
+                   │   │    │      └ <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>
+                   │   │    └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+                   │   └ <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>
+                   └ <uvicorn.middleware.proxy_headers.ProxyHeadersMiddleware object at 0x000001DFE8231850>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 75, in __call__
+    return await self.app(scope, receive, send)
+                 │    │   │      │        └ <bound method RequestResponseCycle.send of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>>
+                 │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+                 │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+                 │    └ <fastapi.applications.FastAPI object at 0x000001DFEABF8FA0>
+                 └ <uvicorn.middleware.proxy_headers.ProxyHeadersMiddleware object at 0x000001DFE8231850>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\fastapi\applications.py", line 208, in __call__
+    await super().__call__(scope, receive, send)
+                           │      │        └ <bound method RequestResponseCycle.send of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>>
+                           │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+                           └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+          │    │                │      │        └ <bound method RequestResponseCycle.send of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>>
+          │    │                │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │    │                └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <starlette.middleware.errors.ServerErrorMiddleware object at 0x000001DF9CD36B80>
+          └ <fastapi.applications.FastAPI object at 0x000001DFEABF8FA0>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\middleware\errors.py", line 181, in __call__
+    raise exc from None
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\middleware\errors.py", line 159, in __call__
+    await self.app(scope, receive, _send)
+          │    │   │      │        └ <function ServerErrorMiddleware.__call__.<locals>._send at 0x000001DF9D0DC160>
+          │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <starlette.middleware.cors.CORSMiddleware object at 0x000001DF9CD36B20>
+          └ <starlette.middleware.errors.ServerErrorMiddleware object at 0x000001DF9CD36B80>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\middleware\cors.py", line 78, in __call__
+    await self.app(scope, receive, send)
+          │    │   │      │        └ <function ServerErrorMiddleware.__call__.<locals>._send at 0x000001DF9D0DC160>
+          │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <starlette.exceptions.ExceptionMiddleware object at 0x000001DF9CD36AC0>
+          └ <starlette.middleware.cors.CORSMiddleware object at 0x000001DF9CD36B20>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\exceptions.py", line 82, in __call__
+    raise exc from None
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\exceptions.py", line 71, in __call__
+    await self.app(scope, receive, sender)
+          │    │   │      │        └ <function ExceptionMiddleware.__call__.<locals>.sender at 0x000001DF9D11B3A0>
+          │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <fastapi.routing.APIRouter object at 0x000001DFEA6A3610>
+          └ <starlette.exceptions.ExceptionMiddleware object at 0x000001DF9CD36AC0>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\routing.py", line 580, in __call__
+    await route.handle(scope, receive, send)
+          │     │      │      │        └ <function ExceptionMiddleware.__call__.<locals>.sender at 0x000001DF9D11B3A0>
+          │     │      │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │     │      └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │     └ <function Route.handle at 0x000001DFEABC21F0>
+          └ <fastapi.routing.APIRoute object at 0x000001DF9CDDBB80>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\routing.py", line 241, in handle
+    await self.app(scope, receive, send)
+          │    │   │      │        └ <function ExceptionMiddleware.__call__.<locals>.sender at 0x000001DF9D11B3A0>
+          │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <function request_response.<locals>.app at 0x000001DF9CDA2F70>
+          └ <fastapi.routing.APIRoute object at 0x000001DF9CDDBB80>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\routing.py", line 52, in app
+    response = await func(request)
+                     │    └ <starlette.requests.Request object at 0x000001DF9CC1E0A0>
+                     └ <function get_request_handler.<locals>.app at 0x000001DF9CDA2EE0>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\fastapi\routing.py", line 234, in app
+    response_data = await serialize_response(
+                          └ <function serialize_response at 0x000001DFEABAAE50>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\fastapi\routing.py", line 137, in serialize_response
+    raise ValidationError(errors, field.type_)
+          │               │       │     └ <member 'type_' of 'ModelField' objects>
+          │               │       └ ModelField(name='Response_create_job_api_v1_jobs__post', type=Optional[Job], required=False, default=None)
+          │               └ [ErrorWrapper(exc=DictError(), loc=('response',))]
+          └ <class 'pydantic.error_wrappers.ValidationError'>
+
+pydantic.error_wrappers.ValidationError: 1 validation error for Job
+response
+  value is not a valid dict (type=type_error.dict)
+2025-03-11 11:43:51.326 | ERROR    | uvicorn.protocols.http.h11_impl:run_asgi:376 - Exception in ASGI application
+
+Traceback (most recent call last):
+
+  File "<string>", line 1, in <module>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\multiprocessing\spawn.py", line 116, in spawn_main
+    exitcode = _main(fd, parent_sentinel)
+               │     │   └ 400
+               │     └ 3
+               └ <function _main at 0x000001DFE8443B80>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\multiprocessing\spawn.py", line 129, in _main
+    return self._bootstrap(parent_sentinel)
+           │    │          └ 400
+           │    └ <function BaseProcess._bootstrap at 0x000001DFE80DB700>
+           └ <SpawnProcess name='SpawnProcess-1' parent=2816 started>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\multiprocessing\process.py", line 315, in _bootstrap
+    self.run()
+    │    └ <function BaseProcess.run at 0x000001DFE80D9D30>
+    └ <SpawnProcess name='SpawnProcess-1' parent=2816 started>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    │    │        │    │        │    └ {'config': <uvicorn.config.Config object at 0x000001DFE7E62670>, 'target': <bound method Server.run of <uvicorn.server.Server...
+    │    │        │    │        └ <SpawnProcess name='SpawnProcess-1' parent=2816 started>
+    │    │        │    └ ()
+    │    │        └ <SpawnProcess name='SpawnProcess-1' parent=2816 started>
+    │    └ <function subprocess_started at 0x000001DFEA5C2670>
+    └ <SpawnProcess name='SpawnProcess-1' parent=2816 started>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\uvicorn\subprocess.py", line 76, in subprocess_started
+    target(sockets=sockets)
+    │              └ [<socket.socket fd=356, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=6, laddr=('127.0.0.1', 8000)>]
+    └ <bound method Server.run of <uvicorn.server.Server object at 0x000001DFE7E623A0>>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\uvicorn\server.py", line 68, in run
+    return asyncio.run(self.serve(sockets=sockets))
+           │       │   │    │             └ [<socket.socket fd=356, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=6, laddr=('127.0.0.1', 8000)>]
+           │       │   │    └ <function Server.serve at 0x000001DFEA5BFD30>
+           │       │   └ <uvicorn.server.Server object at 0x000001DFE7E623A0>
+           │       └ <function run at 0x000001DFE8446B80>
+           └ <module 'asyncio' from 'C:\\Users\\1024\\.pyenv\\pyenv-win\\versions\\3.9.7\\lib\\asyncio\\__init__.py'>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\asyncio\runners.py", line 44, in run
+    return loop.run_until_complete(main)
+           │    │                  └ <coroutine object Server.serve at 0x000001DFEA5DF540>
+           │    └ <function BaseEventLoop.run_until_complete at 0x000001DFE9E17670>
+           └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\asyncio\base_events.py", line 629, in run_until_complete
+    self.run_forever()
+    │    └ <function BaseEventLoop.run_forever at 0x000001DFE9E175E0>
+    └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\asyncio\base_events.py", line 596, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x000001DFE9E1C160>
+    └ <_WindowsSelectorEventLoop running=True closed=False debug=False>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\asyncio\base_events.py", line 1890, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x000001DFE9DCE280>
+    └ <Handle <TaskWakeupMethWrapper object at 0x000001DF9CDA8940>(<Future finished result=False>)>
+
+  File "C:\Users\1024\.pyenv\pyenv-win\versions\3.9.7\lib\asyncio\events.py", line 80, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle <TaskWakeupMethWrapper object at 0x000001DF9CDA8940>(<Future finished result=False>)>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle <TaskWakeupMethWrapper object at 0x000001DF9CDA8940>(<Future finished result=False>)>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle <TaskWakeupMethWrapper object at 0x000001DF9CDA8940>(<Future finished result=False>)>
+
+> File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 373, in run_asgi
+    result = await app(self.scope, self.receive, self.send)
+                   │   │    │      │    │        │    └ <function RequestResponseCycle.send at 0x000001DFEA6A2670>
+                   │   │    │      │    │        └ <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>
+                   │   │    │      │    └ <function RequestResponseCycle.receive at 0x000001DFEA6A2700>
+                   │   │    │      └ <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>
+                   │   │    └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+                   │   └ <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>
+                   └ <uvicorn.middleware.proxy_headers.ProxyHeadersMiddleware object at 0x000001DFE8231850>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\uvicorn\middleware\proxy_headers.py", line 75, in __call__
+    return await self.app(scope, receive, send)
+                 │    │   │      │        └ <bound method RequestResponseCycle.send of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>>
+                 │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+                 │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+                 │    └ <fastapi.applications.FastAPI object at 0x000001DFEABF8FA0>
+                 └ <uvicorn.middleware.proxy_headers.ProxyHeadersMiddleware object at 0x000001DFE8231850>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\fastapi\applications.py", line 208, in __call__
+    await super().__call__(scope, receive, send)
+                           │      │        └ <bound method RequestResponseCycle.send of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>>
+                           │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+                           └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+          │    │                │      │        └ <bound method RequestResponseCycle.send of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC081F0>>
+          │    │                │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │    │                └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <starlette.middleware.errors.ServerErrorMiddleware object at 0x000001DF9CD36B80>
+          └ <fastapi.applications.FastAPI object at 0x000001DFEABF8FA0>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\middleware\errors.py", line 181, in __call__
+    raise exc from None
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\middleware\errors.py", line 159, in __call__
+    await self.app(scope, receive, _send)
+          │    │   │      │        └ <function ServerErrorMiddleware.__call__.<locals>._send at 0x000001DF9D0DC160>
+          │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <starlette.middleware.cors.CORSMiddleware object at 0x000001DF9CD36B20>
+          └ <starlette.middleware.errors.ServerErrorMiddleware object at 0x000001DF9CD36B80>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\middleware\cors.py", line 78, in __call__
+    await self.app(scope, receive, send)
+          │    │   │      │        └ <function ServerErrorMiddleware.__call__.<locals>._send at 0x000001DF9D0DC160>
+          │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <starlette.exceptions.ExceptionMiddleware object at 0x000001DF9CD36AC0>
+          └ <starlette.middleware.cors.CORSMiddleware object at 0x000001DF9CD36B20>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\exceptions.py", line 82, in __call__
+    raise exc from None
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\exceptions.py", line 71, in __call__
+    await self.app(scope, receive, sender)
+          │    │   │      │        └ <function ExceptionMiddleware.__call__.<locals>.sender at 0x000001DF9D11B3A0>
+          │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <fastapi.routing.APIRouter object at 0x000001DFEA6A3610>
+          └ <starlette.exceptions.ExceptionMiddleware object at 0x000001DF9CD36AC0>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\routing.py", line 580, in __call__
+    await route.handle(scope, receive, send)
+          │     │      │      │        └ <function ExceptionMiddleware.__call__.<locals>.sender at 0x000001DF9D11B3A0>
+          │     │      │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │     │      └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │     └ <function Route.handle at 0x000001DFEABC21F0>
+          └ <fastapi.routing.APIRoute object at 0x000001DF9CDDBB80>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\routing.py", line 241, in handle
+    await self.app(scope, receive, send)
+          │    │   │      │        └ <function ExceptionMiddleware.__call__.<locals>.sender at 0x000001DF9D11B3A0>
+          │    │   │      └ <bound method RequestResponseCycle.receive of <uvicorn.protocols.http.h11_impl.RequestResponseCycle object at 0x000001DF9CC08...
+          │    │   └ {'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'cl...
+          │    └ <function request_response.<locals>.app at 0x000001DF9CDA2F70>
+          └ <fastapi.routing.APIRoute object at 0x000001DF9CDDBB80>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\starlette\routing.py", line 52, in app
+    response = await func(request)
+                     │    └ <starlette.requests.Request object at 0x000001DF9CC1E0A0>
+                     └ <function get_request_handler.<locals>.app at 0x000001DF9CDA2EE0>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\fastapi\routing.py", line 234, in app
+    response_data = await serialize_response(
+                          └ <function serialize_response at 0x000001DFEABAAE50>
+
+  File "D:\graduationDesign\cursor06\backend\venv_new\lib\site-packages\fastapi\routing.py", line 137, in serialize_response
+    raise ValidationError(errors, field.type_)
+          │               │       │     └ <member 'type_' of 'ModelField' objects>
+          │               │       └ ModelField(name='Response_create_job_api_v1_jobs__post', type=Optional[Job], required=False, default=None)
+          │               └ [ErrorWrapper(exc=DictError(), loc=('response',))]
+          └ <class 'pydantic.error_wrappers.ValidationError'>
+
+pydantic.error_wrappers.ValidationError: 1 validation error for Job
+response
+  value is not a valid dict (type=type_error.dict)

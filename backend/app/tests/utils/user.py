@@ -58,4 +58,8 @@ def authentication_token_from_email(
         user_in_update = {"password": password}
         user = crud.user.update(db, db_obj=user, obj_in=user_in_update)
 
-    return user_authentication_headers(client=client, email=email, password=password) 
+    return user_authentication_headers(client=client, email=email, password=password)
+
+def get_superuser_id() -> int:
+    """获取超级管理员ID"""
+    return 2  # 在测试数据库中，超级管理员的ID是2 

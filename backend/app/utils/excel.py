@@ -6,6 +6,7 @@ from openpyxl.styles import Font, PatternFill
 
 from app.schemas.job import JobCreate
 from app.schemas.job_import import ExcelColumn, ImportError
+from app.schemas.career_import import CareerExcelTemplate
 
 # Excel模板列定义
 EXCEL_COLUMNS = [
@@ -80,6 +81,70 @@ EXCEL_COLUMNS = [
         required=True,
         description="学历要求",
         example="本科"
+    ),
+]
+
+# 职业Excel模板列定义
+CAREER_EXCEL_COLUMNS = [
+    ExcelColumn(
+        name="title",
+        required=True,
+        description="职业名称",
+        example="前端开发工程师"
+    ),
+    ExcelColumn(
+        name="description",
+        required=True,
+        description="职业描述",
+        example="负责网站前端开发和维护..."
+    ),
+    ExcelColumn(
+        name="required_skills",
+        required=True,
+        description="所需技能（用逗号分隔）",
+        example="HTML, CSS, JavaScript, React"
+    ),
+    ExcelColumn(
+        name="education_required",
+        required=False,
+        description="学历要求",
+        example="本科"
+    ),
+    ExcelColumn(
+        name="experience_required",
+        required=False,
+        description="经验要求",
+        example="3-5年"
+    ),
+    ExcelColumn(
+        name="average_salary",
+        required=False,
+        description="平均薪资",
+        example="15k-25k"
+    ),
+    ExcelColumn(
+        name="job_outlook",
+        required=False,
+        description="就业前景",
+        example="需求旺盛"
+    ),
+    ExcelColumn(
+        name="related_majors",
+        required=False,
+        description="相关专业（用逗号分隔）",
+        example="计算机科学,软件工程"
+    ),
+    ExcelColumn(
+        name="work_activities",
+        required=False,
+        description="工作内容（用逗号分隔）",
+        example="页面开发,性能优化,用户体验改进"
+    ),
+    ExcelColumn(
+        name="category_name",
+        required=True,
+        description="职业分类",
+        example="软件开发"
     ),
 ]
 
@@ -204,4 +269,90 @@ def validate_excel(file_path: str) -> Tuple[List[JobCreate], List[ImportError]]:
                     )
                 )
 
+    return valid_data, errors
+
+def validate_career_excel(file_path: str) -> Tuple[List[Dict], List[Dict]]:
+    """验证职业Excel数据"""
+    valid_data = []
+    errors = []
+    
+    try:
+        # 读取Excel文件
+        df = pd.read_excel(file_path, sheet_name=0)
+        
+        # 检查是否有数据
+        if df.empty:
+            errors.append(ImportError(
+                row=0,
+                column="",
+                value="",
+                message="Excel文件没有数据"
+            ).dict())
+            return valid_data, errors
+        
+        # 处理每一行数据
+        for index, row in df.iterrows():
+            row_num = index + 2  # Excel行号（加2是因为1是标题行，index从0开始）
+            row_data = {}
+            row_errors = []
+            
+            # 处理每个字段
+            for column in CAREER_EXCEL_COLUMNS:
+                excel_column_name = column.description  # Excel中使用的是中文列名
+                field_name = column.name  # 模型中使用的是英文字段名
+                
+                # 检查字段是否存在
+                if excel_column_name not in df.columns:
+                    row_errors.append(ImportError(
+                        row=row_num,
+                        column=field_name,
+                        value="",
+                        message=f"缺少必要列: {excel_column_name}"
+                    ).dict())
+                    continue
+                
+                # 获取字段值
+                value = row[excel_column_name]
+                
+                # 检查必填字段
+                if column.required and (pd.isna(value) or value == ""):
+                    row_errors.append(ImportError(
+                        row=row_num,
+                        column=field_name,
+                        value="",
+                        message=f"必填字段'{excel_column_name}'不能为空"
+                    ).dict())
+                    continue
+                
+                # 如果是空值，设置为None
+                if pd.isna(value):
+                    row_data[field_name] = None
+                else:
+                    # 转换为对应的类型
+                    if isinstance(value, (int, float)) and not pd.isna(value):
+                        if field_name in ["title", "description", "education_required", 
+                                        "experience_required", "average_salary", 
+                                        "job_outlook", "category_name"]:
+                            row_data[field_name] = str(value)
+                        else:
+                            row_data[field_name] = value
+                    else:
+                        row_data[field_name] = value
+            
+            # 如果有错误，记录错误并跳过此行
+            if row_errors:
+                errors.extend(row_errors)
+                continue
+            
+            # 添加有效数据
+            valid_data.append(row_data)
+    
+    except Exception as e:
+        errors.append(ImportError(
+            row=0,
+            column="",
+            value="",
+            message=f"解析Excel文件出错: {str(e)}"
+        ).dict())
+    
     return valid_data, errors 

@@ -1,0 +1,62 @@
+# 批量导入Excel数据调试经验
+
+## 排查多层次问题的方法
+
+批量导入Excel数据时遇到多层次嵌套问题的解决方案：
+
+1. **逐层排查问题**：
+   - 先确保基础设施正常（如目录存在）
+   - 再检查数据格式和序列化问题
+   - 最后优化Excel模板确保字段匹配
+
+2. **数据序列化处理**：
+   - 自定义类必须处理JSON序列化
+   - 对于Pydantic模型，使用.dict()方法转换为可序列化对象
+   - 在返回数据前检查是否所有对象都可序列化
+
+3. **Excel模板设计**：
+   - 表头必须与代码中的定义完全匹配
+   - 生成模板时设置必填字段标记
+   - 添加示例数据辅助用户填写
+
+4. **调试技巧**：
+   - 检查日志中的详细错误（app/logs/app.log）
+   - 每修复一个问题后重启服务器
+   - 使用多个测试用例验证修复是否完全
+
+5. **潜在陷阱**：
+   - 错误可能被上层错误掩盖
+   - 异步任务状态追踪困难
+   - 服务器重启后需要重新获取认证令牌
+
+## 解决ImportError对象JSON序列化问题示例
+
+```python
+# 修改前：错误写法
+errors.append(ImportError(
+    row=row_num,
+    column=field_name,
+    value="",
+    message=f"缺少必要列: {excel_column_name}"
+))
+
+# 修改后：正确写法（添加.dict()方法）
+errors.append(ImportError(
+    row=row_num,
+    column=field_name,
+    value="",
+    message=f"缺少必要列: {excel_column_name}"
+).dict())
+```
+
+记得在服务启动后检查templates目录是否存在，避免"Internal Server Error"。
+
+## 相关文件清单
+
+处理Excel导入职业数据时的关键文件：
+- app/utils/excel.py：处理Excel验证和转换
+- app/api/v1/endpoints/career_imports.py：导入API端点
+- app/schemas/career_import.py：数据模型定义
+
+修改这些文件时谨慎检查依赖关系，特别是CAREER_EXCEL_COLUMNS定义。
+

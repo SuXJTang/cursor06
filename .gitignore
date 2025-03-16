@@ -110,22 +110,109 @@ venv.bak/
 # Project specific
 backend/venv/
 backend/venv_new/
-__pycache__/
-.pytest_cache/
-.coverage
-htmlcov/
-.env
-.env.*
-!.env.example
-.DS_Store
-node_modules/
-dist/
+backend/__pycache__/
+backend/.pytest_cache/
+backend/cursor06_backend.egg-info/
+backend/uploads/
+backend/.env
+backend/*.xlsx
+backend/app/__pycache__/
+backend/tests/__pycache__/
+backend/alembic/__pycache__/
+
+# 保留重要的配置文件
+!backend/alembic.ini
+!backend/requirements.txt
+!backend/pyproject.toml
+!backend/setup.py
+
+# Node
+.npm
+.yarn
+.pnp
+.pnp.js
+.cache
+.parcel-cache
+dist
+dist-ssr
+*.local
+.env.local
+.env.*.local
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
 .idea/
+.vscode/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
-*.sw? 
+*.sw?
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+backup_files/
+.cursor/
+start-mcp.bat
+package-lock.json
+
+# Testing
+coverage/
+.nyc_output
+.pytest_cache/
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Local env files
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build output
+dist/
+dist-ssr/
+build/
+out/
+.next/
+.nuxt/
+.output/
+
+# Cache directories
+.npm/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo 

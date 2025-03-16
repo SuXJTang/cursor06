@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
     
     # 文件上传配置
+    STATIC_DIR: str = "static"  # 静态文件根目录
     UPLOAD_DIR: str = "uploads"
     MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5MB
     ALLOWED_UPLOAD_EXTENSIONS: List[str] = [".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx"]

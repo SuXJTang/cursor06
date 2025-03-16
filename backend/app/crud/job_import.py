@@ -4,7 +4,7 @@ from fastapi.encoders import jsonable_encoder
 
 from app.crud.base import CRUDBase
 from app.models.job_import import JobImport
-from app.schemas.job_import import JobImportCreate, JobImportUpdate
+from app.schemas.job_import import JobImportCreate, JobImportUpdate, JobImportStatusUpdate
 
 class CRUDJobImport(CRUDBase[JobImport, JobImportCreate, JobImportUpdate]):
     def get(self, db: Session, id: int) -> Optional[JobImport]:
@@ -21,14 +21,11 @@ class CRUDJobImport(CRUDBase[JobImport, JobImportCreate, JobImportUpdate]):
         return [jsonable_encoder(record) for record in records]
 
     def create_import(
-        self, db: Session, *, filename: str, importer_id: int
+        self, db: Session, *, obj_in: JobImportCreate
     ) -> JobImport:
         """创建导入记录"""
-        db_obj = JobImport(
-            filename=filename,
-            importer_id=importer_id,
-            status="pending"
-        )
+        obj_in_data = jsonable_encoder(obj_in)
+        db_obj = JobImport(**obj_in_data)
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
@@ -55,5 +52,18 @@ class CRUDJobImport(CRUDBase[JobImport, JobImportCreate, JobImportUpdate]):
         db.commit()
         db.refresh(db_obj)
         return db_obj
+
+    def update_status(
+        self,
+        db: Session,
+        *,
+        db_obj: JobImport,
+        obj_in: JobImportStatusUpdate
+    ) -> JobImport:
+        """更新导入记录状态"""
+        update_data = obj_in.dict(exclude_unset=True)
+        if "error_count" in update_data:
+            update_data["failed_count"] = update_data.pop("error_count")
+        return super().update(db, db_obj=db_obj, obj_in=update_data)
 
 job_import = CRUDJobImport(JobImport) 

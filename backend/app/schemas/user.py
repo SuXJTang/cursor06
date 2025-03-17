@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, constr
+from pydantic import BaseModel, EmailStr, constr, HttpUrl
 
 # 共享属性
 class UserBase(BaseModel):
@@ -9,6 +9,7 @@ class UserBase(BaseModel):
     phone: Optional[str] = None
     is_active: Optional[bool] = True
     is_superuser: bool = False
+    avatar_url: Optional[HttpUrl] = None
 
 # 创建用户时需要的属性
 class UserCreate(UserBase):
@@ -20,6 +21,10 @@ class UserCreate(UserBase):
 # 更新用户时可以更新的属性
 class UserUpdate(UserBase):
     password: Optional[constr(min_length=8, max_length=32)] = None
+
+# 更新用户头像URL的模型
+class UserAvatarUpdate(BaseModel):
+    avatar_url: HttpUrl
 
 # 数据库中存储的用户属性
 class UserInDBBase(UserBase):

@@ -1,7 +1,7 @@
 from .token import Token, TokenPayload
-from .user import User, UserCreate, UserUpdate, UserInDB
+from .user import User, UserCreate, UserUpdate, UserInDB, UserAvatarUpdate
 from .user_profile import UserProfile, UserProfileCreate, UserProfileUpdate, UserProfileInDB
-from .resume import Resume, ResumeCreate, ResumeUpdate, ResumeInDB, ResumeFileUpdate, ResumeStatusUpdate
+from .resume import Resume, ResumeCreate, ResumeUpdate, ResumeInDB, ResumeFileUpdate, ResumeStatusUpdate, ResumeFile
 from .job import Job, JobCreate, JobUpdate, JobInDB, JobSearchParams
 from .job_category import JobCategory, JobCategoryCreate, JobCategoryUpdate, JobCategoryInDB
 from .job_import import JobImport, JobImportCreate, JobImportUpdate, JobImportStatusUpdate
@@ -21,6 +21,7 @@ __all__ = [
     "UserCreate",
     "UserInDB",
     "UserUpdate",
+    "UserAvatarUpdate",
     "UserProfile",
     "UserProfileCreate",
     "UserProfileInDB",
@@ -31,6 +32,7 @@ __all__ = [
     "ResumeUpdate",
     "ResumeFileUpdate",
     "ResumeStatusUpdate",
+    "ResumeFile",
     "JobCategory",
     "JobCategoryCreate",
     "JobCategoryInDB",

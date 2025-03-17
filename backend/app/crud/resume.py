@@ -18,6 +18,13 @@ class CRUDResume(CRUDBase[Resume, ResumeCreate, ResumeUpdate]):
             Resume.user_id == user_id,
             Resume.is_active == True
         ).all()
+        
+    def get_active_by_user(self, db: Session, *, user_id: int) -> Optional[Resume]:
+        """获取用户的一份活跃简历（如果存在多份，返回第一份）"""
+        return db.query(Resume).filter(
+            Resume.user_id == user_id,
+            Resume.is_active == True
+        ).first()
 
     def create_with_user(
         self, db: Session, *, obj_in: ResumeCreate, user_id: int
@@ -87,4 +94,4 @@ class CRUDResume(CRUDBase[Resume, ResumeCreate, ResumeUpdate]):
         db.refresh(db_obj)
         return db_obj
 
-resume = CRUDResume(Resume) 
+resume = CRUDResume(Resume)

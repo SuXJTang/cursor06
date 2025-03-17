@@ -54,3 +54,10 @@ class Resume(ResumeInDBBase):
 class ResumeInDB(ResumeInDBBase):
     """数据库中存储的简历模型"""
     pass 
+# 新增：文件上传响应模型
+class ResumeFile(BaseModel):
+    '''上传简历文件的响应模型'''
+    filename: str
+    file_size: int
+    file_type: str
+    file_url: str

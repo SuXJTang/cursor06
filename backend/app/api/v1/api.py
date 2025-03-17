@@ -12,7 +12,8 @@ from app.api.v1.endpoints import (
     career_categories,
     career_recommendations,
     learning_paths,
-    career_imports
+    career_imports,
+    resume_files
 )
 
 api_router = APIRouter()
@@ -52,3 +53,10 @@ api_router.include_router(learning_paths.router, prefix="/learning-paths", tags=
 
 # 注册职业导入路由
 api_router.include_router(career_imports.router, prefix="/career-imports", tags=["职业导入"])
+
+# 注册简历文件路由
+api_router.include_router(resume_files.router, prefix="/resume-files", tags=["简历文件"])
+
+# 简历文件上传功能已经集成在resumes模块中，无需单独添加路由
+# from app.api.v1.endpoints import resume_files
+# api_router.include_router(resume_files.router, prefix="/resume-files", tags=["resumes"]) 

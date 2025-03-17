@@ -11,6 +11,7 @@ class User(Base):
     username = Column(String(50), unique=True, nullable=False, index=True, comment='用户名')
     phone = Column(String(20), unique=True, comment='手机号')
     hashed_password = Column(String(100), nullable=False, comment='密码哈希')
+    avatar_url = Column(String(255), comment='头像URL')
     is_active = Column(Boolean, default=True, comment='是否激活')
     is_superuser = Column(Boolean, default=False, comment='是否为超级用户')
     is_verified = Column(Boolean, default=False, comment='是否验证')

@@ -1,218 +1,31 @@
-# Dependencies
-node_modules
-.pnpm-store
-
-# Build
-dist
-dist-ssr
-*.local
-
-# Editor
-.vscode/*
-!.vscode/extensions.json
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# Testing
-coverage
-
-# Environment
-.env
-.env.*
-!.env.example
-
-# System
-.DS_Store
-Thumbs.db
-
-# Cache
-.cache
-.temp
-
-# Python
+# Python字节码文件
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-*.manifest
-*.spec
-pip-log.txt
-pip-delete-this-directory.txt
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-*.mo
-*.pot
-*.log
-local_settings.py
-db.sqlite3
-instance/
-.webassets-cache
-.env
-.venv
-env/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# 虚拟环境
 venv/
 venv_new/
+env/
 ENV/
-env.bak/
-venv.bak/
-.spyderproject
-.spyproject
-.ropeproject
-/site
-.mypy_cache/
-.pyre/
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# Project specific
-backend/venv/
-backend/venv_new/
-backend/__pycache__/
-backend/.pytest_cache/
-backend/cursor06_backend.egg-info/
-backend/uploads/
-backend/.env
-backend/*.xlsx
-backend/app/__pycache__/
-backend/tests/__pycache__/
-backend/alembic/__pycache__/
-
-# 保留重要的配置文件
-!backend/alembic.ini
-!backend/requirements.txt
-!backend/pyproject.toml
-!backend/setup.py
-
-# Node
-.npm
-.yarn
-.pnp
-.pnp.js
-.cache
-.parcel-cache
-dist
-dist-ssr
-*.local
-.env.local
-.env.*.local
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# Editor directories and files
-.idea/
-.vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-.project
-.classpath
-.settings/
-*.sublime-workspace
-*.sublime-project
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Project specific
-backup_files/
-.cursor/
-start-mcp.bat
-package-lock.json
-
-# Testing
-coverage/
-.nyc_output
-.pytest_cache/
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-
-# Logs
-logs
+# 日志文件
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+logs/
 
-# Local env files
-.env.local
-.env.*.local
-.env.development.local
-.env.test.local
-.env.production.local
+# 上传的文件目录
+static/avatars/
+static/resumes/
+static/uploads/
 
-# Build output
-dist/
-dist-ssr/
-build/
-out/
-.next/
-.nuxt/
-.output/
+# IDE配置
+.idea/
+.vscode/
 
-# Cache directories
-.npm/
-.eslintcache
-.stylelintcache
-*.tsbuildinfo 
+# 数据库文件
+*.db
+*.sqlite3

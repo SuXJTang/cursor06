@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@angular/common": "^19.2.1",
+    "@angular/common": "^19.2.2",
     "@angular/core": "^19.2.1",
     "@angular/forms": "^19.2.1",
     "novo-elements": "^10.12.0",

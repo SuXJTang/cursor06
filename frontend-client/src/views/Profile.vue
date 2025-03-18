@@ -41,6 +41,14 @@
           <el-input v-model="profileForm.email" />
         </el-form-item>
 
+        <el-form-item label="手机号" prop="phone">
+          <el-input 
+            v-model="profileForm.phone" 
+            placeholder="请输入手机号码" 
+            maxlength="11"
+          />
+        </el-form-item>
+
         <el-form-item label="角色">
           <el-tag>{{ profileForm.role === 'admin' ? '管理员' : '学生' }}</el-tag>
         </el-form-item>
@@ -859,6 +867,7 @@ const router = useRouter()
 const profileForm = reactive({
   username: '',
   email: '',
+  phone: '',
   avatar: '',
   role: '',
   createdAt: '',
@@ -874,6 +883,10 @@ const rules = reactive<FormRules>({
   email: [
     { required: true, message: '请输入邮箱', trigger: 'blur' },
     { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+  ],
+  phone: [
+    { required: false, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
   ]
 })
 

@@ -24,10 +24,14 @@
       <div class="nav-user">
         <template v-if="userStore.isLoggedIn">
           <el-dropdown trigger="click" @command="handleCommand">
-            <el-avatar 
-              :size="32" 
-              :src="userStore.userInfo?.avatar || defaultAvatarUrl" 
-            />
+            <template v-if="showDefaultAvatar">
+              <el-avatar :size="32" :style="defaultAvatarStyle">
+                <el-icon><UserFilled /></el-icon>
+              </el-avatar>
+            </template>
+            <template v-else>
+              <el-avatar :size="32" :src="userStore.userInfo?.avatar_url" />
+            </template>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="profile">个人中心</el-dropdown-item>
@@ -47,7 +51,8 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { School } from '@element-plus/icons-vue'
+import { School, UserFilled } from '@element-plus/icons-vue'
+import { computed } from 'vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -61,8 +66,51 @@ const menuItems = [
   { name: '职业热力图', path: '/career-heat' }
 ]
 
-// 默认头像
-const defaultAvatarUrl = '/default-avatar.png'
+// 默认头像 - 使用Element Plus内置的头像图标生成随机彩色背景头像
+
+// 根据用户名生成颜色
+const getRandomColor = (username: string) => {
+  // 预定义的一组美观颜色
+  const colors = [
+    '#409EFF', // 蓝色（主题色）
+    '#67C23A', // 绿色（成功色）
+    '#E6A23C', // 黄色（警告色）
+    '#F56C6C', // 红色（危险色）
+    '#909399', // 灰色（信息色）
+    '#8e44ad', // 紫色
+    '#16a085', // 青绿色
+    '#d35400', // 橙色
+    '#2c3e50', // 深蓝灰色
+    '#27ae60'  // 翠绿色
+  ]
+  
+  // 如果没有用户名，返回主题色
+  if (!username) return colors[0]
+  
+  // 根据用户名生成一个索引
+  let sum = 0
+  for (let i = 0; i < username.length; i++) {
+    sum += username.charCodeAt(i)
+  }
+  return colors[sum % colors.length]
+}
+
+// 计算得到的默认头像样式
+const defaultAvatarStyle = computed(() => {
+  const color = getRandomColor(userStore.userInfo?.username || '')
+  return {
+    backgroundColor: color,
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  }
+})
+
+// 是否显示默认头像
+const showDefaultAvatar = computed(() => {
+  return !userStore.userInfo?.avatar_url || userStore.userInfo.avatar_url === ''
+})
 
 // 处理下拉菜单命令
 const handleCommand = (command: string) => {

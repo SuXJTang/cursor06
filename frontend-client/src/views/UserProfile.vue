@@ -368,25 +368,18 @@
                     <div 
                       v-for="(item, index) in learningStyleOptions" 
                       :key="index" 
-                      class="learning-style-bar"
+                      class="learning-style-item"
                     >
-                      <div class="learning-bar-label">
+                      <div class="star-rating-header">
                         <span>{{item.label}}</span>
                         <span>{{extraInfoForm.learningStyle[item.value]}}/5</span>
                       </div>
-                      <div class="learning-bar-control">
-                        <el-progress 
-                          :percentage="extraInfoForm.learningStyle[item.value] * 20" 
-                          :color="getLearningColor(extraInfoForm.learningStyle[item.value])"
-                          :stroke-width="8"
-                          :show-text="false"
-                        />
-                        <el-slider
-                          v-if="isEditingExtra"
+                      <div class="star-rating-control">
+                        <el-rate
                           v-model="extraInfoForm.learningStyle[item.value]"
-                          :min="1"
                           :max="5"
-                          :show-tooltip="false"
+                          :colors="rateColors"
+                          :disabled="!isEditingExtra"
                           @change="val => handleRateChange(val, 'learningStyle', item.value)"
                         />
                       </div>
@@ -426,27 +419,23 @@
                   </div>
                   <div class="interest-chart">
                     <span class="item-label">职业兴趣方向</span>
-                    <div class="interest-radar-chart">
-                      <div class="interest-radar-container">
+                    <div class="interest-star-chart">
+                      <div class="interest-star-container">
                         <div 
                           v-for="(item, index) in careerInterestOptions" 
                           :key="index" 
-                          class="interest-radar-item"
-                          :style="{ 
-                            '--radar-percent': extraInfoForm.careerInterests[item.value] * 20 + '%',
-                            '--radar-color': getInterestColor(extraInfoForm.careerInterests[item.value])
-                          }"
+                          class="interest-star-item"
                         >
-                          <div class="interest-radar-value">
+                          <div class="star-rating-header">
                             <span>{{ item.label }}</span>
-                            <span>{{ extraInfoForm.careerInterests[item.value] }}</span>
+                            <span>{{ extraInfoForm.careerInterests[item.value] }}/5</span>
                           </div>
-                          <div v-if="isEditingExtra" class="interest-radar-control">
-                            <el-slider
+                          <div class="star-rating-control">
+                            <el-rate
                               v-model="extraInfoForm.careerInterests[item.value]"
-                              :min="1"
                               :max="5"
-                              :show-tooltip="false"
+                              :colors="rateColors"
+                              :disabled="!isEditingExtra"
                               @change="val => handleRateChange(val, 'careerInterests', item.value)"
                             />
                           </div>
@@ -1496,78 +1485,40 @@ onMounted(async () => {
   gap: 15px;
 }
 
-.learning-style-bar {
+.learning-style-item {
   width: 100%;
+  margin-bottom: 8px;
 }
 
-.learning-bar-label {
+.star-rating-header {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
   margin-bottom: 5px;
 }
 
-.learning-bar-control {
-  width: 100%;
+.star-rating-control {
+  display: flex;
+  align-items: center;
 }
 
 .interest-chart {
   margin-top: 10px;
 }
 
-.interest-radar-chart {
+.interest-star-chart {
   margin-top: 10px;
 }
 
-.interest-radar-container {
+.interest-star-container {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 15px;
 }
 
-.interest-radar-item {
-  position: relative;
-  height: 30px;
-  background: #f5f7fa;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.interest-radar-item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: var(--radar-percent, 0%);
-  background-color: var(--radar-color, #409EFF);
-  opacity: 0.2;
-}
-
-.interest-radar-value {
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  padding: 0 10px;
-  height: 100%;
-  align-items: center;
-  font-size: 13px;
-}
-
-.interest-radar-control {
-  padding: 0 10px;
-  margin-top: 5px;
-}
-
-.add-btn {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  font-size: 12px;
+.interest-star-item {
+  width: 100%;
+  margin-bottom: 8px;
 }
 
 .career-card .quick-card-header {

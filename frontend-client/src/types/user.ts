@@ -4,16 +4,56 @@ export type UserRole = 'admin' | 'user'
 // 用户状态类型
 export type UserStatus = 'active' | 'inactive' | 'banned'
 
-// 用户信息接口
+// 用户基本信息类型
 export interface UserInfo {
-  id: number
-  username: string
+  name: string
+  gender: string
+  phone: string
   email: string
-  role: UserRole
-  status: UserStatus
-  avatar?: string
-  createdAt: string
-  updatedAt: string
+  avatar: string
+}
+
+// 工作状态选项类型
+export interface StatusOption {
+  value: string
+  label: string
+}
+
+// 职业偏好类型
+export interface CareerPreference {
+  expectedPosition: string
+  expectedIndustry: string
+  expectedSalary: string
+  workCity: string
+}
+
+// 工作经验类型
+export interface WorkExperience {
+  workYears: number
+  currentStatus: string
+  description: string
+}
+
+// 技能信息类型
+export interface Skill {
+  id: number
+  name: string
+  rating: number
+}
+
+// 技能分类类型
+export interface SkillCategory {
+  name: string
+  skills: Skill[]
+}
+
+// 上传响应类型
+export interface UploadResponse {
+  code: number
+  data: {
+    url: string
+  }
+  message?: string
 }
 
 // 登录请求参数

@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { ElMessage } from 'element-plus'
 import Home from '@/views/Home.vue'
@@ -15,108 +15,110 @@ import CareerHeat from '@/views/CareerHeat.vue'
 import CareerRecommend from '@/views/CareerRecommend.vue'
 import Result from '@/views/Result.vue'
 
+const routes: Array<RouteRecordRaw> = [
+  {
+    path: '/',
+    name: 'home',
+    component: Home
+  },
+  {
+    path: '/login',
+    name: 'login',
+    component: Login
+  },
+  {
+    path: '/register',
+    name: 'register',
+    component: Register
+  },
+  {
+    path: '/user-info',
+    name: 'userInfo',
+    component: UserInfo,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/user-profile',
+    name: 'userProfile',
+    component: UserProfile,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/user-center',
+    name: 'userCenter',
+    component: UserCenter,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        redirect: { name: 'userCenterInfo' }
+      },
+      {
+        path: 'info',
+        name: 'userCenterInfo',
+        component: UserInfo,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'profile',
+        name: 'profile',
+        component: UserProfile,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'recommend',
+        name: 'userRecommend',
+        component: CareerRecommend,
+        meta: { requiresAuth: true }
+      }
+    ]
+  },
+  {
+    path: '/assessment',
+    name: 'assessment',
+    component: Assessment,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/careers',
+    name: 'careers',
+    component: Careers,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/career-library',
+    name: 'careerLibrary',
+    component: CareerLibrary,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/career-heat',
+    name: 'careerHeat',
+    component: CareerHeat,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/career-recommend',
+    name: 'careerRecommend',
+    component: CareerRecommend,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/result',
+    name: 'result',
+    component: Result,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/:catchAll(.*)',
+    name: 'notFound',
+    component: NotFound
+  }
+]
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
-    {
-      path: '/',
-      name: 'home',
-      component: Home
-    },
-    {
-      path: '/login',
-      name: 'login',
-      component: Login
-    },
-    {
-      path: '/register',
-      name: 'register',
-      component: Register
-    },
-    {
-      path: '/user-info',
-      name: 'userInfo',
-      component: UserInfo,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/user-profile',
-      name: 'userProfile',
-      component: UserProfile,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/user-center',
-      name: 'userCenter',
-      component: UserCenter,
-      meta: { requiresAuth: true },
-      children: [
-        {
-          path: '',
-          redirect: { name: 'userCenterInfo' }
-        },
-        {
-          path: 'info',
-          name: 'userCenterInfo',
-          component: UserInfo,
-          meta: { requiresAuth: true }
-        },
-        {
-          path: 'profile',
-          name: 'profile',
-          component: UserProfile,
-          meta: { requiresAuth: true }
-        },
-        {
-          path: 'recommend',
-          name: 'userRecommend',
-          component: CareerRecommend,
-          meta: { requiresAuth: true }
-        }
-      ]
-    },
-    {
-      path: '/assessment',
-      name: 'assessment',
-      component: Assessment,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/careers',
-      name: 'careers',
-      component: Careers,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/career-library',
-      name: 'careerLibrary',
-      component: CareerLibrary,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/career-heat',
-      name: 'careerHeat',
-      component: CareerHeat,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/career-recommend',
-      name: 'careerRecommend',
-      component: CareerRecommend,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/result',
-      name: 'result',
-      component: Result,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/:catchAll(.*)',
-      name: 'notFound',
-      component: NotFound
-    }
-  ]
+  routes
 })
 
 // 路由守卫

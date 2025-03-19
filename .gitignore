@@ -29,3 +29,9 @@ static/uploads/
 # 数据库文件
 *.db
 *.sqlite3
+
+# 前端依赖
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log

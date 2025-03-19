@@ -123,32 +123,36 @@
           </div>
         </el-card>
 
-        <!-- 附加信息卡片 -->
-        <el-card class="profile-card card-with-sections">
+        <!-- 个人资料信息卡片 - 重新设计 -->
+        <el-card class="profile-card profile-info-card">
           <template #header>
             <div class="card-header">
-              <h2>附加资料</h2>
-              <el-button type="primary" @click="isEditingExtra = true" v-if="!isEditingExtra">
-                编辑
+              <h2>个人资料</h2>
+              <el-button 
+                :type="isEditingExtra ? 'success' : 'primary'" 
+                @click="isEditingExtra ? handleExtraInfoSubmit() : isEditingExtra = true" 
+                :icon="isEditingExtra ? 'Check' : 'Edit'"
+              >
+                {{ isEditingExtra ? '保存' : '编辑' }}
               </el-button>
             </div>
           </template>
-          <el-form label-position="top" class="extra-info-form">
-            <!-- 职业偏好部分 -->
-            <div class="form-section compact-section">
-              <div class="section-header compact-header">
-                <div class="section-icon"><i class="el-icon-suitcase"></i></div>
+          
+          <el-form label-position="top" class="profile-form">
+            <!-- 职业偏好部分 - 重新设计 -->
+            <div class="profile-section career-section">
+              <div class="section-header">
+                <el-icon class="section-icon"><Suitcase /></el-icon>
                 <h3>职业偏好</h3>
               </div>
-              <div class="section-content compact-content">
-                <el-row :gutter="10">
-                  <el-col :span="12">
-                    <el-form-item label="期望职位" class="compact-form-item">
+              <div class="section-content">
+                <el-row :gutter="20">
+                  <el-col :sm="24" :md="12">
+                    <el-form-item label="期望职位">
                       <el-select
                         v-model="extraInfoForm.expectedPositions"
-                        multiple
                         placeholder="请选择期望职位" 
-                        style="width: 100%"
+                        class="full-width-select"
                         :disabled="!isEditingExtra"
                       >
                         <el-option
@@ -160,13 +164,12 @@
                       </el-select>
                     </el-form-item>
                   </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="期望行业" class="compact-form-item">
+                  <el-col :sm="24" :md="12">
+                    <el-form-item label="期望行业">
                       <el-select
                         v-model="extraInfoForm.expectedIndustries"
-                        multiple
                         placeholder="请选择期望行业" 
-                        style="width: 100%"
+                        class="full-width-select"
                         :disabled="!isEditingExtra"
                       >
                         <el-option
@@ -179,11 +182,12 @@
                     </el-form-item>
                   </el-col>
                 </el-row>
-                <el-form-item label="期望薪资" class="compact-form-item">
+                
+                <el-form-item label="期望薪资">
                   <el-select
                     v-model="extraInfoForm.expectedSalary"
                     placeholder="请选择期望薪资范围"
-                    style="width: 100%"
+                    class="salary-select"
                     :disabled="!isEditingExtra"
                   >
                     <el-option
@@ -197,33 +201,34 @@
               </div>
             </div>
             
-            <!-- 工作经验部分 -->
-            <div class="form-section compact-section">
-              <div class="section-header compact-header">
-                <div class="section-icon"><i class="el-icon-briefcase"></i></div>
+            <!-- 工作经验部分 - 重新设计 -->
+            <div class="profile-section experience-section">
+              <div class="section-header">
+                <el-icon class="section-icon"><Briefcase /></el-icon>
                 <h3>工作经验</h3>
               </div>
-              <div class="section-content compact-content">
-                <el-row :gutter="10">
-                  <el-col :span="12">
-                    <el-form-item label="工作年限" class="compact-form-item">
+              <div class="section-content">
+                <el-row :gutter="20">
+                  <el-col :sm="24" :md="12">
+                    <el-form-item label="工作年限">
                       <el-input-number 
                         v-model="extraInfoForm.workYears" 
                         :min="0" 
                         :max="50" 
                         :step="1" 
                         :disabled="!isEditingExtra"
-                        style="width: 100%"
+                        controls-position="right"
+                        class="year-input"
                       />
                     </el-form-item>
                   </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="当前状态" class="compact-form-item">
+                  <el-col :sm="24" :md="12">
+                    <el-form-item label="当前状态">
                       <el-select 
                         v-model="extraInfoForm.currentStatus" 
                         placeholder="请选择当前工作状态" 
-                        style="width: 100%"
                         :disabled="!isEditingExtra"
+                        class="full-width-select"
                       >
                         <el-option
                           v-for="item in statusOptions"
@@ -235,11 +240,12 @@
                     </el-form-item>
                   </el-col>
                 </el-row>
-                <el-form-item label="工作经验详情" class="compact-form-item">
+
+                <el-form-item label="工作经历描述">
                   <el-input 
                     v-model="extraInfoForm.workExperience" 
                     type="textarea" 
-                    :rows="3"
+                    :rows="4"
                     placeholder="请简要描述您的工作经历，包括公司、职位和主要职责等" 
                     :disabled="!isEditingExtra"
                   />
@@ -247,39 +253,68 @@
               </div>
             </div>
             
-            <!-- 技能评估部分 -->
-            <div class="form-section compact-section">
-              <div class="section-header compact-header">
-                <div class="section-icon"><i class="el-icon-trophy"></i></div>
+            <!-- 技能评估部分 - 重新设计 -->
+            <div class="profile-section skills-section">
+              <div class="section-header">
+                <el-icon class="section-icon"><Trophy /></el-icon>
                 <h3>技能评估</h3>
+                <el-button 
+                  v-if="isEditingExtra" 
+                  @click="showAddSkillDialog = true" 
+                  type="primary" 
+                  size="small" 
+                  text
+                  class="add-skill-btn"
+                >
+                  添加技能
+                </el-button>
               </div>
-              <div class="section-content compact-content">
-                <el-form-item label="专业技能" class="compact-form-item">
-                  <div class="skills-container">
-                    <el-tag
-                      v-for="skill in extraInfoForm.skills"
-                      :key="skill.id"
-                      closable
-                      :disable-transitions="false"
-                      @close="handleSkillClose(skill)"
-                      :class="`skill-tag skill-level-${skill.level}`"
-                      :disable-closing="!isEditingExtra"
-                    >
-                      {{ skill.name }} ({{ skill.level }}/5)
-                    </el-tag>
-                    <el-button class="button-new-skill" size="small" @click="showAddSkillDialog = true" v-if="isEditingExtra">
-                      + 添加技能
-                    </el-button>
+              <div class="section-content">
+                <div class="skills-grid">
+                  <div
+                    v-for="skill in extraInfoForm.skills"
+                    :key="skill.id"
+                    class="skill-card"
+                  >
+                    <div class="skill-header">
+                      <span class="skill-name">{{ skill.name }}</span>
+                      <el-button 
+                        v-if="isEditingExtra" 
+                        @click="handleSkillClose(skill)" 
+                        type="danger" 
+                        size="small" 
+                        text
+                        class="remove-skill-btn"
+                      >
+                        删除
+                      </el-button>
+                    </div>
+                    <el-rate
+                      v-model="skill.level"
+                      :max="5"
+                      :disabled="!isEditingExtra"
+                      :colors="rateColors"
+                      show-score
+                    />
                   </div>
-                </el-form-item>
-                <el-row :gutter="10">
-                  <el-col :span="12">
-                    <el-form-item label="语言能力" class="compact-form-item">
+                  <div 
+                    v-if="isEditingExtra && extraInfoForm.skills.length === 0" 
+                    class="no-skills-placeholder"
+                  >
+                    <el-empty description="暂无技能信息">
+                      <el-button type="primary" @click="showAddSkillDialog = true">添加技能</el-button>
+                    </el-empty>
+                  </div>
+                </div>
+
+                <el-row :gutter="20" class="mt-20">
+                  <el-col :sm="24" :md="12">
+                    <el-form-item label="语言能力">
                       <el-select
                         v-model="extraInfoForm.languages"
                         multiple
                         placeholder="请选择掌握的语言"
-                        style="width: 100%"
+                        class="full-width-select"
                         :disabled="!isEditingExtra"
                       >
                         <el-option
@@ -291,8 +326,8 @@
                       </el-select>
                     </el-form-item>
                   </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="技能标签" class="compact-form-item">
+                  <el-col :sm="24" :md="12">
+                    <el-form-item label="技能标签">
                       <el-select
                         v-model="extraInfoForm.skillTags"
                         multiple
@@ -300,7 +335,7 @@
                         allow-create
                         default-first-option
                         placeholder="请选择或输入技能标签"
-                        style="width: 100%"
+                        class="full-width-select"
                         :disabled="!isEditingExtra"
                       >
                         <el-option
@@ -316,20 +351,20 @@
               </div>
             </div>
             
-            <!-- 性格与工作风格部分 -->
-            <div class="form-section compact-section">
-              <div class="section-header compact-header">
-                <div class="section-icon"><i class="el-icon-user"></i></div>
+            <!-- 性格与工作风格部分 - 重新设计 -->
+            <div class="profile-section personality-section">
+              <div class="section-header">
+                <el-icon class="section-icon"><User /></el-icon>
                 <h3>性格与工作风格</h3>
               </div>
-              <div class="section-content compact-content">
-                <el-row :gutter="10">
-                  <el-col :span="12">
-                    <el-form-item label="MBTI类型" class="compact-form-item">
+              <div class="section-content">
+                <el-row :gutter="20">
+                  <el-col :sm="24" :md="12">
+                    <el-form-item label="MBTI类型">
                       <el-select
                         v-model="extraInfoForm.mbtiType"
                         placeholder="请选择您的MBTI类型"
-                        style="width: 100%"
+                        class="full-width-select"
                         :disabled="!isEditingExtra"
                       >
                         <el-option-group
@@ -347,14 +382,14 @@
                       </el-select>
                     </el-form-item>
                   </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="工作风格" class="compact-form-item">
+                  <el-col :sm="24" :md="12">
+                    <el-form-item label="工作风格">
                       <el-select
                         v-model="extraInfoForm.workingStyle"
                         multiple
                         collapse-tags
                         placeholder="请选择您的工作风格" 
-                        style="width: 100%"
+                        class="full-width-select"
                         :disabled="!isEditingExtra"
                       >
                         <el-option
@@ -370,25 +405,33 @@
               </div>
             </div>
 
-            <!-- 学习风格部分 -->
-            <div class="form-section compact-section">
-              <div class="section-header compact-header">
-                <div class="section-icon"><i class="el-icon-reading"></i></div>
+            <!-- 学习风格部分 - 重新设计 -->
+            <div class="profile-section learning-section">
+              <div class="section-header">
+                <el-icon class="section-icon"><Reading /></el-icon>
                 <h3>学习风格</h3>
               </div>
-              <div class="section-content compact-content">
-                <div class="rating-container compact-rating-container">
-                  <div v-for="(item, index) in learningStyleOptions" :key="index" class="rating-item compact-rating-item">
-                    <div class="rating-label">{{item.label}}</div>
-                    <div class="rating-value">
-                      <div class="rating-stars">
+              <div class="section-content">
+                <div class="learning-styles-chart">
+                  <div class="learning-styles-grid">
+                    <div v-for="(item, index) in learningStyleOptions" :key="index" class="learning-style-item">
+                      <div class="learning-style-info">
+                        <div class="learning-style-label">{{item.label}}</div>
+                        <div class="learning-style-value">{{extraInfoForm.learningStyle[item.value]}}/5</div>
+                      </div>
+                      <el-progress 
+                        :percentage="extraInfoForm.learningStyle[item.value] * 20" 
+                        :color="getProgressColor(extraInfoForm.learningStyle[item.value])"
+                        :show-text="false"
+                        :stroke-width="12"
+                        class="learning-style-progress"
+                      />
+                      <div class="learning-style-rating">
                         <el-rate
                           v-model="extraInfoForm.learningStyle[item.value]"
                           :max="5"
                           :disabled="!isEditingExtra"
                           :colors="rateColors"
-                          show-score
-                          :score-template="`{value}`"
                           @change="handleRateChange($event, 'learningStyle', item.value)"
                         />
                       </div>
@@ -398,14 +441,14 @@
               </div>
             </div>
             
-            <!-- 兴趣爱好部分 -->
-            <div class="form-section compact-section">
-              <div class="section-header compact-header">
-                <div class="section-icon"><i class="el-icon-star-off"></i></div>
+            <!-- 兴趣爱好部分 - 重新设计 -->
+            <div class="profile-section interests-section">
+              <div class="section-header">
+                <el-icon class="section-icon"><Star /></el-icon>
                 <h3>兴趣与职业方向</h3>
               </div>
-              <div class="section-content compact-content">
-                <el-form-item label="兴趣爱好" class="compact-form-item">
+              <div class="section-content">
+                <el-form-item label="兴趣爱好">
                   <el-select
                     v-model="extraInfoForm.interests"
                     multiple
@@ -413,7 +456,7 @@
                     allow-create
                     default-first-option
                     placeholder="请选择或输入您的兴趣爱好"
-                    style="width: 100%"
+                    class="full-width-select"
                     :disabled="!isEditingExtra"
                   >
                     <el-option
@@ -425,19 +468,27 @@
                   </el-select>
                 </el-form-item>
                 
-                <div class="rating-container compact-rating-container">
-                  <h4 class="slider-group-title compact-title">职业兴趣方向</h4>
-                  <div v-for="(item, index) in careerInterestOptions" :key="index" class="rating-item compact-rating-item">
-                    <div class="rating-label">{{item.label}}</div>
-                    <div class="rating-value">
-                      <div class="rating-stars">
+                <div class="interest-chart">
+                  <h4 class="interest-chart-title">职业兴趣方向</h4>
+                  <div class="interest-chart-grid">
+                    <div v-for="(item, index) in careerInterestOptions" :key="index" class="interest-chart-item">
+                      <div class="interest-info">
+                        <div class="interest-label">{{item.label}}</div>
+                        <div class="interest-value">{{extraInfoForm.careerInterests[item.value]}}/5</div>
+                      </div>
+                      <el-progress 
+                        :percentage="extraInfoForm.careerInterests[item.value] * 20" 
+                        :color="getProgressColor(extraInfoForm.careerInterests[item.value])"
+                        :show-text="false"
+                        :stroke-width="12"
+                        class="interest-progress"
+                      />
+                      <div class="interest-rating">
                         <el-rate
                           v-model="extraInfoForm.careerInterests[item.value]"
                           :max="5"
                           :disabled="!isEditingExtra"
                           :colors="rateColors"
-                          show-score
-                          :score-template="`{value}`"
                           @change="handleRateChange($event, 'careerInterests', item.value)"
                         />
                       </div>
@@ -447,11 +498,11 @@
               </div>
             </div>
             
-            <div class="form-actions compact-form-actions">
-              <el-button type="primary" @click="handleExtraInfoSubmit" :disabled="!isEditingExtra">
+            <div class="form-actions" v-if="isEditingExtra">
+              <el-button type="success" @click="handleExtraInfoSubmit" :icon="Check">
                 保存
               </el-button>
-              <el-button @click="cancelEditExtra" v-if="isEditingExtra">
+              <el-button @click="cancelEditExtra" :icon="Close">
                 取消
               </el-button>
             </div>
@@ -460,11 +511,12 @@
       </el-col>
     </el-row>
     
-    <!-- 添加技能对话框 -->
+    <!-- 添加技能对话框 - 重新设计 -->
     <el-dialog
       v-model="showAddSkillDialog"
       title="添加技能"
       width="500px"
+      destroy-on-close
     >
       <el-form
         ref="skillFormRef"
@@ -477,11 +529,14 @@
         </el-form-item>
         
         <el-form-item label="技能等级" prop="level">
-          <el-rate v-model="skillForm.level" :max="5" />
+          <div class="skill-level-selector">
+            <el-rate v-model="skillForm.level" :max="5" :colors="rateColors" />
+            <span class="skill-level-text">{{ getSkillLevelText(skillForm.level) }}</span>
+          </div>
         </el-form-item>
         
         <el-form-item label="技能类别" prop="categoryId">
-          <el-select v-model="skillForm.categoryId" placeholder="请选择技能类别">
+          <el-select v-model="skillForm.categoryId" placeholder="请选择技能类别" class="full-width-select">
             <el-option
               v-for="item in skillCategoryOptions"
               :key="item.value"
@@ -503,9 +558,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Upload } from '@element-plus/icons-vue'
+import { Upload, Suitcase, Briefcase, Trophy, User, Reading, Star, Check, Close } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useProfileStore } from '../stores/profile'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -1155,6 +1210,25 @@ const formatDate = (dateStr: string) => {
   }
 }
 
+// 获取技能等级文本描述
+const getSkillLevelText = (level: number) => {
+  switch (level) {
+    case 1: return '入门级';
+    case 2: return '基础级';
+    case 3: return '中级';
+    case 4: return '高级';
+    case 5: return '专家级';
+    default: return '';
+  }
+}
+
+// 获取进度条颜色
+const getProgressColor = (value: number) => {
+  if (value <= 2) return rateColors[0];
+  if (value <= 4) return rateColors[1];
+  return rateColors[2];
+}
+
 // 初始化
 onMounted(async () => {
   await profileStore.initUserProfile()
@@ -1300,538 +1374,184 @@ onMounted(async () => {
   border-radius: 3px;
 }
 
-.form-section {
-  margin-bottom: 35px;
+.profile-info-card {
   background-color: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e6f0ff;
+}
+
+.profile-form {
+  padding: 10px;
+}
+
+.profile-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #f9fafc;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.profile-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .section-header {
   display: flex;
   align-items: center;
-  padding: 20px 24px;
-  background-color: #f0f8ff;
-  border-bottom: 2px solid #e6f0ff;
+  margin-bottom: 20px;
+  position: relative;
 }
 
 .section-icon {
-  margin-right: 15px;
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: #409eff;
-  color: white;
-  font-size: 20px;
-  box-shadow: 0 4px 10px rgba(64, 158, 255, 0.3);
+  font-size: 22px;
+  margin-right: 10px;
+  color: var(--el-color-primary);
 }
 
 .section-header h3 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: #1a1a1a;
-  letter-spacing: 0.5px;
-}
-
-.section-content {
-  padding: 30px;
-  background-color: #fff;
-}
-
-/* 表单元素美化 */
-:deep(.el-form-item__label) {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 8px;
-}
-
-:deep(.el-input__wrapper),
-:deep(.el-textarea__inner) {
-  border-radius: 10px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05) !important;
-  transition: all 0.3s;
-  padding: 12px 15px;
-  background-color: #f9fbff;
-  border: 1px solid #e6f0ff;
-}
-
-:deep(.el-input__inner) {
-  font-size: 16px;
-  color: #333;
-  height: 48px;
-}
-
-:deep(.el-textarea__inner) {
-  font-size: 16px;
-  padding: 12px 15px;
-}
-
-:deep(.el-input__wrapper:hover),
-:deep(.el-textarea__inner:hover) {
-  box-shadow: 0 3px 12px rgba(64, 158, 255, 0.15) !important;
-  border-color: #a0cfff;
-}
-
-:deep(.el-input__wrapper.is-focus),
-:deep(.el-textarea__inner:focus) {
-  box-shadow: 0 0 0 2px #409eff inset, 0 5px 15px rgba(64, 158, 255, 0.2) !important;
-  border-color: #409eff;
-  background-color: #ffffff;
-}
-
-:deep(.el-select__tags) {
-  flex-wrap: wrap;
-  margin: 3px 0;
-}
-
-:deep(.el-tag) {
-  margin: 2px 4px;
-  font-size: 14px;
-  padding: 0 10px;
-  height: 30px;
-  line-height: 30px;
-}
-
-:deep(.el-select-dropdown__item) {
-  font-size: 16px;
-  padding: 12px 20px;
-  border-radius: 6px;
-  margin: 4px 8px;
-}
-
-:deep(.el-select-dropdown__item.selected) {
-  background-color: #ecf5ff;
-  color: #409eff;
-  font-weight: 600;
-}
-
-.skill-tag {
-  display: inline-flex;
-  align-items: center;
-  height: 40px;
-  padding: 0 18px;
-  font-size: 16px;
-  font-weight: 500;
-  border-radius: 20px;
-  background-color: #ecf5ff;
-  color: #409eff;
-  border: none;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
-  transition: all 0.2s;
-  margin: 5px 8px 5px 0;
-}
-
-.skill-tag:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.skill-level-1 { 
-  background: #f0f9eb;
-  color: #67c23a; 
-}
-
-.skill-level-2 { 
-  background: #f3f4f6; 
-  color: #606266; 
-}
-
-.skill-level-3 { 
-  background: #ecf5ff; 
-  color: #409eff; 
-}
-
-.skill-level-4 { 
-  background: #fdf6ec; 
-  color: #e6a23c; 
-}
-
-.skill-level-5 { 
-  background: #fef0f0; 
-  color: #f56c6c; 
-}
-
-.button-new-skill {
-  height: 40px;
-  padding: 0 20px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #fff;
-  background: #409eff;
-  border: none;
-  border-radius: 20px;
-  transition: all 0.3s;
-  box-shadow: 0 4px 10px rgba(64, 158, 255, 0.3);
-}
-
-.button-new-skill:hover {
-  background: #66b1ff;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(64, 158, 255, 0.4);
-}
-
-.form-actions {
-  margin-top: 40px;
-  padding: 25px 30px;
-  text-align: center;
-  border-top: 2px solid #ebeef5;
-  background-color: #f0f8ff;
-}
-
-:deep(.el-button) {
-  height: 48px;
-  padding: 0 30px;
-  font-size: 16px;
-  font-weight: 600;
-  border-radius: 24px;
-}
-
-:deep(.el-button--primary) {
-  background: #409eff;
-  border: none;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
-  transition: all 0.3s;
-}
-
-:deep(.el-button--primary:hover) {
-  background: #66b1ff;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(64, 158, 255, 0.4);
-}
-
-:deep(.el-button--danger) {
-  background: #f56c6c;
-  border: none;
-  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.3);
-}
-
-:deep(.el-button--danger:hover) {
-  background: #f78989;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(245, 108, 108, 0.4);
-}
-
-:deep(.el-button--success) {
-  background: #67c23a;
-  border: none;
-  box-shadow: 0 4px 12px rgba(103, 194, 58, 0.3);
-}
-
-:deep(.el-button--success:hover) {
-  background: #85ce61;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(103, 194, 58, 0.4);
-}
-
-.rating-container {
-  padding: 10px 0;
-}
-
-.rating-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 25px;
-  padding: 16px 25px;
-  border-radius: 12px;
-  background-color: #f9fbff;
-  transition: all 0.3s;
-  border: 1px solid #e6f0ff;
-}
-
-.rating-item:hover {
-  background-color: #f0f8ff;
-  box-shadow: 0 5px 15px rgba(64, 158, 255, 0.12);
-  transform: translateY(-2px);
-}
-
-.rating-label {
-  width: 140px;
   font-size: 18px;
   font-weight: 600;
-  color: #1a1a1a;
-  flex-shrink: 0;
+  color: #303133;
 }
 
-.rating-value {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.rating-stars {
-  flex: 1;
-}
-
-:deep(.el-rate) {
-  height: 30px;
-  line-height: 30px;
-}
-
-:deep(.el-rate__icon) {
-  font-size: 28px;
-  margin-right: 8px;
-}
-
-:deep(.el-rate__decimal) {
+.add-skill-btn {
+  position: absolute;
+  right: 0;
   top: 0;
 }
 
-:deep(.el-rate__text) {
-  font-size: 18px;
-  color: #1a1a1a;
-  font-weight: 600;
-  margin-left: 12px;
+.section-content {
+  padding: 10px 0;
 }
 
-/* 自定义评分颜色 */
-:deep(.el-rate__item:nth-child(1) .el-rate__icon.el-rate__icon--full) {
-  color: #F0F9EB;
+.full-width-select {
+  width: 100%;
 }
 
-:deep(.el-rate__item:nth-child(2) .el-rate__icon.el-rate__icon--full) {
-  color: #ECEEFD;
-}
-
-:deep(.el-rate__item:nth-child(3) .el-rate__icon.el-rate__icon--full) {
-  color: #ECF5FF;
-}
-
-:deep(.el-rate__item:nth-child(4) .el-rate__icon.el-rate__icon--full) {
-  color: #FDF6EC;
-}
-
-:deep(.el-rate__item:nth-child(5) .el-rate__icon.el-rate__icon--full) {
-  color: #FEF0F0;
-}
-
-@media screen and (max-width: 768px) {
-  .rating-item {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 15px;
-  }
-  
-  .rating-label {
-    width: 100%;
-    margin-bottom: 15px;
-  }
-  
-  :deep(.el-rate__icon) {
-    font-size: 24px;
-    margin-right: 6px;
-  }
-}
-
-.resume-list {
-  margin-top: 30px;
-}
-
-.resume-list h3 {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 15px;
-  color: #1a1a1a;
-}
-
-.resume-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.resume-action-btn {
-  font-size: 15px;
-  font-weight: 600;
-  height: 36px;
-  min-width: 80px;
-  border-radius: 8px;
-  padding: 0 15px;
-}
-
-:deep(.el-table) {
-  --el-table-border-color: transparent;
-  --el-table-border: none;
-  --el-table-header-bg-color: #f0f8ff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-}
-
-:deep(.el-table__inner-wrapper::before) {
-  display: none;
-}
-
-:deep(.el-table__cell) {
-  border-bottom: 1px solid #ebeef5;
-}
-
-:deep(.el-table td.el-table__cell) {
-  border-right: none;
-}
-
-:deep(.el-table td.el-table__cell::before) {
-  display: none;
-}
-
-:deep(.el-table th.el-table__cell::before) {
-  display: none;
-}
-
-:deep(.el-table__header th) {
-  background-color: #f0f8ff;
-  color: #1a1a1a;
-  font-size: 16px;
-  font-weight: 700;
-  height: 60px;
-  border-right: none;
-}
-
-:deep(.el-table__row) {
-  height: 70px;
-  transition: all 0.3s;
-}
-
-:deep(.el-table__row:hover) {
-  background-color: #f6faff;
-}
-
-.upload-time {
-  font-size: 15px;
-  color: #606266;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-}
-
-/* 恢复简历替换区域样式 */
-.resume-replace {
-  margin: 24px 0;
-  border: 2px dashed #d9ecff;
-  border-radius: 12px;
-  padding: 24px;
-  background-color: #f8faff;
-  transition: all 0.3s;
-}
-
-.resume-replace:hover {
-  border-color: #409eff;
-  background-color: #ecf5ff;
-}
-
-.replace-btn-container {
+.mt-20 {
   margin-top: 20px;
-  text-align: center;
 }
 
-/* 恢复简历相关区域样式 */
-.resume-upload {
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
   margin-bottom: 20px;
 }
 
-.url-import {
-  margin: 20px 0;
+.skill-card {
+  padding: 15px;
+  border-radius: 6px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s;
 }
 
-.url-tip {
-  margin-top: 10px;
-  font-size: 14px;
-  color: #909399;
+.skill-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
 }
 
-/* 紧凑布局样式 */
-.compact-section {
-  margin-bottom: 20px;
-}
-
-.compact-header {
-  padding: 12px 20px;
-}
-
-.compact-header h3 {
-  font-size: 18px;
-  margin: 0;
-}
-
-.compact-content {
-  padding: 15px 20px;
-}
-
-.compact-form-item {
-  margin-bottom: 12px;
-}
-
-:deep(.compact-form-item .el-form-item__label) {
-  margin-bottom: 4px;
-  font-size: 14px;
-  padding-bottom: 0;
-  line-height: 1.4;
-}
-
-:deep(.compact-form-item .el-input__wrapper),
-:deep(.compact-form-item .el-textarea__inner) {
-  padding: 8px 12px;
-}
-
-:deep(.compact-form-item .el-input__inner) {
-  height: 36px;
-}
-
-:deep(.compact-form-item .el-select__tags) {
-  margin: 2px 0;
-}
-
-:deep(.compact-form-item .el-select-dropdown__item) {
-  padding: 8px 16px;
-}
-
-.compact-rating-container {
-  padding: 0;
-}
-
-.compact-rating-item {
-  padding: 10px 15px;
+.skill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 10px;
 }
 
-.compact-rating-item .rating-label {
-  font-size: 14px;
-  width: 120px;
+.skill-name {
+  font-weight: 600;
+  color: #303133;
 }
 
-.compact-title {
-  font-size: 15px;
-  margin: 10px 0;
+.no-skills-placeholder {
+  grid-column: 1 / -1;
+  padding: 30px;
+  text-align: center;
 }
 
-.skill-tag {
-  margin: 3px 5px 3px 0;
-  height: 32px;
-  padding: 0 12px;
-  font-size: 14px;
+.learning-styles-grid,
+.interest-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
 }
 
-/* 调整表单之间的间距 */
-.el-row {
-  margin-bottom: 0 !important;
+.learning-style-item,
+.interest-chart-item {
+  background-color: #fff;
+  padding: 16px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.el-col {
-  padding-bottom: 0 !important;
+.learning-style-info,
+.interest-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
 
-/* 调整表单操作区 */
+.learning-style-label,
+.interest-label {
+  font-weight: 600;
+  color: #303133;
+}
+
+.learning-style-value,
+.interest-value {
+  font-weight: 600;
+  color: var(--el-color-primary);
+}
+
+.learning-style-progress,
+.interest-progress {
+  margin-bottom: 10px;
+}
+
+.learning-style-rating,
+.interest-rating {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.interest-chart-title {
+  font-size: 16px;
+  margin: 20px 0 10px;
+  color: #606266;
+}
+
+.skill-level-selector {
+  display: flex;
+  align-items: center;
+}
+
+.skill-level-text {
+  margin-left: 15px;
+  color: #909399;
+}
+
 .form-actions {
   margin-top: 20px;
-  padding: 15px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
-:deep(.form-actions .el-button) {
-  height: 40px;
-  padding: 0 20px;
-  font-size: 14px;
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .profile-section {
+    padding: 15px;
+  }
+  
+  .skills-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+  
+  .learning-styles-grid,
+  .interest-chart-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style> 

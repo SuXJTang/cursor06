@@ -1,5 +1,6 @@
 import { ElMessage } from 'element-plus'
 import request from './request'
+import { extractData, extractErrorMessage } from '@/utils/responseAdapter'
 
 // 定义接口类型
 export interface LoginParams {
@@ -93,7 +94,7 @@ export const authApi = {
       })
       console.log('登录响应原始数据:', response)
       
-      // 直接返回响应数据
+      // 直接返回响应数据，登录响应格式是OAuth2标准格式，不需要额外处理
       return response
     } catch (error: any) {
       console.error('登录请求错误详情:', error)
@@ -106,9 +107,20 @@ export const authApi = {
   },
   
   // 获取当前用户信息
-  getCurrentUser(): Promise<ApiResponse<UserInfo>> {
-    // 使用后端实际提供的用户信息API
-    return request.get('/api/v1/auth/me')
+  async getCurrentUser(): Promise<ApiResponse<UserInfo>> {
+    // 使用后端实际提供的用户信息API路径
+    try {
+      const response = await request.get('/api/v1/auth/me')
+      // 使用适配器处理响应
+      return {
+        code: 200,
+        message: 'success',
+        data: response as unknown as UserInfo  // 类型转换
+      }
+    } catch (error) {
+      // 处理错误
+      throw error;
+    }
   },
   
   // 上传头像

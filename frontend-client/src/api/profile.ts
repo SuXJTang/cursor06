@@ -1,5 +1,6 @@
 import request from './request'
 import type { UserProfile, CreateUpdateProfileParams, CareerInterests, WorkStyle, PersonalityTraits, AvatarUpdateParams } from '@/types/profile'
+import { extractData } from '@/utils/responseAdapter'
 
 // 基本API响应类型
 interface ApiResponse<T = any> {
@@ -23,16 +24,19 @@ export const getUserProfile = async (): Promise<UserProfile> => {
   
   // 实际后端暂未实现完整的用户详细资料API，使用用户基本信息API代替
   const response = await request.get<ApiResponse<UserProfile>>('/api/v1/auth/me')
+  // 使用适配器提取数据
+  const userData = extractData(response)
+  
   return {
-    ...response.data.data,
+    ...userData,
     // 添加用户详细资料的默认值，防止前端UI出错
-    career_interests: {},
-    work_style: {},
-    personality_traits: {},
-    learning_style: {},
-    learning_ability: {},
-    skills: [],
-    interests: []
+    career_interests: userData.career_interests || {},
+    work_style: userData.work_style || {},
+    personality_traits: userData.personality_traits || {},
+    learning_style: userData.learning_style || {},
+    learning_ability: userData.learning_ability || {},
+    skills: userData.skills || [],
+    interests: userData.interests || []
   }
 }
 
@@ -53,8 +57,11 @@ export const createUserProfile = async (data: CreateUpdateProfileParams): Promis
     phone: data.phone
   }
   const response = await request.patch<ApiResponse<UserProfile>>('/api/v1/auth/me', basicInfo)
+  // 使用适配器提取数据
+  const userData = extractData(response)
+  
   return {
-    ...response.data.data,
+    ...userData,
     ...data,
     // 添加用户详细资料的默认值
     career_interests: data.career_interests || {},
@@ -84,8 +91,11 @@ export const updateUserProfile = async (data: CreateUpdateProfileParams): Promis
     phone: data.phone
   }
   const response = await request.patch<ApiResponse<UserProfile>>('/api/v1/auth/me', basicInfo)
+  // 使用适配器提取数据
+  const userData = extractData(response)
+  
   return {
-    ...response.data.data,
+    ...userData,
     ...data
   }
 }
@@ -103,8 +113,11 @@ export const updateAvatarUrl = async (avatarUrl: string): Promise<UserProfile> =
   
   // 使用authApi中的方法更新头像URL
   const response = await request.patch<ApiResponse<UserProfile>>('/api/v1/auth/me/avatar-url', { avatar_url: avatarUrl })
+  // 使用适配器提取数据
+  const userData = extractData(response)
+  
   return {
-    ...response.data.data,
+    ...userData,
     avatar_url: avatarUrl
   }
 }
@@ -295,7 +308,7 @@ export const checkProfileExists = async (): Promise<boolean> => {
   try {
     const userInfo = await getUserProfile()
     // 仅检查用户ID是否存在
-    return !!userInfo.id
+    return !!userInfo && !!userInfo.id
   } catch (error: any) {
     // 如果返回404，表示资料不存在
     if (error.response && error.response.status === 404) {

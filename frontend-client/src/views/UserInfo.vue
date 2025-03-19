@@ -100,6 +100,7 @@ import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/api/auth'
+import { extractData } from '@/utils/responseAdapter'
 
 // 表单引用
 const userFormRef = ref()
@@ -166,7 +167,8 @@ const passwordRules = reactive({
 const getUserInfo = async () => {
   try {
     const response = await authApi.getCurrentUser()
-    const userData = response && response.data ? response.data : null
+    // 使用适配器提取数据，无论是直接返回的对象还是标准格式
+    const userData = extractData(response)
 
     if (userData) {
       userForm.username = userData.username || ''
@@ -261,12 +263,15 @@ const handleAvatarUpload = async (options: any) => {
   const { file } = options
   try {
     const response = await authApi.uploadAvatar(file)
+    // 使用适配器提取数据
+    const responseData = extractData(response)
+    
     // 更新头像URL
-    if (response && response.data && response.data.avatar_url) {
-      userForm.avatar_url = response.data.avatar_url
+    if (responseData && responseData.avatar_url) {
+      userForm.avatar_url = responseData.avatar_url
       
       // 需要手动更新用户信息，因为头像上传成功后需要手动更新到用户资料
-      await authApi.updateAvatarUrl(response.data.avatar_url)
+      await authApi.updateAvatarUrl(responseData.avatar_url)
       
       ElMessage.success('头像上传成功')
     }

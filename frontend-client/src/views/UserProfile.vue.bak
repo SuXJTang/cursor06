@@ -1,0 +1,124 @@
+<template>
+  <div class="profile-container">
+    <!-- 测试内容 - 最简单的内容，确保页面能显示 -->
+    <div class="test-content">
+      <h1>个人资料页面</h1>
+      <p>这是测试内容，用于确认页面基本渲染正常</p>
+    </div>
+
+    <!-- 骨架屏和正常内容留着，但先不渲染 -->
+    <div v-if="false">
+      <!-- 加载状态 -->
+      <el-skeleton :loading="loading" animated>
+        <template #template>
+          <div style="padding: 20px">
+            <el-skeleton-item variant="p" style="width: 100%; height: 60px" />
+            <div style="display: flex; margin-top: 20px">
+              <el-skeleton-item variant="image" style="width: 100px; height: 100px; margin-right: 20px" />
+              <div style="flex: 1">
+                <el-skeleton-item variant="p" style="width: 50%; height: 20px; margin-bottom: 12px" />
+                <el-skeleton-item variant="p" style="width: 70%; height: 20px; margin-bottom: 12px" />
+                <el-skeleton-item variant="p" style="width: 60%; height: 20px" />
+              </div>
+            </div>
+            <el-skeleton-item variant="p" style="width: 100%; height: 300px; margin-top: 20px" />
+          </div>
+        </template>
+        
+        <template #default>
+          <!-- 原有内容 -->
+          <!-- ... existing template code ... -->
+          
+          <!-- 更新按钮 -->
+          <div class="form-actions">
+            <el-button 
+              v-if="isEditingBasic" 
+              type="primary" 
+              @click="saveBasicInfo" 
+              :loading="saving"
+            >
+              保存基本信息
+            </el-button>
+            
+            <el-button 
+              v-if="isEditingExtra" 
+              type="primary" 
+              @click="saveExtraInfo" 
+              :loading="saving"
+            >
+              保存附加信息
+            </el-button>
+          </div>
+        </template>
+      </el-skeleton>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+// 简化导入和状态，先用最基本的
+import { ref } from 'vue'
+import { ElMessage } from 'element-plus'
+
+// 注释掉API导入，暂时不使用
+// import { 
+//   getUserProfile, 
+//   updateCompleteProfile,
+//   updateWorkInfo,
+//   updateCareerInterests,
+//   updatePersonality,
+//   getUserResumes,
+//   uploadResume,
+//   deleteResume,
+//   setDefaultResume
+// } from '../api/profile'
+
+// 最基础的状态
+const loading = ref(false)
+const saving = ref(false)
+
+// 暂时禁用生命周期钩子
+// onMounted(() => {
+//   fetchUserProfile()
+// })
+</script>
+
+<style scoped>
+.profile-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.test-content {
+  padding: 20px;
+  background-color: #f5f7fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+/* 保存按钮样式 */
+.form-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  padding: 10px;
+}
+
+/* 骨架屏样式 */
+:deep(.el-skeleton__item) {
+  background: linear-gradient(90deg, #f0f2f5 25%, #e6f0ff 50%, #f0f2f5 75%);
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+  from {
+    background-position: 100% 50%;
+  }
+  to {
+    background-position: 0 50%;
+  }
+}
+</style> 

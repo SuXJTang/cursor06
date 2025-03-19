@@ -77,24 +77,45 @@
 
             <div v-if="resumeList.length > 0" class="resume-list">
               <h3>当前简历：</h3>
-              <el-table :data="resumeList" style="width: 100%">
-                <el-table-column prop="name" label="文件名" />
-                <el-table-column prop="type" label="类型" width="100">
+              <el-table 
+                :data="resumeList" 
+                style="width: 100%" 
+                :border="false"
+                :cell-style="{padding: '16px 0'}"
+              >
+                <el-table-column prop="name" label="文件名" min-width="200" />
+                <el-table-column label="类型" width="100" align="center">
                   <template #default="scope">
-                    <el-tag :type="scope.row.type === 'pdf' ? 'danger' : 'primary'">
+                    <el-tag size="large" :type="scope.row.type === 'pdf' ? 'danger' : 'primary'" effect="plain" style="font-size: 16px; padding: 6px 12px;">
                       {{ scope.row.type.toUpperCase() }}
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="uploadTime" label="上传时间" width="180" />
-                <el-table-column label="操作" width="180">
+                <el-table-column label="上传时间" width="180" align="center">
                   <template #default="scope">
-                    <el-button type="primary" link @click="previewResume(scope.row)">
+                    <span class="upload-time">{{ formatDate(scope.row.uploadTime) }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="200" fixed="right">
+                  <template #default="scope">
+                    <div class="resume-actions">
+                      <el-button 
+                        type="primary" 
+                        size="large" 
+                        @click="previewResume(scope.row)"
+                        class="resume-action-btn"
+                      >
                       预览
                     </el-button>
-                    <el-button type="danger" link @click="removeResume(scope.row)">
+                      <el-button 
+                        type="danger" 
+                        size="large" 
+                        @click="removeResume(scope.row)"
+                        class="resume-action-btn"
+                      >
                       删除
                     </el-button>
+                    </div>
                   </template>
                 </el-table-column>
               </el-table>
@@ -103,31 +124,32 @@
         </el-card>
 
         <!-- 附加信息卡片 -->
-        <el-card class="profile-card">
+        <el-card class="profile-card card-with-sections">
           <template #header>
             <div class="card-header">
               <h2>附加资料</h2>
-              <el-button type="primary" @click="isEditingExtra = !isEditingExtra">
-                {{ isEditingExtra ? '保存' : '编辑' }}
+              <el-button type="primary" @click="isEditingExtra = true" v-if="!isEditingExtra">
+                编辑
               </el-button>
             </div>
           </template>
-
-          <div class="extra-info-content">
-            <el-form
-              ref="extraInfoFormRef"
-              :model="extraInfoForm"
-              :disabled="!isEditingExtra"
-              label-width="120px"
-            >
+          <el-form label-position="top" class="extra-info-form">
+            <!-- 职业偏好部分 -->
+            <div class="form-section">
+              <div class="section-header">
+                <div class="section-icon"><i class="el-icon-suitcase"></i></div>
               <h3>职业偏好</h3>
+              </div>
+              <div class="section-content">
+                <el-row :gutter="20">
+                  <el-col :span="12">
               <el-form-item label="期望职位">
                 <el-select
                   v-model="extraInfoForm.expectedPositions"
-                  placeholder="请选择期望职位"
                   multiple
-                  filterable
-                  allow-create
+                        placeholder="请选择期望职位" 
+                        style="width: 100%"
+                        :disabled="!isEditingExtra"
                 >
                   <el-option
                     v-for="item in positionOptions"
@@ -137,14 +159,15 @@
                   />
                 </el-select>
               </el-form-item>
-              
+                  </el-col>
+                  <el-col :span="12">
               <el-form-item label="期望行业">
                 <el-select
                   v-model="extraInfoForm.expectedIndustries"
-                  placeholder="请选择期望行业"
                   multiple
-                  filterable
-                  allow-create
+                        placeholder="请选择期望行业" 
+                        style="width: 100%"
+                        :disabled="!isEditingExtra"
                 >
                   <el-option
                     v-for="item in industryOptions"
@@ -154,11 +177,14 @@
                   />
                 </el-select>
               </el-form-item>
-              
+                  </el-col>
+                </el-row>
               <el-form-item label="期望薪资">
                 <el-select
                   v-model="extraInfoForm.expectedSalary"
                   placeholder="请选择期望薪资范围"
+                    style="width: 100%"
+                    :disabled="!isEditingExtra"
                 >
                   <el-option
                     v-for="item in salaryOptions"
@@ -168,34 +194,93 @@
                   />
                 </el-select>
               </el-form-item>
-              
+              </div>
+            </div>
+            
+            <!-- 工作经验部分 -->
+            <div class="form-section">
+              <div class="section-header">
+                <div class="section-icon"><i class="el-icon-briefcase"></i></div>
+                <h3>工作经验</h3>
+              </div>
+              <div class="section-content">
+                <el-row :gutter="20">
+                  <el-col :span="12">
+                    <el-form-item label="工作年限">
+                      <el-input-number 
+                        v-model="extraInfoForm.workYears" 
+                        :min="0" 
+                        :max="50" 
+                        :step="1" 
+                        :disabled="!isEditingExtra"
+                        style="width: 100%"
+                      />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="当前状态">
+                      <el-select 
+                        v-model="extraInfoForm.currentStatus" 
+                        placeholder="请选择当前工作状态" 
+                        style="width: 100%"
+                        :disabled="!isEditingExtra"
+                      >
+                        <el-option
+                          v-for="item in statusOptions"
+                          :key="item.value"
+                          :label="item.label"
+                          :value="item.value"
+                        />
+                      </el-select>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-form-item label="工作经验详情">
+                  <el-input 
+                    v-model="extraInfoForm.workExperience" 
+                    type="textarea" 
+                    :rows="4"
+                    placeholder="请简要描述您的工作经历，包括公司、职位和主要职责等" 
+                    :disabled="!isEditingExtra"
+                  />
+                </el-form-item>
+              </div>
+            </div>
+            
+            <!-- 技能评估部分 -->
+            <div class="form-section">
+              <div class="section-header">
+                <div class="section-icon"><i class="el-icon-trophy"></i></div>
               <h3>技能评估</h3>
+              </div>
+              <div class="section-content">
               <el-form-item label="专业技能">
+                  <div class="skills-container">
                 <el-tag
                   v-for="skill in extraInfoForm.skills"
                   :key="skill.id"
-                  class="skill-tag"
                   closable
                   :disable-transitions="false"
                   @close="handleSkillClose(skill)"
+                      :class="`skill-tag skill-level-${skill.level}`"
+                      :disable-closing="!isEditingExtra"
                 >
-                  {{ skill.name }}
+                      {{ skill.name }} ({{ skill.level }}/5)
                 </el-tag>
-                <el-button
-                  v-if="isEditingExtra"
-                  class="add-button"
-                  size="small"
-                  @click="showAddSkillDialog = true"
-                >
+                    <el-button class="button-new-skill" size="small" @click="showAddSkillDialog = true" v-if="isEditingExtra">
                   + 添加技能
                 </el-button>
+                  </div>
               </el-form-item>
-              
+                <el-row :gutter="20">
+                  <el-col :span="12">
               <el-form-item label="语言能力">
                 <el-select
                   v-model="extraInfoForm.languages"
-                  placeholder="请选择掌握的语言"
                   multiple
+                        placeholder="请选择掌握的语言" 
+                        style="width: 100%"
+                        :disabled="!isEditingExtra"
                 >
                   <el-option
                     v-for="item in languageOptions"
@@ -205,12 +290,47 @@
                   />
                 </el-select>
               </el-form-item>
-              
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="技能标签">
+                      <el-select
+                        v-model="extraInfoForm.skillTags"
+                        multiple
+                        filterable
+                        allow-create
+                        default-first-option
+                        placeholder="请选择或输入技能标签"
+                        style="width: 100%"
+                        :disabled="!isEditingExtra"
+                      >
+                        <el-option
+                          v-for="item in skillTagOptions"
+                          :key="item.value"
+                          :label="item.label"
+                          :value="item.value"
+                        />
+                      </el-select>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </div>
+            </div>
+            
+            <!-- 性格与工作风格部分 -->
+            <div class="form-section">
+              <div class="section-header">
+                <div class="section-icon"><i class="el-icon-user"></i></div>
               <h3>性格与工作风格</h3>
+              </div>
+              <div class="section-content">
+                <el-row :gutter="20">
+                  <el-col :span="12">
               <el-form-item label="MBTI类型">
                 <el-select
                   v-model="extraInfoForm.mbtiType"
                   placeholder="请选择您的MBTI类型"
+                        style="width: 100%"
+                        :disabled="!isEditingExtra"
                 >
                   <el-option-group
                     v-for="group in mbtiOptions"
@@ -226,12 +346,16 @@
                   </el-option-group>
                 </el-select>
               </el-form-item>
-              
+                  </el-col>
+                  <el-col :span="12">
               <el-form-item label="工作风格">
                 <el-select
                   v-model="extraInfoForm.workingStyle"
-                  placeholder="请选择您的工作风格"
                   multiple
+                        collapse-tags
+                        placeholder="请选择您的工作风格" 
+                        style="width: 100%"
+                        :disabled="!isEditingExtra"
                 >
                   <el-option
                     v-for="item in workingStyleOptions"
@@ -241,17 +365,97 @@
                   />
                 </el-select>
               </el-form-item>
-              
-              <el-form-item>
+                  </el-col>
+                </el-row>
+              </div>
+            </div>
+
+            <!-- 学习风格部分 -->
+            <div class="form-section">
+              <div class="section-header">
+                <div class="section-icon"><i class="el-icon-reading"></i></div>
+                <h3>学习风格</h3>
+              </div>
+              <div class="section-content">
+                <div class="rating-container">
+                  <div v-for="(item, index) in learningStyleOptions" :key="index" class="rating-item">
+                    <div class="rating-label">{{item.label}}</div>
+                    <div class="rating-value">
+                      <div class="rating-stars">
+                        <el-rate
+                          v-model="extraInfoForm.learningStyle[item.value]"
+                          :max="5"
+                          :disabled="!isEditingExtra"
+                          :colors="rateColors"
+                          show-score
+                          :score-template="`{value}`"
+                          @change="handleRateChange($event, 'learningStyle', item.value)"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 兴趣爱好部分 -->
+            <div class="form-section">
+              <div class="section-header">
+                <div class="section-icon"><i class="el-icon-star-off"></i></div>
+                <h3>兴趣与职业方向</h3>
+              </div>
+              <div class="section-content">
+                <el-form-item label="兴趣爱好">
+                  <el-select
+                    v-model="extraInfoForm.interests"
+                    multiple
+                    filterable
+                    allow-create
+                    default-first-option
+                    placeholder="请选择或输入您的兴趣爱好"
+                    style="width: 100%"
+                    :disabled="!isEditingExtra"
+                  >
+                    <el-option
+                      v-for="item in interestOptions"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    />
+                  </el-select>
+                </el-form-item>
+                
+                <div class="rating-container">
+                  <h4 class="slider-group-title">职业兴趣方向</h4>
+                  <div v-for="(item, index) in careerInterestOptions" :key="index" class="rating-item">
+                    <div class="rating-label">{{item.label}}</div>
+                    <div class="rating-value">
+                      <div class="rating-stars">
+                        <el-rate
+                          v-model="extraInfoForm.careerInterests[item.value]"
+                          :max="5"
+                          :disabled="!isEditingExtra"
+                          :colors="rateColors"
+                          show-score
+                          :score-template="`{value}`"
+                          @change="handleRateChange($event, 'careerInterests', item.value)"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-actions">
                 <el-button type="primary" @click="handleExtraInfoSubmit" :disabled="!isEditingExtra">
                   保存
                 </el-button>
                 <el-button @click="cancelEditExtra" v-if="isEditingExtra">
                   取消
                 </el-button>
-              </el-form-item>
-            </el-form>
           </div>
+          </el-form>
         </el-card>
       </el-col>
     </el-row>
@@ -303,7 +507,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Upload } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
-import { useProfileStore } from '@/stores/profile'
+import { useProfileStore } from '../stores/profile'
 import type { FormInstance, FormRules } from 'element-plus'
 import { 
   uploadResume as uploadResumeAPI, 
@@ -312,7 +516,7 @@ import {
   getUserResumeInfo as getUserResumeInfoAPI,
   updateResumeFileUrl as updateResumeFileUrlAPI,
   setDefaultResume as setDefaultResumeAPI
-} from '@/api/profile'
+} from '../api/profile'
 
 const router = useRouter()
 const profileStore = useProfileStore()
@@ -444,9 +648,9 @@ const removeResume = async (resume: any) => {
           } else {
             throw new Error('删除失败')
           }
-        }
-      } catch (error) {
-        console.error('删除简历失败:', error)
+    }
+  } catch (error) {
+    console.error('删除简历失败:', error)
         ElMessage.error('删除失败，请刷新页面后重试')
       }
     } else if (resume.id) {
@@ -518,10 +722,28 @@ const extraInfoForm = reactive({
   expectedPositions: [] as string[],
   expectedIndustries: [] as string[],
   expectedSalary: '',
-  skills: [] as Array<{id: string, name: string, level: number, categoryId: string}>,
+  workYears: 0,
+  experienceYears: 0,
+  currentStatus: '',
+  workExperience: '',
+  skills: [] as any[],
+  skillTags: [] as string[],
+  interests: [] as string[],
   languages: [] as string[],
   mbtiType: '',
-  workingStyle: [] as string[]
+  workingStyle: [] as string[],
+  careerInterests: {
+    arts: 5,
+    science: 5,
+    business: 5,
+    technology: 5
+  },
+  learningStyle: {
+    visual: 5,
+    reading: 5,
+    auditory: 5,
+    kinesthetic: 5
+  }
 })
 
 // 选项数据
@@ -566,7 +788,11 @@ const mbtiOptions = [
       { label: 'ENFJ', value: 'ENFJ', description: '教导者型' },
       { label: 'ENFP', value: 'ENFP', description: '激发者型' },
       { label: 'ENTJ', value: 'ENTJ', description: '统帅型' },
-      { label: 'ENTP', value: 'ENTP', description: '发明家型' }
+      { label: 'ENTP', value: 'ENTP', description: '发明家型' },
+      { label: 'ESFJ', value: 'ESFJ', description: '照顾者型' },
+      { label: 'ESFP', value: 'ESFP', description: '表演者型' },
+      { label: 'ESTJ', value: 'ESTJ', description: '管理者型' },
+      { label: 'ESTP', value: 'ESTP', description: '促进者型' }
     ]
   },
   {
@@ -575,7 +801,11 @@ const mbtiOptions = [
       { label: 'INFJ', value: 'INFJ', description: '咨询师型' },
       { label: 'INFP', value: 'INFP', description: '治愈者型' },
       { label: 'INTJ', value: 'INTJ', description: '建筑师型' },
-      { label: 'INTP', value: 'INTP', description: '逻辑学家型' }
+      { label: 'INTP', value: 'INTP', description: '逻辑学家型' },
+      { label: 'ISFJ', value: 'ISFJ', description: '守卫者型' },
+      { label: 'ISFP', value: 'ISFP', description: '冒险家型' },
+      { label: 'ISTJ', value: 'ISTJ', description: '检查者型' },
+      { label: 'ISTP', value: 'ISTP', description: '手艺人型' }
     ]
   }
 ]
@@ -586,7 +816,55 @@ const workingStyleOptions = [
   { label: '团队协作', value: 'team_collaboration' },
   { label: '创新驱动', value: 'innovation_driven' },
   { label: '目标导向', value: 'goal_oriented' },
-  { label: '细节关注', value: 'detail_oriented' }
+  { label: '细节关注', value: 'detail_oriented' },
+  { label: '逻辑分析', value: 'analytical_thinking' },
+  { label: '高效执行', value: 'efficient_execution' },
+  { label: '跨部门协作', value: 'cross_functional' },
+  { label: '远程工作', value: 'remote_work' },
+  { label: '办公室工作', value: 'office_work' },
+  { label: '灵活工作制', value: 'flexible_hours' },
+  { label: '结构化工作', value: 'structured_work' }
+]
+
+// 学习风格选项
+const learningStyleOptions = [
+  { value: 'visual', label: '视觉学习' },
+  { value: 'reading', label: '读写学习' },
+  { value: 'auditory', label: '听觉学习' },
+  { value: 'kinesthetic', label: '动手实践' }
+]
+
+// 职业兴趣选项
+const careerInterestOptions = [
+  { value: 'arts', label: '艺术创作' },
+  { value: 'science', label: '科学研究' },
+  { value: 'business', label: '商业管理' },
+  { value: 'technology', label: '技术开发' }
+]
+
+// 兴趣爱好选项
+const interestOptions = [
+  { value: 'reading', label: '阅读' },
+  { value: 'music', label: '音乐' },
+  { value: 'sports', label: '运动' },
+  { value: 'travel', label: '旅行' },
+  { value: 'cooking', label: '烹饪' },
+  { value: 'photography', label: '摄影' },
+  { value: 'painting', label: '绘画' },
+  { value: 'gaming', label: '游戏' },
+  { value: 'programming', label: '编程' }
+]
+
+// 技能标签选项
+const skillTagOptions = [
+  { value: 'frontend', label: '前端开发' },
+  { value: 'backend', label: '后端开发' },
+  { value: 'mobile', label: '移动开发' },
+  { value: 'devops', label: 'DevOps' },
+  { value: 'design', label: '设计' },
+  { value: 'ai', label: '人工智能' },
+  { value: 'data', label: '数据分析' },
+  { value: 'project', label: '项目管理' }
 ]
 
 // 技能相关
@@ -653,75 +931,167 @@ const submitSkill = async () => {
 
 const handleExtraInfoSubmit = async () => {
   try {
-    // 保存到服务器
-    if (!extraInfoFormRef.value) return;
-
-    // 首先保存职业兴趣相关信息
-    await profileStore.updateCareerInterests({
-      preferred_industries: extraInfoForm.expectedIndustries,
-      preferred_positions: extraInfoForm.expectedPositions,
-      salary_expectation: extraInfoForm.expectedSalary,
-      work_style: {
-        teamwork: extraInfoForm.workingStyle.includes('team_collaboration') ? 5 : 2,
-        independent: extraInfoForm.workingStyle.includes('independent_thinking') ? 5 : 2,
-        office: 3, // 默认值
-        remote: 3, // 默认值
+    // 保存更多信息到服务器
+    isEditingExtra.value = false
+    const personalityTraits: Record<string, any> = {}
+    // 根据MBTI类型和工作风格设置性格特质值
+    if (extraInfoForm.mbtiType) {
+      personalityTraits.mbtiType = extraInfoForm.mbtiType
+      
+      // 根据MBTI类型推断一些基本特质
+      if (extraInfoForm.mbtiType.includes('E')) {
+        personalityTraits.extraversion = 8
+      } else if (extraInfoForm.mbtiType.includes('I')) {
+        personalityTraits.extraversion = 3
+        personalityTraits.independence = 8
       }
-    });
-
-    // 然后保存性格特征相关信息
-    await profileStore.updatePersonality({
-      personality_traits: {
-        openness: 5, // 示例值，实际应从表单中获取
-        conscientiousness: extraInfoForm.workingStyle.includes('detail_oriented') ? 5 : 3,
-        extraversion: 3, // 默认值
-        agreeableness: 3, // 默认值
-        neuroticism: 3, // 默认值
-      },
-      learning_style: {
-        visual: 4, // 示例值
-        reading: 4, // 示例值
-        auditory: 3, // 示例值
-        kinesthetic: 3, // 示例值
+      
+      if (extraInfoForm.mbtiType.includes('N')) {
+        personalityTraits.openness = 8
+        personalityTraits.creative = 7
+      } else if (extraInfoForm.mbtiType.includes('S')) {
+        personalityTraits.practical = 8
+        personalityTraits.detail_oriented = 7
       }
-    });
-
-    isEditingExtra.value = false;
-  } catch (error) {
-    console.error('保存附加信息失败:', error);
-    ElMessage.error('保存失败，请重试');
-  }
-};
-
-const cancelEditExtra = async () => {
-  isEditingExtra.value = false;
-  
-  // 重新从store加载数据
-  const profile = profileStore.userProfile;
-  if (profile) {
-    // 重置职业兴趣相关信息
-    extraInfoForm.expectedPositions = profile.preferred_positions || [];
-    extraInfoForm.expectedIndustries = profile.preferred_industries || [];
-    extraInfoForm.expectedSalary = profile.salary_expectation || '';
-    
-    // 重置性格和工作风格相关信息
-    const workStyle = profile.work_style || {};
-    extraInfoForm.workingStyle = [];
-    
-    // 根据工作风格重新设置工作风格选项
-    if (typeof workStyle === 'object') {
-      if (workStyle.teamwork && workStyle.teamwork > 3) {
-        extraInfoForm.workingStyle.push('team_collaboration');
+      
+      if (extraInfoForm.mbtiType.includes('T')) {
+        personalityTraits.analytical = 8
+      } else if (extraInfoForm.mbtiType.includes('F')) {
+        personalityTraits.agreeableness = 8
       }
-      if (workStyle.independent && workStyle.independent > 3) {
-        extraInfoForm.workingStyle.push('independent_thinking');
+      
+      if (extraInfoForm.mbtiType.includes('J')) {
+        personalityTraits.conscientiousness = 8
+      } else if (extraInfoForm.mbtiType.includes('P')) {
+        personalityTraits.adaptability = 8
       }
     }
     
-    // 重置其他信息
-    ElMessage.info('表单已重置');
+    // 工作风格设置
+    const workStyle: Record<string, any> = {}
+    extraInfoForm.workingStyle.forEach(style => {
+      switch (style) {
+        case 'independent_thinking':
+          workStyle.independent = 8
+          break
+        case 'team_collaboration':
+          workStyle.teamwork = 8
+          break
+        case 'remote_work':
+          workStyle.remote = 8
+          break
+        case 'office_work':
+          workStyle.office = 8
+          break
+        default:
+          workStyle[style] = 7
+      }
+    })
+    
+    // 保存到服务器
+    await profileStore.updateCareerInterests({
+      preferred_positions: extraInfoForm.expectedPositions,
+      preferred_industries: extraInfoForm.expectedIndustries,
+      salary_expectation: extraInfoForm.expectedSalary,
+      work_style: workStyle,
+      career_interests: extraInfoForm.careerInterests
+    })
+    
+    // 保存工作经验相关信息
+    await profileStore.updateWorkInfo({
+      work_years: extraInfoForm.workYears,
+      experience_years: extraInfoForm.workYears, // 同步两个字段
+      current_status: extraInfoForm.currentStatus,
+      work_experience: extraInfoForm.workExperience,
+      skills: extraInfoForm.skills.map(s => s.name),
+      skill_tags: extraInfoForm.skillTags,
+      interests: extraInfoForm.interests
+    })
+    
+    // 保存性格特质
+    await profileStore.updatePersonality({
+      personality_traits: personalityTraits,
+      learning_style: extraInfoForm.learningStyle
+    })
+    
+    ElMessage.success('附加资料已保存')
+  } catch (error) {
+    console.error('保存附加资料失败:', error)
+    ElMessage.error('保存失败，请重试')
   }
-};
+}
+
+const cancelEditExtra = () => {
+  isEditingExtra.value = false
+  // 重新加载原始数据
+  if (profileStore.hasProfile) {
+    const profile = profileStore.userProfile
+    extraInfoForm.expectedPositions = profile.preferred_positions || []
+    extraInfoForm.expectedIndustries = profile.preferred_industries || []
+    extraInfoForm.expectedSalary = profile.salary_expectation || ''
+    extraInfoForm.workYears = profile.work_years || 0
+    extraInfoForm.currentStatus = profile.current_status || ''
+    extraInfoForm.workExperience = profile.work_experience || ''
+    
+    // 加载职业兴趣方向
+    if (profile.career_interests) {
+      try {
+        const careerInterests = typeof profile.career_interests === 'string' 
+          ? JSON.parse(profile.career_interests) 
+          : profile.career_interests
+        extraInfoForm.careerInterests = {
+          arts: careerInterests.arts || 5,
+          science: careerInterests.science || 5,
+          business: careerInterests.business || 5,
+          technology: careerInterests.technology || 5
+        }
+      } catch (e) {
+        console.error('解析职业兴趣数据失败:', e)
+      }
+    }
+    
+    // 加载学习风格
+    if (profile.learning_style) {
+      try {
+        const learningStyle = typeof profile.learning_style === 'string' 
+          ? JSON.parse(profile.learning_style) 
+          : profile.learning_style
+        extraInfoForm.learningStyle = {
+          visual: learningStyle.visual || 5,
+          reading: learningStyle.reading || 5,
+          auditory: learningStyle.auditory || 5,
+          kinesthetic: learningStyle.kinesthetic || 5
+        }
+      } catch (e) {
+        console.error('解析学习风格数据失败:', e)
+      }
+    }
+    
+    // 工作风格
+    extraInfoForm.workingStyle = []
+    const workStyle = typeof profile.work_style === 'string' 
+      ? JSON.parse(profile.work_style) 
+      : profile.work_style || {}
+      
+    // 根据工作风格数据设置选项
+    if (workStyle.teamwork > 6) extraInfoForm.workingStyle.push('team_collaboration')
+    if (workStyle.independent > 6) extraInfoForm.workingStyle.push('independent_thinking')
+    if (workStyle.remote > 6) extraInfoForm.workingStyle.push('remote_work')
+    if (workStyle.office > 6) extraInfoForm.workingStyle.push('office_work')
+    
+    // 性格特质
+    const personalityTraits = typeof profile.personality_traits === 'string'
+      ? JSON.parse(profile.personality_traits)
+      : profile.personality_traits || {}
+      
+    extraInfoForm.mbtiType = personalityTraits.mbtiType || ''
+    
+    // 根据性格特质添加工作风格
+    if (personalityTraits.conscientiousness > 7) extraInfoForm.workingStyle.push('detail_oriented')
+    if (personalityTraits.openness > 7) extraInfoForm.workingStyle.push('innovation_driven')
+    if (personalityTraits.analytical > 7) extraInfoForm.workingStyle.push('analytical_thinking')
+  }
+}
 
 // 更换简历处理
 const hiddenFileInput = ref<HTMLInputElement | null>(null)
@@ -744,70 +1114,620 @@ const handleFileInputChange = (event: Event) => {
   }
 }
 
+const statusOptions = [
+  { value: 'employed', label: '在职' },
+  { value: 'unemployed', label: '待业' },
+  { value: 'looking', label: '在职找工作' },
+  { value: 'student', label: '学生' },
+  { value: 'intern', label: '实习' },
+  { value: 'freelancer', label: '自由职业' }
+]
+
+// 星级评定颜色
+const rateColors = ['#DCDFE6', '#F0F9EB', '#ECEEFD', '#FDF6EC', '#FEF0F0']
+
+// 处理星级评分变化
+const handleRateChange = (value: number, type: 'learningStyle' | 'careerInterests', key: string) => {
+  // 将5分制换算为10分制
+  const normalizedValue = value * 2
+  if (type === 'learningStyle') {
+    extraInfoForm.learningStyle[key] = normalizedValue
+  } else {
+    extraInfoForm.careerInterests[key] = normalizedValue
+  }
+}
+
+// 格式化日期显示
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  
+  try {
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  } catch (e) {
+    return dateStr;
+  }
+}
+
 // 初始化
 onMounted(async () => {
-  // 初始化用户资料
-  await profileStore.initUserProfile();
+  await profileStore.initUserProfile()
+  fetchUserResumes()
   
-  // 获取用户简历
-  await fetchUserResumes();
-  
-  // 如果有个人资料，加载到表单中
   if (profileStore.hasProfile) {
-    const profile = profileStore.userProfile;
-    if (profile) {
-      // 加载职业兴趣相关信息
-      extraInfoForm.expectedPositions = profile.preferred_positions || [];
-      extraInfoForm.expectedIndustries = profile.preferred_industries || [];
-      extraInfoForm.expectedSalary = profile.salary_expectation || '';
-      
-      // 加载工作风格
-      extraInfoForm.workingStyle = [];
-      const workStyle = profile.work_style || {};
-      
-      // 根据工作风格设置工作风格选项
-      if (typeof workStyle === 'object') {
-        if (workStyle.teamwork && workStyle.teamwork > 3) {
-          extraInfoForm.workingStyle.push('team_collaboration');
+    const profile = profileStore.userProfile
+    extraInfoForm.expectedPositions = profile.preferred_positions || []
+    extraInfoForm.expectedIndustries = profile.preferred_industries || []
+    extraInfoForm.expectedSalary = profile.salary_expectation || ''
+    extraInfoForm.workYears = profile.work_years || 0
+    extraInfoForm.currentStatus = profile.current_status || ''
+    extraInfoForm.workExperience = profile.work_experience || ''
+    
+    // 加载技能标签和兴趣爱好
+    extraInfoForm.skillTags = Array.isArray(profile.skill_tags) ? profile.skill_tags : 
+                            (typeof profile.skill_tags === 'string' ? JSON.parse(profile.skill_tags) : [])
+    extraInfoForm.interests = Array.isArray(profile.interests) ? profile.interests : 
+                            (typeof profile.interests === 'string' ? JSON.parse(profile.interests) : [])
+    
+    // 加载职业兴趣方向
+    if (profile.career_interests) {
+      try {
+        const careerInterests = typeof profile.career_interests === 'string' 
+          ? JSON.parse(profile.career_interests) 
+          : profile.career_interests
+        extraInfoForm.careerInterests = {
+          arts: careerInterests.arts || 5,
+          science: careerInterests.science || 5,
+          business: careerInterests.business || 5,
+          technology: careerInterests.technology || 5
         }
-        if (workStyle.independent && workStyle.independent > 3) {
-          extraInfoForm.workingStyle.push('independent_thinking');
-        }
-        // 可以根据其他指标添加更多工作风格
-      }
-      
-      // 加载性格特质
-      const personality = profile.personality_traits || {};
-      if (typeof personality === 'object') {
-        if (personality.conscientiousness && personality.conscientiousness > 4) {
-          extraInfoForm.workingStyle.push('detail_oriented');
-        }
-        if (personality.openness && personality.openness > 4) {
-          extraInfoForm.workingStyle.push('innovation_driven');
-        }
+      } catch (e) {
+        console.error('解析职业兴趣数据失败:', e)
       }
     }
+    
+    // 加载学习风格
+    if (profile.learning_style) {
+      try {
+        const learningStyle = typeof profile.learning_style === 'string' 
+          ? JSON.parse(profile.learning_style) 
+          : profile.learning_style
+        extraInfoForm.learningStyle = {
+          visual: learningStyle.visual || 5,
+          reading: learningStyle.reading || 5,
+          auditory: learningStyle.auditory || 5,
+          kinesthetic: learningStyle.kinesthetic || 5
+        }
+      } catch (e) {
+        console.error('解析学习风格数据失败:', e)
+      }
+    }
+    
+    // 工作风格
+    extraInfoForm.workingStyle = []
+    const workStyle = typeof profile.work_style === 'string' 
+      ? JSON.parse(profile.work_style) 
+      : profile.work_style || {}
+      
+    // 根据工作风格数据设置选项
+    if (workStyle.teamwork > 6) extraInfoForm.workingStyle.push('team_collaboration')
+    if (workStyle.independent > 6) extraInfoForm.workingStyle.push('independent_thinking')
+    if (workStyle.remote > 6) extraInfoForm.workingStyle.push('remote_work')
+    if (workStyle.office > 6) extraInfoForm.workingStyle.push('office_work')
+    
+    // 性格特质
+    const personalityTraits = typeof profile.personality_traits === 'string'
+      ? JSON.parse(profile.personality_traits)
+      : profile.personality_traits || {}
+      
+    extraInfoForm.mbtiType = personalityTraits.mbtiType || ''
+    
+    // 根据性格特质添加工作风格
+    if (personalityTraits.conscientiousness > 7) extraInfoForm.workingStyle.push('detail_oriented')
+    if (personalityTraits.openness > 7) extraInfoForm.workingStyle.push('innovation_driven')
+    if (personalityTraits.analytical > 7) extraInfoForm.workingStyle.push('analytical_thinking')
   }
-});
+  
+  // 转换10分制到5分制显示
+  Object.keys(extraInfoForm.learningStyle).forEach(key => {
+    // 将10分制数据临时转换为5分制显示
+    extraInfoForm.learningStyle[key] = Math.round(extraInfoForm.learningStyle[key] / 2)
+  })
+  
+  Object.keys(extraInfoForm.careerInterests).forEach(key => {
+    // 将10分制数据临时转换为5分制显示
+    extraInfoForm.careerInterests[key] = Math.round(extraInfoForm.careerInterests[key] / 2)
+  })
+})
 </script>
 
 <style scoped>
 .profile-container {
-  padding: 20px;
-  max-width: 1000px;
+  padding: 30px;
+  max-width: 1200px;
   margin: 0 auto;
+  background-color: #ffffff;
+  min-height: calc(100vh - 60px);
 }
 
 .profile-card {
-  margin-bottom: 20px;
+  margin-bottom: 40px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: none;
+  background: #ffffff;
+}
+
+.profile-card:hover {
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 25px 30px;
+  border-bottom: 2px solid #ebeef5;
+  background: #f0f8ff;
 }
 
+.card-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  position: relative;
+  padding-left: 18px;
+}
+
+.card-header h2::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 24px;
+  background-color: #409eff;
+  border-radius: 3px;
+}
+
+.form-section {
+  margin-bottom: 35px;
+  background-color: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e6f0ff;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  padding: 20px 24px;
+  background-color: #f0f8ff;
+  border-bottom: 2px solid #e6f0ff;
+}
+
+.section-icon {
+  margin-right: 15px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #409eff;
+  color: white;
+  font-size: 20px;
+  box-shadow: 0 4px 10px rgba(64, 158, 255, 0.3);
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: 0.5px;
+}
+
+.section-content {
+  padding: 30px;
+  background-color: #fff;
+}
+
+/* 表单元素美化 */
+:deep(.el-form-item__label) {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-textarea__inner) {
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.3s;
+  padding: 12px 15px;
+  background-color: #f9fbff;
+  border: 1px solid #e6f0ff;
+}
+
+:deep(.el-input__inner) {
+  font-size: 16px;
+  color: #333;
+  height: 48px;
+}
+
+:deep(.el-textarea__inner) {
+  font-size: 16px;
+  padding: 12px 15px;
+}
+
+:deep(.el-input__wrapper:hover),
+:deep(.el-textarea__inner:hover) {
+  box-shadow: 0 3px 12px rgba(64, 158, 255, 0.15) !important;
+  border-color: #a0cfff;
+}
+
+:deep(.el-input__wrapper.is-focus),
+:deep(.el-textarea__inner:focus) {
+  box-shadow: 0 0 0 2px #409eff inset, 0 5px 15px rgba(64, 158, 255, 0.2) !important;
+  border-color: #409eff;
+  background-color: #ffffff;
+}
+
+:deep(.el-select__tags) {
+  flex-wrap: wrap;
+  margin: 3px 0;
+}
+
+:deep(.el-tag) {
+  margin: 2px 4px;
+  font-size: 14px;
+  padding: 0 10px;
+  height: 30px;
+  line-height: 30px;
+}
+
+:deep(.el-select-dropdown__item) {
+  font-size: 16px;
+  padding: 12px 20px;
+  border-radius: 6px;
+  margin: 4px 8px;
+}
+
+:deep(.el-select-dropdown__item.selected) {
+  background-color: #ecf5ff;
+  color: #409eff;
+  font-weight: 600;
+}
+
+.skill-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 18px;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 20px;
+  background-color: #ecf5ff;
+  color: #409eff;
+  border: none;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s;
+  margin: 5px 8px 5px 0;
+}
+
+.skill-tag:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.skill-level-1 { 
+  background: #f0f9eb;
+  color: #67c23a; 
+}
+
+.skill-level-2 { 
+  background: #f3f4f6; 
+  color: #606266; 
+}
+
+.skill-level-3 { 
+  background: #ecf5ff; 
+  color: #409eff; 
+}
+
+.skill-level-4 { 
+  background: #fdf6ec; 
+  color: #e6a23c; 
+}
+
+.skill-level-5 { 
+  background: #fef0f0; 
+  color: #f56c6c; 
+}
+
+.button-new-skill {
+  height: 40px;
+  padding: 0 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background: #409eff;
+  border: none;
+  border-radius: 20px;
+  transition: all 0.3s;
+  box-shadow: 0 4px 10px rgba(64, 158, 255, 0.3);
+}
+
+.button-new-skill:hover {
+  background: #66b1ff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(64, 158, 255, 0.4);
+}
+
+.form-actions {
+  margin-top: 40px;
+  padding: 25px 30px;
+  text-align: center;
+  border-top: 2px solid #ebeef5;
+  background-color: #f0f8ff;
+}
+
+:deep(.el-button) {
+  height: 48px;
+  padding: 0 30px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 24px;
+}
+
+:deep(.el-button--primary) {
+  background: #409eff;
+  border: none;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  transition: all 0.3s;
+}
+
+:deep(.el-button--primary:hover) {
+  background: #66b1ff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(64, 158, 255, 0.4);
+}
+
+:deep(.el-button--danger) {
+  background: #f56c6c;
+  border: none;
+  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.3);
+}
+
+:deep(.el-button--danger:hover) {
+  background: #f78989;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(245, 108, 108, 0.4);
+}
+
+:deep(.el-button--success) {
+  background: #67c23a;
+  border: none;
+  box-shadow: 0 4px 12px rgba(103, 194, 58, 0.3);
+}
+
+:deep(.el-button--success:hover) {
+  background: #85ce61;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(103, 194, 58, 0.4);
+}
+
+.rating-container {
+  padding: 10px 0;
+}
+
+.rating-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 16px 25px;
+  border-radius: 12px;
+  background-color: #f9fbff;
+  transition: all 0.3s;
+  border: 1px solid #e6f0ff;
+}
+
+.rating-item:hover {
+  background-color: #f0f8ff;
+  box-shadow: 0 5px 15px rgba(64, 158, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+.rating-label {
+  width: 140px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  flex-shrink: 0;
+}
+
+.rating-value {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.rating-stars {
+  flex: 1;
+}
+
+:deep(.el-rate) {
+  height: 30px;
+  line-height: 30px;
+}
+
+:deep(.el-rate__icon) {
+  font-size: 28px;
+  margin-right: 8px;
+}
+
+:deep(.el-rate__decimal) {
+  top: 0;
+}
+
+:deep(.el-rate__text) {
+  font-size: 18px;
+  color: #1a1a1a;
+  font-weight: 600;
+  margin-left: 12px;
+}
+
+/* 自定义评分颜色 */
+:deep(.el-rate__item:nth-child(1) .el-rate__icon.el-rate__icon--full) {
+  color: #F0F9EB;
+}
+
+:deep(.el-rate__item:nth-child(2) .el-rate__icon.el-rate__icon--full) {
+  color: #ECEEFD;
+}
+
+:deep(.el-rate__item:nth-child(3) .el-rate__icon.el-rate__icon--full) {
+  color: #ECF5FF;
+}
+
+:deep(.el-rate__item:nth-child(4) .el-rate__icon.el-rate__icon--full) {
+  color: #FDF6EC;
+}
+
+:deep(.el-rate__item:nth-child(5) .el-rate__icon.el-rate__icon--full) {
+  color: #FEF0F0;
+}
+
+@media screen and (max-width: 768px) {
+  .rating-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 15px;
+  }
+  
+  .rating-label {
+    width: 100%;
+    margin-bottom: 15px;
+  }
+  
+  :deep(.el-rate__icon) {
+    font-size: 24px;
+    margin-right: 6px;
+  }
+}
+
+.resume-list {
+  margin-top: 30px;
+}
+
+.resume-list h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #1a1a1a;
+}
+
+.resume-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.resume-action-btn {
+  font-size: 15px;
+  font-weight: 600;
+  height: 36px;
+  min-width: 80px;
+  border-radius: 8px;
+  padding: 0 15px;
+}
+
+:deep(.el-table) {
+  --el-table-border-color: transparent;
+  --el-table-border: none;
+  --el-table-header-bg-color: #f0f8ff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+:deep(.el-table__inner-wrapper::before) {
+  display: none;
+}
+
+:deep(.el-table__cell) {
+  border-bottom: 1px solid #ebeef5;
+}
+
+:deep(.el-table td.el-table__cell) {
+  border-right: none;
+}
+
+:deep(.el-table td.el-table__cell::before) {
+  display: none;
+}
+
+:deep(.el-table th.el-table__cell::before) {
+  display: none;
+}
+
+:deep(.el-table__header th) {
+  background-color: #f0f8ff;
+  color: #1a1a1a;
+  font-size: 16px;
+  font-weight: 700;
+  height: 60px;
+  border-right: none;
+}
+
+:deep(.el-table__row) {
+  height: 70px;
+  transition: all 0.3s;
+}
+
+:deep(.el-table__row:hover) {
+  background-color: #f6faff;
+}
+
+.upload-time {
+  font-size: 15px;
+  color: #606266;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+/* 恢复简历替换区域样式 */
+.resume-replace {
+  margin: 24px 0;
+  border: 2px dashed #d9ecff;
+  border-radius: 12px;
+  padding: 24px;
+  background-color: #f8faff;
+  transition: all 0.3s;
+}
+
+.resume-replace:hover {
+  border-color: #409eff;
+  background-color: #ecf5ff;
+}
+
+.replace-btn-container {
+  margin-top: 20px;
+  text-align: center;
+}
+
+/* 恢复简历相关区域样式 */
 .resume-upload {
   margin-bottom: 20px;
 }
@@ -818,46 +1738,7 @@ onMounted(async () => {
 
 .url-tip {
   margin-top: 10px;
-  font-size: 12px;
-  color: #999;
-}
-
-.resume-list {
-  margin-top: 20px;
-}
-
-.skill-tag {
-  margin-right: 8px;
-  margin-bottom: 8px;
-}
-
-.add-button {
-  height: 32px;
-  line-height: 30px;
-  padding: 0 12px;
-  font-size: 12px;
-}
-
-.extra-info-content {
-  padding: 10px;
-}
-
-h3 {
-  margin: 20px 0 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
-}
-
-.resume-replace {
-  margin: 20px 0;
-  border: 1px dashed #dcdfe6;
-  border-radius: 6px;
-  padding: 20px;
-  background-color: #f5f7fa;
-}
-
-.replace-btn-container {
-  margin-top: 15px;
-  text-align: center;
+  font-size: 14px;
+  color: #909399;
 }
 </style> 

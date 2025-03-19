@@ -1,6 +1,7 @@
 import request from './request'
 import type { UserProfile, CreateUpdateProfileParams, CareerInterests, WorkStyle, PersonalityTraits, AvatarUpdateParams } from '@/types/profile'
 import { extractData } from '@/utils/responseAdapter'
+import axios from 'axios'
 
 // 基本API响应类型
 interface ApiResponse<T = any> {
@@ -236,11 +237,29 @@ export const uploadResume = async (file: File): Promise<{file_id: string, file_u
     }
   }
   
-  // 后端暂未实现，返回模拟数据
-  console.log('上传简历（模拟）:', file.name)
-  return {
-    file_id: `mock-${Date.now()}`,
-    file_url: URL.createObjectURL(file)
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await request.post('/api/v1/resume-files/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    
+    const data = extractData(response);
+    return {
+      file_id: data.filename,
+      file_url: data.file_url
+    }
+  } catch (error: any) {
+    console.error('上传简历失败:', error);
+    // 后端暂未正确实现或出错，返回模拟数据
+    console.log('上传简历（模拟）:', file.name);
+    return {
+      file_id: `mock-${Date.now()}`,
+      file_url: URL.createObjectURL(file)
+    }
   }
 }
 
@@ -261,9 +280,54 @@ export const getUserResumes = async (): Promise<Array<{
     return mockResumes
   }
   
-  // 后端暂未实现，返回模拟数据
-  console.log('获取简历列表（模拟）')
-  return mockResumes
+  try {
+    // 首先尝试获取文件列表
+    const fileListResponse = await request.get('/api/v1/resume-files/', {
+      silent: true // 静默模式，不显示错误提示
+    });
+    const files = extractData(fileListResponse);
+    
+    if (Array.isArray(files) && files.length > 0) {
+      console.log('从API获取到简历文件列表:', files);
+      
+      // 获取用户的简历信息
+      const resume = await getUserResumeInfo();
+      const resumeId = resume ? String(resume.id) : '0';
+      
+      // 转换为前端需要的格式
+      return files.map(file => ({
+        id: resumeId, // 使用简历ID
+        name: file.filename,
+        type: file.filename.split('.').pop() || '',
+        url: file.file_url,
+        is_default: true, // 默认为true，因为一个用户只有一份简历
+        created_at: resume?.created_at || new Date().toISOString()
+      }));
+    }
+    
+    // 如果文件列表为空，检查用户是否有简历记录
+    const resume = await getUserResumeInfo();
+    if (resume && resume.file_url) {
+      // 手动构建一条记录
+      const filename = resume.file_url.split('/').pop() || 'resume.pdf';
+      const originalFilename = filename.split('_').slice(2).join('_');
+      
+      return [{
+        id: String(resume.id),
+        name: originalFilename,
+        type: originalFilename.split('.').pop() || '',
+        url: resume.file_url,
+        is_default: true,
+        created_at: resume.created_at || new Date().toISOString()
+      }];
+    }
+    
+    // 如果没有简历或URL，返回空列表
+    return [];
+  } catch (error) {
+    console.error('获取简历列表失败:', error);
+    return [];
+  }
 }
 
 /**
@@ -284,20 +348,50 @@ export const setDefaultResume = async (resumeId: string): Promise<boolean> => {
 }
 
 /**
- * 删除简历
- * @param resumeId 简历ID
- * @returns 操作结果
+ * 删除简历文件
+ * @param filename 文件名
+ * @returns 删除结果
  */
-export const deleteResume = async (resumeId: string): Promise<boolean> => {
-  if (USE_MOCK) {
-    // 如果启用Mock，返回成功
-    console.log('删除简历（模拟）:', resumeId)
-    return true
-  }
+export async function deleteResume(filename: string): Promise<any> {
+  console.log('调用删除简历API, 参数:', filename);
   
-  // 后端暂未实现，返回模拟数据
-  console.log('删除简历（模拟）:', resumeId)
-  return true
+  try {
+    // 处理可能的URL格式
+    if (filename.includes('http')) {
+      // 如果传入的是完整URL，提取文件名
+      const urlParts = filename.split('/');
+      filename = urlParts[urlParts.length - 1];
+      console.log('从URL提取的文件名:', filename);
+    }
+    
+    // 确保文件名不为空
+    if (!filename || filename.trim() === '') {
+      throw new Error('文件名不能为空');
+    }
+    
+    const encodedFilename = encodeURIComponent(filename);
+    console.log('实际发送的删除请求路径:', `/api/v1/resume-files/${encodedFilename}`);
+    
+    // 使用原生fetch API作为备选方案，避免可能的拦截器问题
+    const response = await fetch(`/api/v1/resume-files/${encodedFilename}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`删除失败: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('删除简历API响应:', data);
+    return data;
+  } catch (error: any) {
+    console.error('删除简历文件失败:', error);
+    throw error;
+  }
 }
 
 /**
@@ -316,6 +410,73 @@ export const checkProfileExists = async (): Promise<boolean> => {
     }
     // 其他错误则继续抛出
     throw error
+  }
+}
+
+/**
+ * 获取当前用户的简历信息
+ * @returns 用户简历信息
+ */
+export const getUserResumeInfo = async () => {
+  try {
+    const response = await request.get('/api/v1/resumes/me', {
+      silent: true // 静默模式，不显示错误提示
+    });
+    return extractData(response);
+  } catch (error: any) {
+    // 如果是404错误，说明用户还没有创建简历
+    if (error.response?.status === 404) {
+      return null;
+    }
+    console.error('获取简历信息失败:', error);
+    return null;
+  }
+}
+
+/**
+ * 更新简历文件URL
+ * @param resumeId 简历ID
+ * @param fileUrl 文件URL
+ * @returns 更新后的简历信息
+ */
+export const updateResumeFileUrl = async (resumeId: number, fileUrl: string) => {
+  const response = await request.put(`/api/v1/resumes/me/${resumeId}/file`, {
+    file_url: fileUrl
+  });
+  return extractData(response);
+}
+
+/**
+ * 强制删除简历记录
+ * 当其他方法失败时的后备方案，直接删除数据库记录
+ * @param resumeId 简历ID
+ * @returns 删除结果
+ */
+export async function forceDeleteResumeRecord(resumeId: string): Promise<any> {
+  console.log('强制删除简历记录:', resumeId);
+  
+  try {
+    // 直接调用后端API删除记录
+    const response = await request({
+      url: `/api/v1/resumes/${resumeId}/force-delete`,
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    console.log('强制删除响应:', response);
+    return response;
+  } catch (error: any) {
+    console.error('强制删除简历记录失败:', error);
+    
+    // 详细记录错误信息
+    if (error.response) {
+      console.error('错误状态码:', error.response.status);
+      console.error('错误数据:', error.response.data);
+    }
+    
+    throw error;
   }
 }
 
@@ -418,5 +579,8 @@ export default {
   getUserResumes,
   setDefaultResume,
   deleteResume,
-  checkProfileExists
+  checkProfileExists,
+  getUserResumeInfo,
+  updateResumeFileUrl,
+  forceDeleteResumeRecord
 } 

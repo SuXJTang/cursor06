@@ -1,0 +1,170 @@
+import { Directive, EventEmitter, forwardRef, Input } from '@angular/core';
+import { NG_VALUE_ACCESSOR } from '@angular/forms';
+import { IMaskDirective } from 'angular-imask';
+import { isValid } from 'date-fns';
+import { MaskedRange } from 'imask';
+import { NovoLabelService } from 'novo-elements/services';
+import { DateUtil } from 'novo-elements/utils';
+import { DATE_FORMATS, NOVO_INPUT_FORMAT } from './base-format';
+import * as i0 from "@angular/core";
+import * as i1 from "novo-elements/services";
+export const DATERANGEFORMAT_VALUE_ACCESSOR = {
+    provide: NG_VALUE_ACCESSOR,
+    useExisting: forwardRef(() => NovoDateRangeFormatDirective),
+    multi: true,
+};
+export const imaskHaha = {
+    mask: 'm{/}`d{/}`Y - m{/}`d{/}`Y',
+    overwrite: true,
+    autofix: true,
+    lazy: false,
+    blocks: {
+        d: {
+            mask: MaskedRange,
+            placeholderChar: 'D',
+            from: 1,
+            to: 31,
+            maxLength: 2,
+        },
+        m: {
+            mask: MaskedRange,
+            placeholderChar: 'M',
+            from: 1,
+            to: 12,
+            maxLength: 2,
+        },
+        Y: {
+            mask: MaskedRange,
+            placeholderChar: 'Y',
+            from: 1900,
+            to: 9999,
+        },
+    },
+};
+export class NovoDateRangeFormatDirective extends IMaskDirective {
+    constructor(labels) {
+        super();
+        this.labels = labels;
+        this.valueChange = new EventEmitter();
+        this.dateRangeFormat = DATE_FORMATS.DATE;
+        const dateRangeFormat = this.labels.dateFormat.toUpperCase();
+        this.unmask = false;
+        this.imask = {
+            mask: 'm{/}`d{/}`Y - m{/}`d{/}`Y',
+            overwrite: true,
+            autofix: true,
+            lazy: false,
+            blocks: {
+                d: {
+                    mask: MaskedRange,
+                    placeholderChar: 'D',
+                    from: 1,
+                    to: 31,
+                    maxLength: 2,
+                },
+                m: {
+                    mask: MaskedRange,
+                    placeholderChar: 'M',
+                    from: 1,
+                    to: 12,
+                    maxLength: 2,
+                },
+                Y: {
+                    mask: MaskedRange,
+                    placeholderChar: 'Y',
+                    from: 1900,
+                    to: 9999,
+                },
+            },
+        };
+    }
+    normalize(value) {
+        const pattern = this.labels.dateFormat.toUpperCase();
+        return DateUtil.format(value ? DateUtil.parse(value) : null, pattern);
+    }
+    formatAsIso(value) {
+        if (!value)
+            return '';
+        const { startDate, endDate } = value;
+        if (startDate && isValid(startDate) && endDate && isValid(endDate)) {
+            const startIso = startDate.toISOString().slice(0, 10);
+            const endIso = endDate.toISOString().slice(0, 10);
+            return `${startIso}/${endIso}`;
+        }
+        return null;
+    }
+    formatValue(value) {
+        if (!value)
+            return '';
+        const { startDate, endDate } = value;
+        return `${this.formatDate(startDate)} - ${this.formatDate(endDate)}`;
+    }
+    formatDate(source) {
+        const date = DateUtil.parse(source);
+        if (isValid(date)) {
+            const dateRangeFormat = this.labels.dateFormat.toUpperCase();
+            return DateUtil.format(date, dateRangeFormat);
+        }
+        return this.normalize(source);
+    }
+    writeValue(value) {
+        if (this['_initialValue'] && value === this['_initialValue']) {
+            // if this call is coming from the super class, skip through.
+            // If we ever wanted to reduce the need for this hack/workaround, we could refactor
+            // IMaskDirective to exist as a child portion of DateRangeFormatDirective.
+            super.writeValue(value);
+            return;
+        }
+        const formattedValue = this.formatValue(value);
+        if (formattedValue !== this.maskValue) {
+            super.writeValue(this.formatValue(value));
+            this.onChange(this.formatValue(value));
+        }
+    }
+    registerOnChange(fn) {
+        this.onChange = (input) => {
+            if (this.validate(input)) {
+                const dates = this.extractDatesFromInput(input);
+                let formatted = dates;
+                switch (this.dateRangeFormat) {
+                    case DATE_FORMATS.ISO8601:
+                        formatted = this.formatAsIso(dates);
+                        break;
+                    case DATE_FORMATS.STRING:
+                        formatted = this.formatValue(dates);
+                        break;
+                    default:
+                        formatted = dates;
+                        break;
+                }
+                this.valueChange.emit(dates);
+                fn(formatted);
+            }
+        };
+    }
+    extractDatesFromInput(value) {
+        const [startStr, endStr] = value.split(' - ');
+        const startDate = DateUtil.parse(startStr);
+        const endDate = DateUtil.parse(endStr);
+        return { startDate, endDate };
+    }
+    validate(dateStr) {
+        const { startDate, endDate } = this.extractDatesFromInput(dateStr);
+        return isValid(startDate) && isValid(endDate);
+    }
+    static { this.ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "17.3.12", ngImport: i0, type: NovoDateRangeFormatDirective, deps: [{ token: i1.NovoLabelService }], target: i0.ɵɵFactoryTarget.Directive }); }
+    static { this.ɵdir = i0.ɵɵngDeclareDirective({ minVersion: "14.0.0", version: "17.3.12", type: NovoDateRangeFormatDirective, selector: "input[dateRangeFormat]", inputs: { dateRangeFormat: "dateRangeFormat" }, host: { classAttribute: "novo-date-range-format" }, providers: [DATERANGEFORMAT_VALUE_ACCESSOR, { provide: NOVO_INPUT_FORMAT, useExisting: NovoDateRangeFormatDirective }], usesInheritance: true, ngImport: i0 }); }
+}
+i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "17.3.12", ngImport: i0, type: NovoDateRangeFormatDirective, decorators: [{
+            type: Directive,
+            args: [{
+                    selector: 'input[dateRangeFormat]',
+                    host: {
+                        class: 'novo-date-range-format',
+                    },
+                    providers: [DATERANGEFORMAT_VALUE_ACCESSOR, { provide: NOVO_INPUT_FORMAT, useExisting: NovoDateRangeFormatDirective }],
+                }]
+        }], ctorParameters: () => [{ type: i1.NovoLabelService }], propDecorators: { dateRangeFormat: [{
+                type: Input
+            }] } });
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZGF0ZS1yYW5nZS1mb3JtYXQuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi8uLi8uLi8uLi8uLi9wcm9qZWN0cy9ub3ZvLWVsZW1lbnRzL3NyYy9lbGVtZW50cy9maWVsZC9mb3JtYXRzL2RhdGUtcmFuZ2UtZm9ybWF0LnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBLE9BQU8sRUFBRSxTQUFTLEVBQWMsWUFBWSxFQUFFLFVBQVUsRUFBVSxLQUFLLEVBQXVCLE1BQU0sZUFBZSxDQUFDO0FBQ3BILE9BQU8sRUFBMkIsaUJBQWlCLEVBQUUsTUFBTSxnQkFBZ0IsQ0FBQztBQUM1RSxPQUFPLEVBQUUsY0FBYyxFQUFnQixNQUFNLGVBQWUsQ0FBQztBQUM3RCxPQUFPLEVBQUUsT0FBTyxFQUFFLE1BQU0sVUFBVSxDQUFDO0FBQ25DLE9BQU8sRUFBRSxXQUFXLEVBQUUsTUFBTSxPQUFPLENBQUM7QUFDcEMsT0FBTyxFQUFFLGdCQUFnQixFQUFFLE1BQU0sd0JBQXdCLENBQUM7QUFDMUQsT0FBTyxFQUFFLFFBQVEsRUFBRSxNQUFNLHFCQUFxQixDQUFDO0FBQy9DLE9BQU8sRUFBRSxZQUFZLEVBQUUsaUJBQWlCLEVBQUUsTUFBTSxlQUFlLENBQUM7OztBQUVoRSxNQUFNLENBQUMsTUFBTSw4QkFBOEIsR0FBRztJQUM1QyxPQUFPLEVBQUUsaUJBQWlCO0lBQzFCLFdBQVcsRUFBRSxVQUFVLENBQUMsR0FBRyxFQUFFLENBQUMsNEJBQTRCLENBQUM7SUFDM0QsS0FBSyxFQUFFLElBQUk7Q0FDWixDQUFDO0FBT0YsTUFBTSxDQUFDLE1BQU0sU0FBUyxHQUFHO0lBQ3ZCLElBQUksRUFBRSwyQkFBMkI7SUFDakMsU0FBUyxFQUFFLElBQUk7SUFDZixPQUFPLEVBQUUsSUFBSTtJQUNiLElBQUksRUFBRSxLQUFLO0lBQ1gsTUFBTSxFQUFFO1FBQ04sQ0FBQyxFQUFFO1lBQ0QsSUFBSSxFQUFFLFdBQVc7WUFDakIsZUFBZSxFQUFFLEdBQUc7WUFDcEIs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LENBQUMsT0FBZTtRQUN0QixNQUFNLEVBQUUsU0FBUyxFQUFFLE9BQU8sRUFBRSxHQUFHLElBQUksQ0FBQyxxQkFBcUIsQ0FBQyxPQUFPLENBQUMsQ0FBQztRQUNuRSxPQUFPLE9BQU8sQ0FBQyxTQUFTLENBQUMsSUFBSSxPQUFPLENBQUMsT0FBTyxDQUFDLENBQUM7SUFDaEQsQ0FBQzsrR0FySFUsNEJBQTRCO21HQUE1Qiw0QkFBNEIscUpBRjVCLENBQUMsOEJBQThCLEVBQUUsRUFBRSxPQUFPLEVBQUUsaUJBQWlCLEVBQUUsV0FBVyxFQUFFLDRCQUE0QixFQUFFLENBQUM7OzRGQUUzRyw0QkFBNEI7a0JBUHhDLFNBQVM7bUJBQUM7b0JBQ1QsUUFBUSxFQUFFLHdCQUF3QjtvQkFDbEMsSUFBSSxFQUFFO3dCQUNKLEtBQUssRUFBRSx3QkFBd0I7cUJBQ2hDO29CQUNELFNBQVMsRUFBRSxDQUFDLDhCQUE4QixFQUFFLEVBQUUsT0FBTyxFQUFFLGlCQUFpQixFQUFFLFdBQVcsOEJBQThCLEVBQUUsQ0FBQztpQkFDdkg7cUZBSVUsZUFBZTtzQkFBdkIsS0FBSyIsInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IERpcmVjdGl2ZSwgRWxlbWVudFJlZiwgRXZlbnRFbWl0dGVyLCBmb3J3YXJkUmVmLCBJbmplY3QsIElucHV0LCBPcHRpb25hbCwgUmVuZGVyZXIyIH0gZnJvbSAnQGFuZ3VsYXIvY29yZSc7XG5pbXBvcnQgeyBDT01QT1NJVElPTl9CVUZGRVJfTU9ERSwgTkdfVkFMVUVfQUNDRVNTT1IgfSBmcm9tICdAYW5ndWxhci9mb3Jtcyc7XG5pbXBvcnQgeyBJTWFza0RpcmVjdGl2ZSwgSU1hc2tGYWN0b3J5IH0gZnJvbSAnYW5ndWxhci1pbWFzayc7XG5pbXBvcnQgeyBpc1ZhbGlkIH0gZnJvbSAnZGF0ZS1mbnMnO1xuaW1wb3J0IHsgTWFza2VkUmFuZ2UgfSBmcm9tICdpbWFzayc7XG5pbXBvcnQgeyBOb3ZvTGFiZWxTZXJ2aWNlIH0gZnJvbSAnbm92by1lbGVtZW50cy9zZXJ2aWNlcyc7XG5pbXBvcnQgeyBEYXRlVXRpbCB9IGZyb20gJ25vdm8tZWxlbWVudHMvdXRpbHMnO1xuaW1wb3J0IHsgREFURV9GT1JNQVRTLCBOT1ZPX0lOUFVUX0ZPUk1BVCB9IGZyb20gJy4vYmFzZS1mb3JtYXQnO1xuXG5leHBvcnQgY29uc3QgREFURVJBTkdFRk9STUFUX1ZBTFVFX0FDQ0VTU09SID0ge1xuICBwcm92aWRlOiBOR19WQUxVRV9BQ0NFU1NPUixcbiAgdXNlRXhpc3Rpbmc6IGZvcndhcmRSZWYoKCkgPT4gTm92b0RhdGVSYW5nZUZvcm1hdERpcmVjdGl2ZSksXG4gIG11bHRpOiB0cnVlLFxufTtcblxudHlwZSBEYXRlUmFuZ2UgPSB7XG4gIHN0YXJ0RGF0ZTogRGF0ZTtcbiAgZW5kRGF0ZTogRGF0ZTtcbn07XG5cbmV4cG9ydCBjb25zdCBpbWFza0hhaGEgPSB7XG4gIG1hc2s6ICdtey99YGR7L31gWSAtIG17L31gZHsvfWBZJyxcbiAgb3ZlcndyaXRlOiB0cnVlLFxuICBhdXRvZml4OiB0cnVlLFxuICBsYXp5OiBmYWxzZSxcbiAgYmxvY2tzOiB7XG4gICAgZDoge1xuICAgICAgbWFzazogTWFza2VkUmFuZ2UsXG4gICAgICBwbGFjZWhvbGRlckNoYXI6ICdEJyxcbiAgICAgIGZyb206IDEsXG4gICAgICB0bzogMzEsXG4gICAgICBtYXhMZW5ndGg6IDIsXG4gICAgfSxcbiAgICBtOiB7XG4gICAgICBtYXNrOiBNYXNrZWRSYW5nZSxcbiAgICAgIHBsYWNlaG9sZGVyQ2hhcjogJ00nLFxuICAgICAgZnJvbTogMSxcbiAgICAgIHRvOiAxMixcbiAgICAgIG1heExlbmd0aDogMixcbiAgICB9LFxuICAgIFk6IHtcbiAgICAgIG1hc2s6IE1hc2tlZFJhbmdlLFxuICAgICAgcGxhY2Vob2xkZXJDaGFyOiAnWScsXG4gICAgICBmcm9tOiAxOTAwLFxuICAgICAgdG86IDk5OTksXG4gICAgfSxcbiAgfSxcbn07XG5cbkBEaXJlY3RpdmUoe1xuICBzZWxlY3RvcjogJ2lucHV0W2RhdGVSYW5nZUZvcm1hdF0nLFxuICBob3N0OiB7XG4gICAgY2xhc3M6ICdub3ZvLWRhdGUtcmFuZ2UtZm9ybWF0JyxcbiAgfSxcbiAgcHJvdmlkZXJzOiBbREFURVJBTkdFRk9STUFUX1ZBTFVFX0FDQ0VTU09SLCB7IHByb3ZpZGU6IE5PVk9fSU5QVVRfRk9STUFULCB1c2VFeGlzdGluZzogTm92b0RhdGVSYW5nZUZvcm1hdERpcmVjdGl2ZSB9XSxcbn0pXG5leHBvcnQgY2xhc3MgTm92b0RhdGVSYW5nZUZvcm1hdERpcmVjdGl2ZSBleHRlbmRzIElNYXNrRGlyZWN0aXZlPGFueT4ge1xuICB2YWx1ZUNoYW5nZTogRXZlbnRFbWl0dGVyPGFueT4gPSBuZXcgRXZlbnRFbWl0dGVyKCk7XG5cbiAgQElucHV0KCkgZGF0ZVJhbmdlRm9ybWF0OiBEQVRFX0ZPUk1BVFMgPSBEQVRFX0ZPUk1BVFMuREFURTtcblxuICBjb25zdHJ1Y3Rvcihwcml2YXRlIGxhYmVsczogTm92b0xhYmVsU2VydmljZSkge1xuICAgIHN1cGVyKCk7XG4gICAgY29uc3QgZGF0ZVJhbmdlRm9ybWF0ID0gdGhpcy5sYWJlbHMuZGF0ZUZvcm1hdC50b1VwcGVyQ2FzZSgpO1xuICAgIHRoaXMudW5tYXNrID0gZmFsc2U7XG4gICAgdGhpcy5pbWFzayA9IHtcbiAgICAgIG1hc2s6ICdtey99YGR7L31gWSAtIG17L31gZHsvfWBZJyxcbiAgICAgIG92ZXJ3cml0ZTogdHJ1ZSxcbiAgICAgIGF1dG9maXg6IHRydWUsXG4gICAgICBsYXp5OiBmYWxzZSxcbiAgICAgIGJsb2Nrczoge1xuICAgICAgICBkOiB7XG4gICAgICAgICAgbWFzazogTWFza2VkUmFuZ2UsXG4gICAgICAgICAgcGxhY2Vob2xkZXJDaGFyOiAnRCcsXG4gICAgICAgICAgZnJvbTogMSxcbiAgICAgICAgICB0bzogMzEsXG4gICAgICAgICAgbWF4TGVuZ3RoOiAyLFxuICAgICAgICB9LFxuICAgICAgICBtOiB7XG4gICAgICAgICAgbWFzazogTWFza2VkUmFuZ2UsXG4gICAgICAgICAgcGxhY2Vob2xkZXJDaGFyOiAnTScsXG4gICAgICAgICAgZnJvbTogMSxcbiAgICAgICAgICB0bzogMTIsXG4gICAgICAgICAgbWF4TGVuZ3RoOiAyLFxuICAgICAgICB9LFxuICAgICAgICBZOiB7XG4gICAgICAgICAgbWFzazogTWFza2VkUmFuZ2UsXG4gICAgICAgICAgcGxhY2Vob2xkZXJDaGFyOiAnWScsXG4gICAgICAgICAgZnJvbTogMTkwMCxcbiAgICAgICAgICB0bzogOTk5OSxcbiAgICAgICAgfSxcbiAgICAgIH0sXG4gICAgfTtcbiAgfVxuXG4gIG5vcm1hbGl6ZSh2YWx1ZTogc3RyaW5nIHwgRGF0ZSkge1xuICAgIGNvbnN0IHBhdHRlcm4gPSB0aGlzLmxhYmVscy5kYXRlRm9ybWF0LnRvVXBwZXJDYXNlKCk7XG4gICAgcmV0dXJuIERhdGVVdGlsLmZvcm1hdCh2YWx1ZSA/IERhdGVVdGlsLnBhcnNlKHZhbHVlKSA6IG51bGwsIHBhdHRlcm4pO1xuICB9XG5cbiAgZm9ybWF0QXNJc28odmFsdWU6IERhdGVSYW5nZSk6IHN0cmluZyB7XG4gICAgaWYgKCF2YWx1ZSkgcmV0dXJuICcnO1xuICAgIGNvbnN0IHsgc3RhcnREYXRlLCBlbmREYXRlIH0gPSB2YWx1ZTtcbiAgICBpZiAoc3RhcnREYXRlICYmIGlzVmFsaWQoc3RhcnREYXRlKSAmJiBlbmREYXRlICYmIGlzVmFsaWQoZW5kRGF0ZSkpIHtcbiAgICAgIGNvbnN0IHN0YXJ0SXNvID0gc3RhcnREYXRlLnRvSVNPU3RyaW5nKCkuc2xpY2UoMCwgMTApO1xuICAgICAgY29uc3QgZW5kSXNvID0gZW5kRGF0ZS50b0lTT1N0cmluZygpLnNsaWNlKDAsIDEwKTtcbiAgICAgIHJldHVybiBgJHtzdGFydElzb30vJHtlbmRJc299YDtcbiAgICB9XG4gICAgcmV0dXJuIG51bGw7XG4gIH1cblxuICBmb3JtYXRWYWx1ZSh2YWx1ZTogRGF0ZVJhbmdlKTogc3RyaW5nIHtcbiAgICBpZiAoIXZhbHVlKSByZXR1cm4gJyc7XG4gICAgY29uc3QgeyBzdGFydERhdGUsIGVuZERhdGUgfSA9IHZhbHVlO1xuICAgIHJldHVybiBgJHt0aGlzLmZvcm1hdERhdGUoc3RhcnREYXRlKX0gLSAke3RoaXMuZm9ybWF0RGF0ZShlbmREYXRlKX1gO1xuICB9XG5cbiAgZm9ybWF0RGF0ZShzb3VyY2U6IERhdGUgfCBzdHJpbmcpIHtcbiAgICBjb25zdCBkYXRlID0gRGF0ZVV0aWwucGFyc2Uoc291cmNlKTtcbiAgICBpZiAoaXNWYWxpZChkYXRlKSkge1xuICAgICAgY29uc3QgZGF0ZVJhbmdlRm9ybWF0ID0gdGhpcy5sYWJlbHMuZGF0ZUZvcm1hdC50b1VwcGVyQ2FzZSgpO1xuICAgICAgcmV0dXJuIERhdGVVdGlsLmZvcm1hdChkYXRlLCBkYXRlUmFuZ2VGb3JtYXQpO1xuICAgIH1cbiAgICByZXR1cm4gdGhpcy5ub3JtYWxpemUoc291cmNlKTtcbiAgfVxuXG4gIHdyaXRlVmFsdWUodmFsdWU6IGFueSkge1xuICAgIGlmICh0aGlzWydfaW5pdGlhbFZhbHVlJ10gJiYgdmFsdWUgPT09IHRoaXNbJ19pbml0aWFsVmFsdWUnXSkge1xuICAgICAgLy8gaWYgdGhpcyBjYWxsIGlzIGNvbWluZyBmcm9tIHRoZSBzdXBlciBjbGFzcywgc2tpcCB0aHJvdWdoLlxuICAgICAgLy8gSWYgd2UgZXZlciB3YW50ZWQgdG8gcmVkdWNlIHRoZSBuZWVkIGZvciB0aGlzIGhhY2svd29ya2Fyb3VuZCwgd2UgY291bGQgcmVmYWN0b3JcbiAgICAgIC8vIElNYXNrRGlyZWN0aXZlIHRvIGV4aXN0IGFzIGEgY2hpbGQgcG9ydGlvbiBvZiBEYXRlUmFuZ2VGb3JtYXREaXJlY3RpdmUuXG4gICAgICBzdXBlci53cml0ZVZhbHVlKHZhbHVlKTtcbiAgICAgIHJldHVybjtcbiAgICB9XG4gICAgY29uc3QgZm9ybWF0dGVkVmFsdWUgPSB0aGlzLmZvcm1hdFZhbHVlKHZhbHVlKTtcbiAgICBpZiAoZm9ybWF0dGVkVmFsdWUgIT09IHRoaXMubWFza1ZhbHVlKSB7XG4gICAgICBzdXBlci53cml0ZVZhbHVlKHRoaXMuZm9ybWF0VmFsdWUodmFsdWUpKTtcbiAgICAgIHRoaXMub25DaGFuZ2UodGhpcy5mb3JtYXRWYWx1ZSh2YWx1ZSkpO1xuICAgIH1cbiAgfVxuXG4gIHJlZ2lzdGVyT25DaGFuZ2UoZm46IChfOiBhbnkpID0+IHZvaWQpOiB2b2lkIHtcbiAgICB0aGlzLm9uQ2hhbmdlID0gKGlucHV0OiBhbnkpID0+IHtcbiAgICAgIGlmICh0aGlzLnZhbGlkYXRlKGlucHV0KSkge1xuICAgICAgICBjb25zdCBkYXRlcyA9IHRoaXMuZXh0cmFjdERhdGVzRnJvbUlucHV0KGlucHV0KTtcbiAgICAgICAgbGV0IGZvcm1hdHRlZDogRGF0ZVJhbmdlIHwgc3RyaW5nID0gZGF0ZXM7XG4gICAgICAgIHN3aXRjaCAodGhpcy5kYXRlUmFuZ2VGb3JtYXQpIHtcbiAgICAgICAgICBjYXNlIERBVEVfRk9STUFUUy5JU084NjAxOlxuICAgICAgICAgICAgZm9ybWF0dGVkID0gdGhpcy5mb3JtYXRBc0lzbyhkYXRlcyk7XG4gICAgICAgICAgICBicmVhaztcbiAgICAgICAgICBjYXNlIERBVEVfRk9STUFUUy5TVFJJTkc6XG4gICAgICAgICAgICBmb3JtYXR0ZWQgPSB0aGlzLmZvcm1hdFZhbHVlKGRhdGVzKTtcbiAgICAgICAgICAgIGJyZWFrO1xuICAgICAgICAgIGRlZmF1bHQ6XG4gICAgICAgICAgICBmb3JtYXR0ZWQgPSBkYXRlcztcbiAgICAgICAgICAgIGJyZWFrO1xuICAgICAgICB9XG4gICAgICAgIHRoaXMudmFsdWVDaGFuZ2UuZW1pdChkYXRlcyk7XG4gICAgICAgIGZuKGZvcm1hdHRlZCk7XG4gICAgICB9XG4gICAgfTtcbiAgfVxuXG4gIGV4dHJhY3REYXRlc0Zyb21JbnB1dCh2YWx1ZSkge1xuICAgIGNvbnN0IFtzdGFydFN0ciwgZW5kU3RyXSA9IHZhbHVlLnNwbGl0KCcgLSAnKTtcbiAgICBjb25zdCBzdGFydERhdGUgPSBEYXRlVXRpbC5wYXJzZShzdGFydFN0cik7XG4gICAgY29uc3QgZW5kRGF0ZSA9IERhdGVVdGlsLnBhcnNlKGVuZFN0cik7XG4gICAgcmV0dXJuIHsgc3RhcnREYXRlLCBlbmREYXRlIH07XG4gIH1cblxuICB2YWxpZGF0ZShkYXRlU3RyOiBzdHJpbmcpIHtcbiAgICBjb25zdCB7IHN0YXJ0RGF0ZSwgZW5kRGF0ZSB9ID0gdGhpcy5leHRyYWN0RGF0ZXNGcm9tSW5wdXQoZGF0ZVN0cik7XG4gICAgcmV0dXJuIGlzVmFsaWQoc3RhcnREYXRlKSAmJiBpc1ZhbGlkKGVuZERhdGUpO1xuICB9XG59XG4iXX0=

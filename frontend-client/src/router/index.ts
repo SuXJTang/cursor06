@@ -1,119 +1,120 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { ElMessage } from 'element-plus'
+import Home from '@/views/Home.vue'
+import Login from '@/views/Login.vue'
+import Register from '@/views/Register.vue'
+import UserInfo from '@/views/UserInfo.vue'
+import UserProfile from '@/views/UserProfile.vue'
+import UserCenter from '@/views/UserCenter.vue'
+import NotFound from '@/views/NotFound.vue'
+import Assessment from '@/views/Assessment.vue'
+import CareerLibrary from '@/views/CareerLibrary.vue'
+import Careers from '@/views/Careers.vue'
+import CareerHeat from '@/views/CareerHeat.vue'
+import CareerRecommend from '@/views/CareerRecommend.vue'
+import Result from '@/views/Result.vue'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'Home',
-      component: () => import('@/views/Home.vue'),
-      meta: {
-        title: '首页 - 高校职业推荐系统',
-        requiresAuth: false // 首页不需要登录
-      }
+      name: 'home',
+      component: Home
     },
     {
       path: '/login',
-      name: 'Login',
-      component: () => import('@/views/Login.vue'),
-      meta: {
-        title: '登录 - 高校职业推荐系统',
-        guest: true
-      }
+      name: 'login',
+      component: Login
     },
     {
-      path: '/assessment',
-      name: 'Assessment',
-      component: () => import('@/views/Assessment.vue'),
-      meta: {
-        title: '职业测评 - 高校职业推荐系统',
-        requiresAuth: true
-      }
+      path: '/register',
+      name: 'register',
+      component: Register
     },
     {
-      path: '/careers',
-      name: 'Careers',
-      component: () => import('@/views/Careers.vue'),
-      meta: {
-        title: '职业库 - 高校职业推荐系统',
-        requiresAuth: true
-      }
+      path: '/user-info',
+      name: 'userInfo',
+      component: UserInfo,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/user-profile',
+      name: 'userProfile',
+      component: UserProfile,
+      meta: { requiresAuth: true }
     },
     {
       path: '/user-center',
-      name: 'UserCenter',
-      component: () => import('@/views/UserCenter.vue'),
-      meta: {
-        requiresAuth: true,
-        title: '个人中心'
-      },
-      redirect: '/user-center/info',
+      name: 'userCenter',
+      component: UserCenter,
+      meta: { requiresAuth: true },
       children: [
         {
+          path: '',
+          redirect: { name: 'userCenterInfo' }
+        },
+        {
           path: 'info',
-          name: 'UserInfo',
-          component: () => import('@/views/UserInfo.vue'),
-          meta: {
-            requiresAuth: true,
-            title: '基本信息 - 个人中心'
-          }
+          name: 'userCenterInfo',
+          component: UserInfo,
+          meta: { requiresAuth: true }
         },
         {
           path: 'profile',
-          name: 'UserProfile',
-          component: () => import('@/views/UserProfile.vue'),
-          meta: {
-            requiresAuth: true,
-            title: '个人资料 - 个人中心'
-          }
+          name: 'profile',
+          component: UserProfile,
+          meta: { requiresAuth: true }
         },
         {
           path: 'recommend',
-          name: 'CareerRecommend',
-          component: () => import('@/views/CareerRecommend.vue'),
-          meta: {
-            requiresAuth: true,
-            title: '职业推荐 - 个人中心'
-          }
+          name: 'userRecommend',
+          component: CareerRecommend,
+          meta: { requiresAuth: true }
         }
       ]
     },
     {
+      path: '/assessment',
+      name: 'assessment',
+      component: Assessment,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/careers',
+      name: 'careers',
+      component: Careers,
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/career-library',
-      name: 'CareerLibrary',
-      component: () => import('@/views/CareerLibrary.vue'),
-      meta: {
-        title: '职业库',
-        requiresAuth: true
-      }
+      name: 'careerLibrary',
+      component: CareerLibrary,
+      meta: { requiresAuth: true }
     },
     {
       path: '/career-heat',
-      name: 'CareerHeat',
-      component: () => import('@/views/CareerHeat.vue'),
-      meta: {
-        title: '职业热力',
-        requiresAuth: true
-      }
+      name: 'careerHeat',
+      component: CareerHeat,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/career-recommend',
+      name: 'careerRecommend',
+      component: CareerRecommend,
+      meta: { requiresAuth: true }
     },
     {
       path: '/result',
-      name: 'Result',
-      component: () => import('@/views/Result.vue'),
-      meta: {
-        title: '测评结果 - 高校职业推荐系统',
-        requiresAuth: true
-      }
+      name: 'result',
+      component: Result,
+      meta: { requiresAuth: true }
     },
     {
-      path: '/:pathMatch(.*)*',
-      name: 'NotFound',
-      component: () => import('@/views/NotFound.vue'),
-      meta: {
-        title: '404 - 页面未找到'
-      }
+      path: '/:catchAll(.*)',
+      name: 'notFound',
+      component: NotFound
     }
   ]
 })

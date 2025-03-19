@@ -26,11 +26,11 @@
               <span>基本信息</span>
             </el-menu-item>
             <el-menu-item index="/user-center/profile">
-              <el-icon><User /></el-icon>
+              <el-icon><UserFilled /></el-icon>
               <span>个人资料</span>
             </el-menu-item>
             <el-menu-item index="/user-center/recommend">
-              <el-icon><DataAnalysis /></el-icon>
+              <el-icon><Star /></el-icon>
               <span>职业推荐</span>
             </el-menu-item>
           </el-menu>
@@ -49,7 +49,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { InfoFilled, User, UserFilled, DataAnalysis } from '@element-plus/icons-vue'
+import { InfoFilled, User, UserFilled, DataAnalysis, Star } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const authStore = useAuthStore()

@@ -1,0 +1,7 @@
+export var SortDirection;
+(function (SortDirection) {
+    SortDirection["ASC"] = "ascending";
+    SortDirection["DESC"] = "descending";
+    SortDirection["NONE"] = "none";
+})(SortDirection || (SortDirection = {}));
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoic29ydC1kaXJlY3Rpb24uanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi8uLi8uLi8uLi8uLi9wcm9qZWN0cy9ub3ZvLWVsZW1lbnRzL3NyYy9lbGVtZW50cy9kYXRhLXRhYmxlL3NvcnQtZmlsdGVyL3NvcnQtZGlyZWN0aW9uLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBLE1BQU0sQ0FBTixJQUFZLGFBSVg7QUFKRCxXQUFZLGFBQWE7SUFDdkIsa0NBQWlCLENBQUE7SUFDakIsb0NBQW1CLENBQUE7SUFDbkIsOEJBQWEsQ0FBQTtBQUNmLENBQUMsRUFKVyxhQUFhLEtBQWIsYUFBYSxRQUl4QiIsInNvdXJjZXNDb250ZW50IjpbImV4cG9ydCBlbnVtIFNvcnREaXJlY3Rpb24ge1xuICBBU0MgPSAnYXNjZW5kaW5nJyxcbiAgREVTQyA9ICdkZXNjZW5kaW5nJyxcbiAgTk9ORSA9ICdub25lJyxcbn1cbiJdfQ==

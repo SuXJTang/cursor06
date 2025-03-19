@@ -140,8 +140,8 @@ export const authApi = {
     const formData = new FormData();
     formData.append('file', file);
     
-    // 使用正确的头像上传API
-    return request.post('/api/v1/auth/me/avatar', formData, {
+    // 使用正确的API路径和方法
+    return request.post('/api/v1/users/me/avatar', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
@@ -160,8 +160,8 @@ export const authApi = {
     phone?: string;
     [key: string]: any;
   }): Promise<ApiResponse<UserInfo>> {
-    // 使用PATCH方法更新用户信息
-    return request.patch('/api/v1/auth/me', data);
+    // 修改为PATCH方法更新用户信息
+    return request.patch('/api/v1/users/me', data);
   },
   
   // 修改密码
@@ -169,14 +169,14 @@ export const authApi = {
     current_password: string;
     new_password: string;
   }): Promise<ApiResponse<any>> {
-    // 修改为与后端文档一致的路径
-    return request.put('/api/v1/auth/me/password', data);
+    // 使用正确的API路径
+    return request.put('/api/v1/users/me/password', data);
   },
   
   // 更新头像URL
   updateAvatarUrl(avatarUrl: string): Promise<ApiResponse<any>> {
     // 使用PATCH方法更新头像URL
-    return request.patch('/api/v1/auth/me/avatar-url', { avatar_url: avatarUrl });
+    return request.patch('/api/v1/users/me/avatar-url', { avatar_url: avatarUrl });
   },
   
   // 退出登录

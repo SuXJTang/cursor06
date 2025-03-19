@@ -18,11 +18,12 @@
             <el-tabs v-model="activeUploadTab">
               <el-tab-pane label="本地上传" name="local">
                 <el-upload
+                  v-if="!resumeList.length"
                   class="resume-uploader"
                   :before-upload="beforeResumeUpload"
                   :http-request="handleUploadRequest"
-                  :show-file-list="true"
-                  :limit="5"
+                  :show-file-list="false"
+                  :limit="1"
                   accept=".pdf,.doc,.docx"
                   drag
                 >
@@ -32,10 +33,30 @@
                   </div>
                   <template #tip>
                     <div class="el-upload__tip">
-                      支持PDF、Word格式，单个文件不超过10MB，最多上传5份简历
+                      支持PDF、Word格式，单个文件不超过10MB
                     </div>
                   </template>
                 </el-upload>
+                
+                <div v-else class="resume-replace">
+                  <el-alert
+                    title="一个用户只能关联一份简历文件，上传新简历将替换旧简历"
+                    type="warning"
+                    :closable="false"
+                  />
+                  <div class="replace-btn-container">
+                    <el-button type="primary" @click="handleReplaceClick">
+                      更换简历文件
+                    </el-button>
+                  </div>
+                  <input
+                    ref="hiddenFileInput"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    style="display: none"
+                    @change="handleFileInputChange"
+                  />
+                </div>
               </el-tab-pane>
               
               <el-tab-pane label="URL导入" name="url">
@@ -55,7 +76,7 @@
             </el-tabs>
 
             <div v-if="resumeList.length > 0" class="resume-list">
-              <h3>已上传简历：</h3>
+              <h3>当前简历：</h3>
               <el-table :data="resumeList" style="width: 100%">
                 <el-table-column prop="name" label="文件名" />
                 <el-table-column prop="type" label="类型" width="100">
@@ -66,19 +87,10 @@
                   </template>
                 </el-table-column>
                 <el-table-column prop="uploadTime" label="上传时间" width="180" />
-                <el-table-column label="默认" width="100">
-                  <template #default="scope">
-                    <el-tag v-if="scope.row.is_default" type="success">默认</el-tag>
-                    <el-tag v-else type="info">非默认</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="操作" width="250">
+                <el-table-column label="操作" width="180">
                   <template #default="scope">
                     <el-button type="primary" link @click="previewResume(scope.row)">
                       预览
-                    </el-button>
-                    <el-button v-if="!scope.row.is_default" type="success" link @click="setDefaultResume(scope.row)">
-                      设为默认
                     </el-button>
                     <el-button type="danger" link @click="removeResume(scope.row)">
                       删除
@@ -293,7 +305,14 @@ import { Upload } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useProfileStore } from '@/stores/profile'
 import type { FormInstance, FormRules } from 'element-plus'
-import { uploadResume, getUserResumes, setDefaultResume as setDefaultResumeAPI, deleteResume as deleteResumeAPI } from '@/api/profile'
+import { 
+  uploadResume as uploadResumeAPI, 
+  getUserResumes as getUserResumesAPI,
+  forceDeleteResumeRecord as forceDeleteRecordAPI,
+  getUserResumeInfo as getUserResumeInfoAPI,
+  updateResumeFileUrl as updateResumeFileUrlAPI,
+  setDefaultResume as setDefaultResumeAPI
+} from '@/api/profile'
 
 const router = useRouter()
 const profileStore = useProfileStore()
@@ -314,14 +333,15 @@ const resumeList = ref<Array<{
 // 获取用户简历列表
 const fetchUserResumes = async () => {
   try {
-    const resumes = await getUserResumes()
+    const resumes = await getUserResumesAPI()
     resumeList.value = resumes.map(resume => ({
       ...resume,
       uploadTime: new Date(resume.created_at).toLocaleString()
     }))
   } catch (error) {
     console.error('获取简历列表失败:', error)
-    ElMessage.error('获取简历列表失败')
+    // 不显示错误提示，因为可能是正常情况下的404
+    resumeList.value = []
   }
 }
 
@@ -349,35 +369,109 @@ const handleUploadRequest = (options: any) => {
 // 处理简历上传
 const handleResumeUpload = async (file: File) => {
   try {
-    const { file_id, file_url } = await uploadResume(file)
+    // 先检查用户是否有简历
+    const userResume = await getUserResumeInfoAPI();
     
-    resumeList.value.push({
-      id: file_id,
-      name: file.name,
-      type: file.name.split('.').pop() || '',
-      url: file_url,
-      is_default: resumeList.value.length === 0,
-      uploadTime: new Date().toLocaleString()
-    })
+    // 上传文件
+    const { file_id, file_url } = await uploadResumeAPI(file);
+    console.log('上传文件返回结果:', { file_id, file_url });
     
-    ElMessage.success('简历上传成功')
-  } catch (error) {
-    console.error('简历上传失败:', error)
-    ElMessage.error('简历上传失败，请重试')
+    // 如果用户已有简历，尝试更新简历文件URL
+    if (userResume && userResume.id) {
+      try {
+        await updateResumeFileUrlAPI(userResume.id, file_url);
+        console.log('简历文件URL更新成功');
+      } catch (updateError) {
+        console.error('更新简历文件URL失败:', updateError);
+      }
+    }
+    
+    // 清空当前简历列表，重新获取
+    resumeList.value = [];
+    await fetchUserResumes();
+    
+    ElMessage.success('简历上传成功');
+  } catch (error: any) {
+    console.error('简历上传失败:', error);
+    console.error('错误详情:', error.response?.data);
+    ElMessage.error('简历上传失败，请重试');
   }
 }
 
+// 删除简历
 const removeResume = async (resume: any) => {
   try {
-    await deleteResumeAPI(resume.id)
-    const index = resumeList.value.findIndex((item: any) => item.id === resume.id)
-    if (index !== -1) {
-      resumeList.value.splice(index, 1)
-      ElMessage.success('简历删除成功')
+    await ElMessageBox.confirm(
+      '删除简历后，将会完全删除所有简历数据和元数据，此操作不可恢复，是否继续？',
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+    
+    ElMessage.info('正在删除，请稍候...')
+    
+    // 清空本地列表，提前反馈给用户
+    resumeList.value = []
+    
+    // 使用文件名提取和删除
+    if (resume.url) {
+      const urlParts = resume.url.split('/')
+      const filename = urlParts[urlParts.length - 1]
+      console.log('尝试删除文件:', filename, '完整URL:', resume.url)
+      
+      try {
+        // 请求删除文件API
+        const response = await fetch(`/api/v1/resume-files/${encodeURIComponent(filename)}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+          }
+        })
+        
+        if (response.ok) {
+          console.log('删除成功')
+          ElMessage.success('简历已删除')
+        } else {
+          // 如果删除失败尝试使用ID删除
+          if (resume.id) {
+            console.log('常规删除失败，尝试使用ID强制删除:', resume.id)
+            await forceDeleteRecordAPI(String(resume.id))
+            ElMessage.success('简历已强制删除')
+          } else {
+            throw new Error('删除失败')
+          }
+        }
+      } catch (error) {
+        console.error('删除简历失败:', error)
+        ElMessage.error('删除失败，请刷新页面后重试')
+      }
+    } else if (resume.id) {
+      // 如果没有URL但有ID，直接使用ID删除
+      try {
+        await forceDeleteRecordAPI(String(resume.id))
+        console.log('使用ID删除成功')
+        ElMessage.success('简历已删除')
+      } catch (error) {
+        console.error('使用ID删除失败:', error)
+        ElMessage.error('删除失败，请刷新页面后重试')
+      }
+    } else {
+      ElMessage.error('无法删除：缺少文件信息')
     }
-  } catch (error) {
-    console.error('删除简历失败:', error)
-    ElMessage.error('删除简历失败，请重试')
+    
+    // 无论成功失败，1秒后刷新列表
+    setTimeout(async () => {
+      await fetchUserResumes()
+      console.log('刷新简历列表完成')
+    }, 1000)
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('删除简历确认对话框出错:', error)
+    }
   }
 }
 
@@ -629,6 +723,27 @@ const cancelEditExtra = async () => {
   }
 };
 
+// 更换简历处理
+const hiddenFileInput = ref<HTMLInputElement | null>(null)
+
+const handleReplaceClick = () => {
+  if (hiddenFileInput.value) {
+    hiddenFileInput.value.click()
+  }
+}
+
+const handleFileInputChange = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  if (target.files && target.files.length > 0) {
+    const file = target.files[0]
+    if (beforeResumeUpload(file)) {
+      handleResumeUpload(file)
+    }
+    // 重置input，允许选择相同文件
+    target.value = ''
+  }
+}
+
 // 初始化
 onMounted(async () => {
   // 初始化用户资料
@@ -731,5 +846,18 @@ h3 {
   margin: 20px 0 10px;
   padding-bottom: 10px;
   border-bottom: 1px solid #eee;
+}
+
+.resume-replace {
+  margin: 20px 0;
+  border: 1px dashed #dcdfe6;
+  border-radius: 6px;
+  padding: 20px;
+  background-color: #f5f7fa;
+}
+
+.replace-btn-container {
+  margin-top: 15px;
+  text-align: center;
 }
 </style> 

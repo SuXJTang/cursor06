@@ -56,6 +56,15 @@
         </div>
       </template>
       
+      <el-alert
+        type="warning"
+        title="功能暂未开放"
+        description="密码修改功能暂未开放，请等待系统更新"
+        show-icon
+        :closable="false"
+        style="margin-bottom: 20px;"
+      />
+      
       <el-form
         ref="passwordFormRef"
         :model="passwordForm"
@@ -67,6 +76,7 @@
             v-model="passwordForm.current_password" 
             type="password"
             show-password
+            disabled
           />
         </el-form-item>
         
@@ -75,6 +85,7 @@
             v-model="passwordForm.new_password" 
             type="password"
             show-password
+            disabled
           />
         </el-form-item>
         
@@ -83,11 +94,12 @@
             v-model="passwordForm.confirm_password" 
             type="password"
             show-password
+            disabled
           />
         </el-form-item>
         
         <el-form-item>
-          <el-button type="primary" @click="changePassword">修改密码</el-button>
+          <el-button type="primary" disabled>修改密码</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -101,6 +113,7 @@ import { Plus } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/api/auth'
 import { extractData } from '@/utils/responseAdapter'
+import request from '@/api/request'
 
 // 表单引用
 const userFormRef = ref()
@@ -201,7 +214,7 @@ const handleSubmit = async () => {
     isEditing.value = false
   } catch (error) {
     console.error('更新用户信息失败:', error)
-    ElMessage.error('更新用户信息失败')
+    ElMessage.error('更新用户信息失败，请检查网络连接或联系管理员')
   }
 }
 
@@ -210,36 +223,6 @@ const cancelEdit = async () => {
   // 重新获取用户信息，恢复原始数据
   await getUserInfo()
   isEditing.value = false
-}
-
-// 修改密码
-const changePassword = async () => {
-  if (!passwordFormRef.value) return
-
-  try {
-    await passwordFormRef.value.validate()
-    
-    await authApi.changePassword({
-      current_password: passwordForm.current_password,
-      new_password: passwordForm.new_password
-    })
-    
-    ElMessage.success('密码修改成功，请重新登录')
-    
-    // 清空表单
-    passwordForm.current_password = ''
-    passwordForm.new_password = ''
-    passwordForm.confirm_password = ''
-    
-    // 退出登录
-    setTimeout(() => {
-      userStore.logout()
-      window.location.href = '/login'
-    }, 1500)
-  } catch (error) {
-    console.error('修改密码失败:', error)
-    ElMessage.error('修改密码失败')
-  }
 }
 
 // 头像上传前验证
@@ -262,7 +245,17 @@ const beforeAvatarUpload = (file: File) => {
 const handleAvatarUpload = async (options: any) => {
   const { file } = options
   try {
-    const response = await authApi.uploadAvatar(file)
+    // 创建单独的FormData对象
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    // 直接使用请求库，绕过authApi
+    const response = await request.post('/api/v1/users/me/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    
     // 使用适配器提取数据
     const responseData = extractData(response)
     
@@ -270,14 +263,11 @@ const handleAvatarUpload = async (options: any) => {
     if (responseData && responseData.avatar_url) {
       userForm.avatar_url = responseData.avatar_url
       
-      // 需要手动更新用户信息，因为头像上传成功后需要手动更新到用户资料
-      await authApi.updateAvatarUrl(responseData.avatar_url)
-      
       ElMessage.success('头像上传成功')
     }
   } catch (error) {
     console.error('上传头像失败:', error)
-    ElMessage.error('上传头像失败')
+    ElMessage.error('上传头像失败，请检查网络连接或联系管理员')
   }
 }
 

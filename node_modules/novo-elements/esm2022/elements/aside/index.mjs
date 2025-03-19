@@ -1,0 +1,6 @@
+export * from './aside-ref';
+export * from './aside.animation';
+export * from './aside.component';
+export * from './aside.module';
+export * from './aside.service';
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi8uLi8uLi8uLi9wcm9qZWN0cy9ub3ZvLWVsZW1lbnRzL3NyYy9lbGVtZW50cy9hc2lkZS9pbmRleC50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQSxjQUFjLGFBQWEsQ0FBQztBQUM1QixjQUFjLG1CQUFtQixDQUFDO0FBQ2xDLGNBQWMsbUJBQW1CLENBQUM7QUFDbEMsY0FBYyxnQkFBZ0IsQ0FBQztBQUMvQixjQUFjLGlCQUFpQixDQUFDIiwic291cmNlc0NvbnRlbnQiOlsiZXhwb3J0ICogZnJvbSAnLi9hc2lkZS1yZWYnO1xuZXhwb3J0ICogZnJvbSAnLi9hc2lkZS5hbmltYXRpb24nO1xuZXhwb3J0ICogZnJvbSAnLi9hc2lkZS5jb21wb25lbnQnO1xuZXhwb3J0ICogZnJvbSAnLi9hc2lkZS5tb2R1bGUnO1xuZXhwb3J0ICogZnJvbSAnLi9hc2lkZS5zZXJ2aWNlJztcbiJdfQ==

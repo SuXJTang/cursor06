@@ -1,5 +1,17 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import type { AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios'
+
+// 扩展Axios类型定义
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    silent?: boolean;
+  }
+  
+  export interface InternalAxiosRequestConfig {
+    isSilent?: boolean;
+  }
+}
 
 // Token存储键
 const TOKEN_KEY = 'auth_token'
@@ -14,6 +26,13 @@ export const request = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   config => {
+    // 保存silent参数到config对象
+    if (config.silent) {
+      config.isSilent = true
+      // 删除自定义参数，避免axios警告
+      delete config.silent
+    }
+    
     // 从localStorage获取token
     const token = localStorage.getItem(TOKEN_KEY)
     if (token && token.trim() !== '') {
@@ -27,7 +46,8 @@ request.interceptors.request.use(
       url: config.url,
       headers: config.headers, 
       data: config.data,
-      params: config.params
+      params: config.params,
+      isSilent: config.isSilent
     })
     
     return config
@@ -51,6 +71,9 @@ request.interceptors.response.use(
   error => {
     console.error('API请求错误:', error)
     
+    // 检查是否为静默请求，如果是则不显示错误消息
+    const isSilent = error.config?.isSilent === true
+    
     // 处理具体的HTTP错误
     if (error.response) {
       const status = error.response.status
@@ -60,10 +83,10 @@ request.interceptors.response.use(
       switch (status) {
         case 400:
           // 处理请求参数错误
-          if (error.response.data && error.response.data.detail) {
+          if (!isSilent && error.response.data && error.response.data.detail) {
             // 显示具体的错误信息
             ElMessage.error(error.response.data.detail)
-          } else {
+          } else if (!isSilent) {
             ElMessage.error('请求参数错误，请检查输入')
           }
           break
@@ -79,10 +102,10 @@ request.interceptors.response.use(
             if (token) {
               // 清除失效的令牌
               localStorage.removeItem(TOKEN_KEY)
-              ElMessage.error('会话已过期，请重新登录')
+              if (!isSilent) ElMessage.error('会话已过期，请重新登录')
               // 重定向到登录页
               window.location.href = '/login'
-            } else {
+            } else if (!isSilent) {
               ElMessage.error('请先登录')
             }
           }
@@ -90,17 +113,17 @@ request.interceptors.response.use(
           
         case 403:
           // 处理禁止访问错误
-          ElMessage.error('您没有权限执行此操作')
+          if (!isSilent) ElMessage.error('您没有权限执行此操作')
           break
           
         case 404:
           // 处理资源不存在错误
-          ElMessage.error('请求的资源不存在')
+          if (!isSilent) ElMessage.error('请求的资源不存在')
           break
           
         case 422:
           // 处理数据验证错误
-          if (error.response.data && error.response.data.detail) {
+          if (!isSilent && error.response.data && error.response.data.detail) {
             // 尝试解析并显示详细的验证错误
             const detail = error.response.data.detail
             if (Array.isArray(detail)) {
@@ -115,28 +138,28 @@ request.interceptors.response.use(
             } else {
               ElMessage.error(error.response.data.detail)
             }
-          } else {
+          } else if (!isSilent) {
             ElMessage.error('数据验证失败，请检查输入')
           }
           break
           
         case 500:
           // 处理服务器错误
-          ElMessage.error('服务器错误，请稍后重试')
+          if (!isSilent) ElMessage.error('服务器错误，请稍后重试')
           break
           
         default:
           // 处理其他错误
-          ElMessage.error(`请求失败: ${status}`)
+          if (!isSilent) ElMessage.error(`请求失败: ${status}`)
       }
     } else if (error.request) {
       // 请求发出但没收到响应
       console.error('未收到响应:', error.request)
-      ElMessage.error('服务器无响应，请检查网络连接')
+      if (!isSilent) ElMessage.error('服务器无响应，请检查网络连接')
     } else {
       // 设置请求时发生错误
       console.error('请求设置错误:', error.message)
-      ElMessage.error('请求错误: ' + error.message)
+      if (!isSilent) ElMessage.error('请求错误: ' + error.message)
     }
     
     return Promise.reject(error)

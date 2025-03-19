@@ -22,7 +22,7 @@
 
       <!-- 用户区域 -->
       <div class="nav-user">
-        <template v-if="userStore.isLoggedIn">
+        <template v-if="authStore.isAuthenticated">
           <el-dropdown trigger="click" @command="handleCommand">
             <template v-if="showDefaultAvatar">
               <el-avatar :size="32" :style="defaultAvatarStyle">
@@ -30,11 +30,11 @@
               </el-avatar>
             </template>
             <template v-else>
-              <el-avatar :size="32" :src="userStore.userInfo?.avatar_url" />
+              <el-avatar :size="32" :src="authStore.userInfo?.avatar_url" />
             </template>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+                <el-dropdown-item command="userCenter">个人中心</el-dropdown-item>
                 <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -50,13 +50,13 @@
 
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
-import { useUserStore } from '@/stores/user'
+import { useAuthStore } from '@/stores/auth'
 import { School, UserFilled } from '@element-plus/icons-vue'
 import { computed } from 'vue'
 
 const router = useRouter()
 const route = useRoute()
-const userStore = useUserStore()
+const authStore = useAuthStore()
 
 // 导航菜单项
 const menuItems = [
@@ -65,8 +65,6 @@ const menuItems = [
   { name: '职业库', path: '/career-library' },
   { name: '职业热力图', path: '/career-heat' }
 ]
-
-// 默认头像 - 使用Element Plus内置的头像图标生成随机彩色背景头像
 
 // 根据用户名生成颜色
 const getRandomColor = (username: string) => {
@@ -97,7 +95,7 @@ const getRandomColor = (username: string) => {
 
 // 计算得到的默认头像样式
 const defaultAvatarStyle = computed(() => {
-  const color = getRandomColor(userStore.userInfo?.username || '')
+  const color = getRandomColor(authStore.userInfo?.username || '')
   return {
     backgroundColor: color,
     color: '#fff',
@@ -109,17 +107,17 @@ const defaultAvatarStyle = computed(() => {
 
 // 是否显示默认头像
 const showDefaultAvatar = computed(() => {
-  return !userStore.userInfo?.avatar_url || userStore.userInfo.avatar_url === ''
+  return !authStore.userInfo?.avatar_url || authStore.userInfo.avatar_url === ''
 })
 
 // 处理下拉菜单命令
 const handleCommand = (command: string) => {
   switch (command) {
-    case 'profile':
-      router.push('/profile')
+    case 'userCenter':
+      router.push('/user-center')
       break
     case 'logout':
-      userStore.logout()
+      authStore.logout()
       router.push('/')
       break
   }

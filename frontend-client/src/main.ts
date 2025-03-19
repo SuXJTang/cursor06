@@ -31,9 +31,7 @@ async function bootstrap() {
   
   // 导入认证存储
   const { useAuthStore } = await import('./stores/auth')
-  
-  // 初始化认证状态
-  const authStore = useAuthStore(pinia)
+  const { useProfileStore } = await import('./stores/profile')
   
   // 使用ElementPlus
   app.use(ElementPlus, {
@@ -49,14 +47,31 @@ async function bootstrap() {
   // 先验证token，再挂载应用
   console.log('应用启动，检查认证状态...')
   try {
+    // 初始化认证状态
+    const authStore = useAuthStore(pinia)
+    const profileStore = useProfileStore(pinia)
+    
     // 如果有token，尝试获取用户信息
     if (authStore.token) {
-      await authStore.fetchUserInfo()
+      await authStore.getUserInfo()
+      
+      // 如果认证成功，初始化用户资料
+      if (authStore.isAuthenticated) {
+        try {
+          // 加载本地存储的资料
+          profileStore.loadFromLocalStorage()
+          // 初始化用户资料（如果本地没有会从API获取）
+          await profileStore.initUserProfile()
+        } catch (error) {
+          console.error('初始化用户资料失败:', error)
+        }
+      }
     }
   } catch (err) {
     console.error('Token验证失败:', err)
     // 验证失败时清除token
-    authStore.clearAuth()
+    const authStore = useAuthStore(pinia)
+    authStore.logout()
   } finally {
     // 设置路由
     app.use(router)

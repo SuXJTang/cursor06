@@ -22,7 +22,7 @@ export const getUserProfile = async (): Promise<UserProfile> => {
   }
   
   // 实际后端暂未实现完整的用户详细资料API，使用用户基本信息API代替
-  const response = await request.get<ApiResponse<UserProfile>>('/api/v1/users/me')
+  const response = await request.get<ApiResponse<UserProfile>>('/api/v1/auth/me')
   return {
     ...response.data.data,
     // 添加用户详细资料的默认值，防止前端UI出错
@@ -52,7 +52,7 @@ export const createUserProfile = async (data: CreateUpdateProfileParams): Promis
     username: data.full_name,
     phone: data.phone
   }
-  const response = await request.patch<ApiResponse<UserProfile>>('/api/v1/users/me', basicInfo)
+  const response = await request.patch<ApiResponse<UserProfile>>('/api/v1/auth/me', basicInfo)
   return {
     ...response.data.data,
     ...data,
@@ -83,7 +83,7 @@ export const updateUserProfile = async (data: CreateUpdateProfileParams): Promis
     username: data.full_name,
     phone: data.phone
   }
-  const response = await request.patch<ApiResponse<UserProfile>>('/api/v1/users/me', basicInfo)
+  const response = await request.patch<ApiResponse<UserProfile>>('/api/v1/auth/me', basicInfo)
   return {
     ...response.data.data,
     ...data
@@ -102,7 +102,7 @@ export const updateAvatarUrl = async (avatarUrl: string): Promise<UserProfile> =
   }
   
   // 使用authApi中的方法更新头像URL
-  const response = await request.patch<ApiResponse<UserProfile>>('/api/v1/users/me/avatar-url', { avatar_url: avatarUrl })
+  const response = await request.patch<ApiResponse<UserProfile>>('/api/v1/auth/me/avatar-url', { avatar_url: avatarUrl })
   return {
     ...response.data.data,
     avatar_url: avatarUrl

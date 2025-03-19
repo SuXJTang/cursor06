@@ -124,6 +124,29 @@
         </el-card>
       </el-col>
     </el-row>
+
+    <!-- 附加资料区域 -->
+    <el-row style="margin-top: 20px;">
+      <el-col :span="24">
+        <el-card class="profile-card">
+          <template #header>
+            <div class="card-header">
+              <h2>附加资料</h2>
+            </div>
+          </template>
+          
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px 0;">
+            <el-empty description="附加资料功能开发中，敬请期待..." />
+            <el-alert
+              title="该功能将允许您上传项目文档、获奖证书等辅助材料，丰富您的个人档案"
+              type="info"
+              :closable="false"
+              show-icon
+            />
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 

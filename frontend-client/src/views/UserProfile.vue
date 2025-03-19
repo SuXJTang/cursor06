@@ -424,6 +424,7 @@
                           v-model="extraInfoForm.learningStyle[item.value]"
                           :max="5"
                           :colors="['#F7BA2A', '#F7BA2A', '#F7BA2A']"
+                          void-color="#C6D1DE"
                           :disabled="!isEditingExtra"
                           @change="val => handleRateChange(val, 'learningStyle', item.value)"
                         />
@@ -480,6 +481,7 @@
                               v-model="extraInfoForm.careerInterests[item.value]"
                               :max="5"
                               :colors="['#F7BA2A', '#F7BA2A', '#F7BA2A']"
+                              void-color="#C6D1DE"
                               :disabled="!isEditingExtra"
                               @change="val => handleRateChange(val, 'careerInterests', item.value)"
                             />

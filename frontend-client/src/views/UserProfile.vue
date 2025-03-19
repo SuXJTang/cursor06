@@ -143,7 +143,7 @@
               :closable="false"
               show-icon
             />
-          </div>
+              </div>
         </el-card>
       </el-col>
     </el-row>
@@ -212,7 +212,7 @@ const beforeResumeUpload = (file: File) => {
 const handleUploadRequest = async (options: any) => {
   try {
     uploadLoading.value = true
-    const { file } = options
+  const { file } = options
     
     // 直接使用文件进行上传，而不是FormData
     const result = await uploadResumeAPI(file)
@@ -236,13 +236,13 @@ const previewResume = (resume: any) => {
 const removeResume = async (resume: any) => {
   try {
     await ElMessageBox.confirm('确定要删除这份简历吗？此操作不可逆', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
       type: 'warning'
     })
     
     await forceDeleteRecordAPI(resume.id)
-    ElMessage.success('简历已删除')
+          ElMessage.success('简历已删除')
     await getUserResumes() // 刷新简历列表
   } catch (error: any) {
     if (error !== 'cancel') {
@@ -366,7 +366,7 @@ onMounted(async () => {
 }
 
 .resume-uploader {
-  width: 100%;
+    width: 100%;
 }
 
 .resume-list {

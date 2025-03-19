@@ -110,24 +110,23 @@ const submitForm = async () => {
           })
           
           try {
-            // 直接使用authStore处理登录请求
+            // 登录前清除之前的错误
+            ElMessage.closeAll()
+            
             const success = await authStore.login({
-              email: form.username, // 这里用username存储邮箱地址
-              password: form.password,
-              remember: true
+              email: form.username, // 使用username字段作为邮箱
+              password: form.password
             })
             
             if (success) {
-              // 登录成功，跳转到目标页面
-              setTimeout(() => {
-                router.push(redirectUrl.value)
-              }, 500)
+              router.push(redirectUrl.value)
             } else {
-              // 登录失败但没有抛出异常
-              console.error('登录操作返回false')
+              console.error('登录失败，但没有捕获到异常')
+              ElMessage.error('登录失败，请检查用户名和密码')
             }
-          } catch (error) {
-            console.error('登录过程抛出异常:', error)
+          } catch (error: any) {
+            console.error('登录异常:', error)
+            ElMessage.error(`登录失败: ${error.message || '未知错误'}`)
           } finally {
             loading.value = false
           }
@@ -154,14 +153,10 @@ const submitForm = async () => {
             
             if (result) {
               // 注册成功，切换到登录模式
-              ElMessage.success('注册成功，请登录')
               isLogin.value = true
               form.password = ''
               form.confirmPassword = ''
             }
-          } catch (error) {
-            console.error('注册过程发生错误:', error)
-            ElMessage.error('注册失败，请稍后重试')
           } finally {
             loading.value = false
           }
@@ -251,6 +246,14 @@ onMounted(() => {
           :closable="false"
           title="测试账号信息"
           description="用户名: admin@example.com，密码: admin123"
+        />
+        
+        <el-alert
+          v-if="authStore.error"
+          type="error"
+          :closable="true"
+          :title="authStore.error"
+          style="margin-top: 10px;"
         />
       </el-form>
     </el-card>

@@ -33,13 +33,13 @@ export default defineConfig({
         rewrite: (path) => path,
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
-            console.log('代理错误:', err);
+            console.error('代理错误:', err, req.url);
           });
           proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('代理请求:', req.method, req.url);
+            console.log('发送代理请求:', req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req, res) => {
-            console.log('代理响应:', proxyRes.statusCode, req.url);
+            console.log('收到代理响应:', proxyRes.statusCode, req.url);
           });
         }
       }

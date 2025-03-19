@@ -105,7 +105,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     
     try {
-      // 直接使用authApi处理登录请求
+      // 使用authApi处理登录请求
       const response = await authApi.login({
         email: params.email,
         password: params.password
@@ -113,35 +113,10 @@ export const useAuthStore = defineStore('auth', () => {
       
       console.log('authStore收到登录响应:', response)
       
-      // 提取token，兼容多种可能的响应格式
-      let accessToken = null
-      
-      // 判断响应类型并提取token
-      if (typeof response === 'string' && response.length > 20) {
-        // 如果直接返回字符串token
-        accessToken = response
-      } else if (response && typeof response === 'object') {
-        // 可能的直接对象格式
-        if (response.access_token) {
-          accessToken = response.access_token
-        } 
-        // 其他可能的属性名
-        else if (response.token) {
-          accessToken = response.token
-        }
-        // 嵌套在data属性中
-        else if (response.data && typeof response.data === 'object') {
-          if (response.data.access_token) {
-            accessToken = response.data.access_token
-          } else if (response.data.token) {
-            accessToken = response.data.token
-          }
-        }
-      }
-      
-      if (accessToken) {
-        console.log('成功提取到token:', accessToken.substring(0, 20) + '...')
-        setToken(accessToken)
+      // 检查是否有access_token
+      if (response && response.access_token) {
+        console.log('成功提取到token:', response.access_token)
+        setToken(response.access_token)
         
         // 获取用户信息
         await getUserInfo()
@@ -158,7 +133,7 @@ export const useAuthStore = defineStore('auth', () => {
       console.error('登录过程发生错误:', err)
       
       // 尝试从错误对象中提取更详细的错误信息
-      let errorMessage = '登录失败，请检查用户名和密码'
+      let errorMessage = '登录失败'
       
       if (err.response) {
         console.error('错误响应状态:', err.response.status)
@@ -194,11 +169,11 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     
     try {
-      // 注册API使用JSON格式
+      // 使用正确的注册API路径
       const response = await request.post('/api/v1/auth/register', params)
       
       // 检查响应，注册成功返回用户信息
-      if (response.data) {
+      if (response) {
         ElMessage.success('注册成功，请登录')
         return true
       } else {
@@ -224,12 +199,12 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     
     try {
-      // 获取当前用户信息
+      // 使用正确的用户信息API路径
       const response = await request.get('/api/v1/auth/me')
       
       // 用户信息直接返回在响应中
-      if (response.data) {
-        userInfo.value = response.data
+      if (response) {
+        userInfo.value = response
         saveUserToStorage()
         return userInfo.value
       } else {
@@ -281,7 +256,7 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
       
-      const response = await request.post<ApiResponse<{avatar_url: string}>>('/api/v1/users/me/avatar', formData, config)
+      const response = await request.post<ApiResponse<{avatar_url: string}>>('/api/v1/auth/me/avatar', formData, config)
       
       if (response.data.code === 200 && response.data.data.avatar_url) {
         // 更新本地存储的用户信息

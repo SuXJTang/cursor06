@@ -7,7 +7,7 @@ const TOKEN_KEY = 'auth_token'
 // 使用全局axios实例，这样可以被mock拦截
 // 创建axios实例
 export const request = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL: import.meta.env.VITE_API_URL || '',  // 使用环境变量中的API URL
   timeout: 10000
 })
 
@@ -21,10 +21,19 @@ request.interceptors.request.use(
       config.headers['Authorization'] = `Bearer ${token}`
       console.log('请求中添加token:', `Bearer ${token}`)
     }
-    console.log('请求配置:', config.url, config.method, config.data)
+    
+    // 详细记录请求信息
+    console.log(`发送${config.method?.toUpperCase()}请求:`, {
+      url: config.url,
+      headers: config.headers, 
+      data: config.data,
+      params: config.params
+    })
+    
     return config
   },
   error => {
+    console.error('请求配置错误:', error)
     return Promise.reject(error)
   }
 )
@@ -32,9 +41,11 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   response => {
-    console.log('API请求成功:', response.config.url, response.data)
+    console.log('API请求成功:', response.config.url)
     
-    // 直接返回响应数据，不做格式检查
+    // 直接返回响应数据，不做额外处理
+    // 如果响应直接包含数据（例如后端直接返回的内容），则返回response.data
+    // 否则返回整个response
     return response.data
   },
   error => {

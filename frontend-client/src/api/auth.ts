@@ -64,38 +64,45 @@ export const authApi = {
   },
   
   // 用户登录
-  login(data: LoginParams): Promise<any> {
+  async login(data: LoginParams): Promise<OAuth2Response> {
     console.log('登录请求数据:', data)
     
     // 使用URLSearchParams来创建application/x-www-form-urlencoded格式的数据
     const params = new URLSearchParams()
-    params.append('username', data.email) // 后端接口用username，但前端使用email
+    params.append('username', data.email) // 后端OAuth2PasswordRequestForm要求用username字段
     params.append('password', data.password)
     
+    // 不需要添加这些额外字段，FastAPI的OAuth2实现会自动处理
+    // params.append('grant_type', 'password')
+    // params.append('scope', '')
+    // params.append('client_id', '')
+    // params.append('client_secret', '')
+    
+    // 使用正确的API路径，包含/v1前缀
     console.log('发送登录请求:',{
       url: '/api/v1/auth/login',
       body: params.toString()
     })
     
-    // 发送请求，axios会自动设置Content-Type为application/x-www-form-urlencoded
-    return request.post('/api/v1/auth/login', params, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    })
-    .then(response => {
+    try {
+      // 确保设置正确的Content-Type请求头
+      const response = await request.post('/api/v1/auth/login', params, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      })
       console.log('登录响应原始数据:', response)
-      // 直接返回响应，不做额外处理
+      
+      // 直接返回响应数据
       return response
-    })
-    .catch(error => {
+    } catch (error: any) {
       console.error('登录请求错误详情:', error)
       if (error.response) {
         console.error('错误状态码:', error.response.status)
         console.error('错误响应数据:', error.response.data)
       }
       throw error
-    })
+    }
   },
   
   // 获取当前用户信息
@@ -122,7 +129,7 @@ export const authApi = {
     formData.append('file', file);
     
     // 使用正确的头像上传API
-    return request.post('/api/v1/users/me/avatar', formData, {
+    return request.post('/api/v1/auth/me/avatar', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
@@ -142,7 +149,7 @@ export const authApi = {
     [key: string]: any;
   }): Promise<ApiResponse<UserInfo>> {
     // 使用PATCH方法更新用户信息
-    return request.patch('/api/v1/users/me', data);
+    return request.patch('/api/v1/auth/me', data);
   },
   
   // 修改密码
@@ -151,13 +158,13 @@ export const authApi = {
     new_password: string;
   }): Promise<ApiResponse<any>> {
     // 修改为与后端文档一致的路径
-    return request.put('/api/v1/users/me/password', data);
+    return request.put('/api/v1/auth/me/password', data);
   },
   
   // 更新头像URL
   updateAvatarUrl(avatarUrl: string): Promise<ApiResponse<any>> {
     // 使用PATCH方法更新头像URL
-    return request.patch('/api/v1/users/me/avatar-url', { avatar_url: avatarUrl });
+    return request.patch('/api/v1/auth/me/avatar-url', { avatar_url: avatarUrl });
   },
   
   // 退出登录

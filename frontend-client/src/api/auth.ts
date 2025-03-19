@@ -3,32 +3,39 @@ import request from './request'
 
 // 定义接口类型
 export interface LoginParams {
-  username: string
+  email: string
   password: string
 }
 
 export interface RegisterParams {
   username: string
   password: string
-  email?: string
+  email: string
+  phone?: string
 }
 
 export interface UserInfo {
   id: number
   username: string
   email?: string
-  role?: string
-  status?: string
+  phone?: string
   avatar_url?: string
-  createdAt?: string
-  updatedAt?: string
+  is_active?: boolean
+  is_superuser?: boolean
+  is_verified?: boolean
+  last_login?: string
+  created_at?: string
+  updated_at?: string
   [key: string]: any
 }
 
-// FastAPI OAuth2标准响应
+// OAuth2标准响应
 export interface OAuth2Response {
-  access_token: string
-  token_type: string
+  access_token?: string
+  token_type?: string
+  token?: string
+  data?: any
+  [key: string]: any
 }
 
 // Mock响应格式
@@ -51,31 +58,111 @@ export interface ApiResponse<T> {
 // 认证服务
 export const authApi = {
   // 用户注册
-  register(data: RegisterParams): Promise<ApiResponse<null>> {
+  register(data: RegisterParams): Promise<ApiResponse<UserInfo>> {
     console.log('注册请求数据:', data)
     return request.post('/api/v1/auth/register', data)
   },
   
   // 用户登录
-  login(data: LoginParams): Promise<ApiResponse<any>> {
+  login(data: LoginParams): Promise<any> {
     console.log('登录请求数据:', data)
     
-    // 为了支持FastAPI的OAuth2PasswordRequestForm格式，使用表单数据
-    const formData = new FormData()
-    formData.append('username', data.username)
-    formData.append('password', data.password)
+    // 使用URLSearchParams来创建application/x-www-form-urlencoded格式的数据
+    const params = new URLSearchParams()
+    params.append('username', data.email) // 后端接口用username，但前端使用email
+    params.append('password', data.password)
     
-    return request.post('/api/v1/auth/login', formData)
+    console.log('发送登录请求:',{
+      url: '/api/v1/auth/login',
+      body: params.toString()
+    })
+    
+    // 发送请求，axios会自动设置Content-Type为application/x-www-form-urlencoded
+    return request.post('/api/v1/auth/login', params, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    })
+    .then(response => {
+      console.log('登录响应原始数据:', response)
+      // 直接返回响应，不做额外处理
+      return response
+    })
+    .catch(error => {
+      console.error('登录请求错误详情:', error)
+      if (error.response) {
+        console.error('错误状态码:', error.response.status)
+        console.error('错误响应数据:', error.response.data)
+      }
+      throw error
+    })
   },
   
   // 获取当前用户信息
   getCurrentUser(): Promise<ApiResponse<UserInfo>> {
+    // 使用后端实际提供的用户信息API
     return request.get('/api/v1/auth/me')
+  },
+  
+  // 上传头像
+  uploadAvatar(file: File): Promise<ApiResponse<{avatar_url: string}>> {
+    // 验证文件格式
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!validTypes.includes(file.type)) {
+      return Promise.reject(new Error('只支持 jpg、jpeg 和 png 格式的图片'));
+    }
+    
+    // 验证文件大小 (2MB = 2 * 1024 * 1024 bytes)
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+      return Promise.reject(new Error('图片大小不能超过 2MB'));
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // 使用正确的头像上传API
+    return request.post('/api/v1/users/me/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      // 添加上传进度处理
+      onUploadProgress: (progressEvent) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+        console.log('上传进度:', percentCompleted, '%');
+        // 这里可以触发一个进度更新事件，在UI中展示进度
+      }
+    });
+  },
+  
+  // 更新用户信息
+  updateUserInfo(data: {
+    username?: string;
+    phone?: string;
+    [key: string]: any;
+  }): Promise<ApiResponse<UserInfo>> {
+    // 使用PATCH方法更新用户信息
+    return request.patch('/api/v1/users/me', data);
+  },
+  
+  // 修改密码
+  changePassword(data: {
+    current_password: string;
+    new_password: string;
+  }): Promise<ApiResponse<any>> {
+    // 修改为与后端文档一致的路径
+    return request.put('/api/v1/users/me/password', data);
+  },
+  
+  // 更新头像URL
+  updateAvatarUrl(avatarUrl: string): Promise<ApiResponse<any>> {
+    // 使用PATCH方法更新头像URL
+    return request.patch('/api/v1/users/me/avatar-url', { avatar_url: avatarUrl });
   },
   
   // 退出登录
   logout() {
-    localStorage.removeItem('token')
+    localStorage.removeItem('auth_token')
   }
 }
 

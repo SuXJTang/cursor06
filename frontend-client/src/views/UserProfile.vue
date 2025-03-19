@@ -423,7 +423,7 @@
                         <el-rate
                           v-model="extraInfoForm.learningStyle[item.value]"
                           :max="5"
-                          :colors="rateColors"
+                          :colors="['#F7BA2A', '#F7BA2A', '#F7BA2A']"
                           :disabled="!isEditingExtra"
                           @change="val => handleRateChange(val, 'learningStyle', item.value)"
                         />
@@ -479,7 +479,7 @@
                             <el-rate
                               v-model="extraInfoForm.careerInterests[item.value]"
                               :max="5"
-                              :colors="rateColors"
+                              :colors="['#F7BA2A', '#F7BA2A', '#F7BA2A']"
                               :disabled="!isEditingExtra"
                               @change="val => handleRateChange(val, 'careerInterests', item.value)"
                             />

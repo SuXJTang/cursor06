@@ -299,6 +299,51 @@
                   </div>
                 </div>
               </div>
+              
+              <!-- 移动到左侧的语言能力 -->
+              <div class="quick-form-item languages-item">
+                <span class="item-label">语言能力</span>
+                <div class="tags-wrapper">
+                  <el-select
+                    v-model="extraInfoForm.languages"
+                    multiple
+                    placeholder="请选择" 
+                    size="small"
+                    :disabled="!isEditingExtra"
+                  >
+                    <el-option
+                      v-for="item in languageOptions"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    />
+                  </el-select>
+                </div>
+              </div>
+              
+              <!-- 移动到左侧的技能标签 -->
+              <div class="quick-form-item skill-tags-item">
+                <span class="item-label">技能标签</span>
+                <div class="tags-wrapper">
+                  <el-select
+                    v-model="extraInfoForm.skillTags"
+                    multiple
+                    filterable
+                    allow-create
+                    default-first-option
+                    placeholder="请选择或输入" 
+                    size="small"
+                    :disabled="!isEditingExtra"
+                  >
+                    <el-option
+                      v-for="item in skillTagOptions"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    />
+                  </el-select>
+                </div>
+              </div>
             </div>
             
             <!-- 右侧栏 - 性格、学习和兴趣 -->
@@ -443,49 +488,6 @@
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-              
-              <div class="quick-form-item languages-item">
-                <span class="item-label">语言能力</span>
-                <div class="tags-wrapper">
-                  <el-select
-                    v-model="extraInfoForm.languages"
-                    multiple
-                    placeholder="请选择" 
-                    size="small"
-                    :disabled="!isEditingExtra"
-                  >
-                    <el-option
-                      v-for="item in languageOptions"
-                      :key="item.value"
-                      :label="item.label"
-                      :value="item.value"
-                    />
-                  </el-select>
-                </div>
-              </div>
-              
-              <div class="quick-form-item skill-tags-item">
-                <span class="item-label">技能标签</span>
-                <div class="tags-wrapper">
-                  <el-select
-                    v-model="extraInfoForm.skillTags"
-                    multiple
-                    filterable
-                    allow-create
-                    default-first-option
-                    placeholder="请选择或输入" 
-                    size="small"
-                    :disabled="!isEditingExtra"
-                  >
-                    <el-option
-                      v-for="item in skillTagOptions"
-                      :key="item.value"
-                      :label="item.label"
-                      :value="item.value"
-                    />
-                  </el-select>
                 </div>
               </div>
             </div>

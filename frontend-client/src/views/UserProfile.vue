@@ -135,78 +135,78 @@
           </template>
           <el-form label-position="top" class="extra-info-form">
             <!-- 职业偏好部分 -->
-            <div class="form-section">
-              <div class="section-header">
+            <div class="form-section compact-section">
+              <div class="section-header compact-header">
                 <div class="section-icon"><i class="el-icon-suitcase"></i></div>
-              <h3>职业偏好</h3>
+                <h3>职业偏好</h3>
               </div>
-              <div class="section-content">
-                <el-row :gutter="20">
+              <div class="section-content compact-content">
+                <el-row :gutter="10">
                   <el-col :span="12">
-              <el-form-item label="期望职位">
-                <el-select
-                  v-model="extraInfoForm.expectedPositions"
-                  multiple
+                    <el-form-item label="期望职位" class="compact-form-item">
+                      <el-select
+                        v-model="extraInfoForm.expectedPositions"
+                        multiple
                         placeholder="请选择期望职位" 
                         style="width: 100%"
                         :disabled="!isEditingExtra"
-                >
-                  <el-option
-                    v-for="item in positionOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
-                </el-select>
-              </el-form-item>
+                      >
+                        <el-option
+                          v-for="item in positionOptions"
+                          :key="item.value"
+                          :label="item.label"
+                          :value="item.value"
+                        />
+                      </el-select>
+                    </el-form-item>
                   </el-col>
                   <el-col :span="12">
-              <el-form-item label="期望行业">
-                <el-select
-                  v-model="extraInfoForm.expectedIndustries"
-                  multiple
+                    <el-form-item label="期望行业" class="compact-form-item">
+                      <el-select
+                        v-model="extraInfoForm.expectedIndustries"
+                        multiple
                         placeholder="请选择期望行业" 
                         style="width: 100%"
                         :disabled="!isEditingExtra"
-                >
-                  <el-option
-                    v-for="item in industryOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
-                </el-select>
-              </el-form-item>
+                      >
+                        <el-option
+                          v-for="item in industryOptions"
+                          :key="item.value"
+                          :label="item.label"
+                          :value="item.value"
+                        />
+                      </el-select>
+                    </el-form-item>
                   </el-col>
                 </el-row>
-              <el-form-item label="期望薪资">
-                <el-select
-                  v-model="extraInfoForm.expectedSalary"
-                  placeholder="请选择期望薪资范围"
+                <el-form-item label="期望薪资" class="compact-form-item">
+                  <el-select
+                    v-model="extraInfoForm.expectedSalary"
+                    placeholder="请选择期望薪资范围"
                     style="width: 100%"
                     :disabled="!isEditingExtra"
-                >
-                  <el-option
-                    v-for="item in salaryOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
-                </el-select>
-              </el-form-item>
+                  >
+                    <el-option
+                      v-for="item in salaryOptions"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    />
+                  </el-select>
+                </el-form-item>
               </div>
             </div>
             
             <!-- 工作经验部分 -->
-            <div class="form-section">
-              <div class="section-header">
+            <div class="form-section compact-section">
+              <div class="section-header compact-header">
                 <div class="section-icon"><i class="el-icon-briefcase"></i></div>
                 <h3>工作经验</h3>
               </div>
-              <div class="section-content">
-                <el-row :gutter="20">
+              <div class="section-content compact-content">
+                <el-row :gutter="10">
                   <el-col :span="12">
-                    <el-form-item label="工作年限">
+                    <el-form-item label="工作年限" class="compact-form-item">
                       <el-input-number 
                         v-model="extraInfoForm.workYears" 
                         :min="0" 
@@ -218,7 +218,7 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="12">
-                    <el-form-item label="当前状态">
+                    <el-form-item label="当前状态" class="compact-form-item">
                       <el-select 
                         v-model="extraInfoForm.currentStatus" 
                         placeholder="请选择当前工作状态" 
@@ -235,11 +235,11 @@
                     </el-form-item>
                   </el-col>
                 </el-row>
-                <el-form-item label="工作经验详情">
+                <el-form-item label="工作经验详情" class="compact-form-item">
                   <el-input 
                     v-model="extraInfoForm.workExperience" 
                     type="textarea" 
-                    :rows="4"
+                    :rows="3"
                     placeholder="请简要描述您的工作经历，包括公司、职位和主要职责等" 
                     :disabled="!isEditingExtra"
                   />
@@ -248,51 +248,51 @@
             </div>
             
             <!-- 技能评估部分 -->
-            <div class="form-section">
-              <div class="section-header">
+            <div class="form-section compact-section">
+              <div class="section-header compact-header">
                 <div class="section-icon"><i class="el-icon-trophy"></i></div>
-              <h3>技能评估</h3>
+                <h3>技能评估</h3>
               </div>
-              <div class="section-content">
-              <el-form-item label="专业技能">
+              <div class="section-content compact-content">
+                <el-form-item label="专业技能" class="compact-form-item">
                   <div class="skills-container">
-                <el-tag
-                  v-for="skill in extraInfoForm.skills"
-                  :key="skill.id"
-                  closable
-                  :disable-transitions="false"
-                  @close="handleSkillClose(skill)"
+                    <el-tag
+                      v-for="skill in extraInfoForm.skills"
+                      :key="skill.id"
+                      closable
+                      :disable-transitions="false"
+                      @close="handleSkillClose(skill)"
                       :class="`skill-tag skill-level-${skill.level}`"
                       :disable-closing="!isEditingExtra"
-                >
+                    >
                       {{ skill.name }} ({{ skill.level }}/5)
-                </el-tag>
+                    </el-tag>
                     <el-button class="button-new-skill" size="small" @click="showAddSkillDialog = true" v-if="isEditingExtra">
-                  + 添加技能
-                </el-button>
+                      + 添加技能
+                    </el-button>
                   </div>
-              </el-form-item>
-                <el-row :gutter="20">
+                </el-form-item>
+                <el-row :gutter="10">
                   <el-col :span="12">
-              <el-form-item label="语言能力">
-                <el-select
-                  v-model="extraInfoForm.languages"
-                  multiple
-                        placeholder="请选择掌握的语言" 
+                    <el-form-item label="语言能力" class="compact-form-item">
+                      <el-select
+                        v-model="extraInfoForm.languages"
+                        multiple
+                        placeholder="请选择掌握的语言"
                         style="width: 100%"
                         :disabled="!isEditingExtra"
-                >
-                  <el-option
-                    v-for="item in languageOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
-                </el-select>
-              </el-form-item>
+                      >
+                        <el-option
+                          v-for="item in languageOptions"
+                          :key="item.value"
+                          :label="item.label"
+                          :value="item.value"
+                        />
+                      </el-select>
+                    </el-form-item>
                   </el-col>
                   <el-col :span="12">
-                    <el-form-item label="技能标签">
+                    <el-form-item label="技能标签" class="compact-form-item">
                       <el-select
                         v-model="extraInfoForm.skillTags"
                         multiple
@@ -317,68 +317,68 @@
             </div>
             
             <!-- 性格与工作风格部分 -->
-            <div class="form-section">
-              <div class="section-header">
+            <div class="form-section compact-section">
+              <div class="section-header compact-header">
                 <div class="section-icon"><i class="el-icon-user"></i></div>
-              <h3>性格与工作风格</h3>
+                <h3>性格与工作风格</h3>
               </div>
-              <div class="section-content">
-                <el-row :gutter="20">
+              <div class="section-content compact-content">
+                <el-row :gutter="10">
                   <el-col :span="12">
-              <el-form-item label="MBTI类型">
-                <el-select
-                  v-model="extraInfoForm.mbtiType"
-                  placeholder="请选择您的MBTI类型"
+                    <el-form-item label="MBTI类型" class="compact-form-item">
+                      <el-select
+                        v-model="extraInfoForm.mbtiType"
+                        placeholder="请选择您的MBTI类型"
                         style="width: 100%"
                         :disabled="!isEditingExtra"
-                >
-                  <el-option-group
-                    v-for="group in mbtiOptions"
-                    :key="group.label"
-                    :label="group.label"
-                  >
-                    <el-option
-                      v-for="item in group.options"
-                      :key="item.value"
-                      :label="`${item.label} (${item.description})`"
-                      :value="item.value"
-                    />
-                  </el-option-group>
-                </el-select>
-              </el-form-item>
+                      >
+                        <el-option-group
+                          v-for="group in mbtiOptions"
+                          :key="group.label"
+                          :label="group.label"
+                        >
+                          <el-option
+                            v-for="item in group.options"
+                            :key="item.value"
+                            :label="`${item.label} (${item.description})`"
+                            :value="item.value"
+                          />
+                        </el-option-group>
+                      </el-select>
+                    </el-form-item>
                   </el-col>
                   <el-col :span="12">
-              <el-form-item label="工作风格">
-                <el-select
-                  v-model="extraInfoForm.workingStyle"
-                  multiple
+                    <el-form-item label="工作风格" class="compact-form-item">
+                      <el-select
+                        v-model="extraInfoForm.workingStyle"
+                        multiple
                         collapse-tags
                         placeholder="请选择您的工作风格" 
                         style="width: 100%"
                         :disabled="!isEditingExtra"
-                >
-                  <el-option
-                    v-for="item in workingStyleOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
-                </el-select>
-              </el-form-item>
+                      >
+                        <el-option
+                          v-for="item in workingStyleOptions"
+                          :key="item.value"
+                          :label="item.label"
+                          :value="item.value"
+                        />
+                      </el-select>
+                    </el-form-item>
                   </el-col>
                 </el-row>
               </div>
             </div>
 
             <!-- 学习风格部分 -->
-            <div class="form-section">
-              <div class="section-header">
+            <div class="form-section compact-section">
+              <div class="section-header compact-header">
                 <div class="section-icon"><i class="el-icon-reading"></i></div>
                 <h3>学习风格</h3>
               </div>
-              <div class="section-content">
-                <div class="rating-container">
-                  <div v-for="(item, index) in learningStyleOptions" :key="index" class="rating-item">
+              <div class="section-content compact-content">
+                <div class="rating-container compact-rating-container">
+                  <div v-for="(item, index) in learningStyleOptions" :key="index" class="rating-item compact-rating-item">
                     <div class="rating-label">{{item.label}}</div>
                     <div class="rating-value">
                       <div class="rating-stars">
@@ -399,13 +399,13 @@
             </div>
             
             <!-- 兴趣爱好部分 -->
-            <div class="form-section">
-              <div class="section-header">
+            <div class="form-section compact-section">
+              <div class="section-header compact-header">
                 <div class="section-icon"><i class="el-icon-star-off"></i></div>
                 <h3>兴趣与职业方向</h3>
               </div>
-              <div class="section-content">
-                <el-form-item label="兴趣爱好">
+              <div class="section-content compact-content">
+                <el-form-item label="兴趣爱好" class="compact-form-item">
                   <el-select
                     v-model="extraInfoForm.interests"
                     multiple
@@ -425,9 +425,9 @@
                   </el-select>
                 </el-form-item>
                 
-                <div class="rating-container">
-                  <h4 class="slider-group-title">职业兴趣方向</h4>
-                  <div v-for="(item, index) in careerInterestOptions" :key="index" class="rating-item">
+                <div class="rating-container compact-rating-container">
+                  <h4 class="slider-group-title compact-title">职业兴趣方向</h4>
+                  <div v-for="(item, index) in careerInterestOptions" :key="index" class="rating-item compact-rating-item">
                     <div class="rating-label">{{item.label}}</div>
                     <div class="rating-value">
                       <div class="rating-stars">
@@ -447,14 +447,14 @@
               </div>
             </div>
             
-            <div class="form-actions">
-                <el-button type="primary" @click="handleExtraInfoSubmit" :disabled="!isEditingExtra">
-                  保存
-                </el-button>
-                <el-button @click="cancelEditExtra" v-if="isEditingExtra">
-                  取消
-                </el-button>
-          </div>
+            <div class="form-actions compact-form-actions">
+              <el-button type="primary" @click="handleExtraInfoSubmit" :disabled="!isEditingExtra">
+                保存
+              </el-button>
+              <el-button @click="cancelEditExtra" v-if="isEditingExtra">
+                取消
+              </el-button>
+            </div>
           </el-form>
         </el-card>
       </el-col>
@@ -1740,5 +1740,98 @@ onMounted(async () => {
   margin-top: 10px;
   font-size: 14px;
   color: #909399;
+}
+
+/* 紧凑布局样式 */
+.compact-section {
+  margin-bottom: 20px;
+}
+
+.compact-header {
+  padding: 12px 20px;
+}
+
+.compact-header h3 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.compact-content {
+  padding: 15px 20px;
+}
+
+.compact-form-item {
+  margin-bottom: 12px;
+}
+
+:deep(.compact-form-item .el-form-item__label) {
+  margin-bottom: 4px;
+  font-size: 14px;
+  padding-bottom: 0;
+  line-height: 1.4;
+}
+
+:deep(.compact-form-item .el-input__wrapper),
+:deep(.compact-form-item .el-textarea__inner) {
+  padding: 8px 12px;
+}
+
+:deep(.compact-form-item .el-input__inner) {
+  height: 36px;
+}
+
+:deep(.compact-form-item .el-select__tags) {
+  margin: 2px 0;
+}
+
+:deep(.compact-form-item .el-select-dropdown__item) {
+  padding: 8px 16px;
+}
+
+.compact-rating-container {
+  padding: 0;
+}
+
+.compact-rating-item {
+  padding: 10px 15px;
+  margin-bottom: 10px;
+}
+
+.compact-rating-item .rating-label {
+  font-size: 14px;
+  width: 120px;
+}
+
+.compact-title {
+  font-size: 15px;
+  margin: 10px 0;
+}
+
+.skill-tag {
+  margin: 3px 5px 3px 0;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+/* 调整表单之间的间距 */
+.el-row {
+  margin-bottom: 0 !important;
+}
+
+.el-col {
+  padding-bottom: 0 !important;
+}
+
+/* 调整表单操作区 */
+.form-actions {
+  margin-top: 20px;
+  padding: 15px 20px;
+}
+
+:deep(.form-actions .el-button) {
+  height: 40px;
+  padding: 0 20px;
+  font-size: 14px;
 }
 </style> 

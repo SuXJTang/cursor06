@@ -1,4 +1,4 @@
 {
   "root": true,
-  "extends": ["./frontend-client/.eslintrc.cjs"]
+  "extends": ["./frontend-client/.eslintrc.js"]
 } 

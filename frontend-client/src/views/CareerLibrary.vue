@@ -333,10 +333,9 @@ const fetchCareers = async (categoryId: string) => {
     
     // 获取职业数据
     const response = await request({
-      url: '/api/v1/careers/',
+      url: `/api/v1/careers/category/${categoryId}`,
       method: 'GET',
       params: {
-        category_id: categoryId,
         limit: 50,  // 限制返回数量
         offset: 0   // 从第一条开始
       },
@@ -345,11 +344,13 @@ const fetchCareers = async (categoryId: string) => {
       }
     });
     
+    console.log('职业数据API响应:', response);
+    
     if (response && response.items) {
       // 更新职业数据
       careers.value = response.items.map(item => ({
         id: item.id,
-        name: item.name,
+        name: item.name || item.title, // 使用name或title字段
         category: String(item.category_id),
         level: item.development_stage || '稳定发展期',
         salary: item.salary_range || '薪资未知',

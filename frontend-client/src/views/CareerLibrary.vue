@@ -19,17 +19,42 @@
             class="category-menu"
             @select="handleCategorySelect"
           >
-            <el-menu-item
-              v-for="category in categories"
-              :key="category.id"
-              :index="category.id"
-            >
-              <el-icon><FolderOpened /></el-icon>
-              <span>{{ category.name }}</span>
-              <template #title>
-                <span class="career-count">({{ getCategoryCount(category.id) }})</span>
-              </template>
-            </el-menu-item>
+            <div v-for="category in categories" :key="category.id">
+              <el-sub-menu v-if="category.subcategories && category.subcategories.length" :index="String(category.id)">
+                <template #title>
+                  <el-icon><FolderOpened /></el-icon>
+                  <span>{{ category.name }}</span>
+                </template>
+                
+                <div v-for="subcategory in category.subcategories" :key="subcategory.id">
+                  <el-sub-menu v-if="subcategory.subcategories && subcategory.subcategories.length" :index="String(subcategory.id)">
+                    <template #title>
+                      <el-icon><Folder /></el-icon>
+                      <span>{{ subcategory.name }}</span>
+                    </template>
+                    
+                    <el-menu-item 
+                      v-for="thirdCategory in subcategory.subcategories" 
+                      :key="thirdCategory.id" 
+                      :index="String(thirdCategory.id)"
+                    >
+                      <el-icon><Document /></el-icon>
+                      <span>{{ thirdCategory.name }}</span>
+                    </el-menu-item>
+                  </el-sub-menu>
+                  
+                  <el-menu-item v-else :index="String(subcategory.id)">
+                    <el-icon><Document /></el-icon>
+                    <span>{{ subcategory.name }}</span>
+                  </el-menu-item>
+                </div>
+              </el-sub-menu>
+              
+              <el-menu-item v-else :index="String(category.id)">
+                <el-icon><Document /></el-icon>
+                <span>{{ category.name }}</span>
+              </el-menu-item>
+            </div>
           </el-menu>
         </el-card>
       </el-col>
@@ -191,86 +216,136 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { Search, Money, School, Timer, Star, Share, FolderOpened } from '@element-plus/icons-vue'
+import { ref, computed, onMounted } from 'vue'
+import { 
+  Search, 
+  Money, 
+  School, 
+  Timer, 
+  Star, 
+  Share, 
+  Document, 
+  Folder, 
+  FolderOpened 
+} from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+import request from '@/api/request'
 
 // 职业类型定义
 interface Career {
-  id: number
-  name: string
-  category: string
-  level: string
-  salary: string
-  education: string
-  experience: string
-  skills: string
-  description: string
-  responsibilities: string[]
+  id: number;
+  name: string;
+  category: string;
+  level: string;
+  salary: string;
+  education: string;
+  experience: string;
+  skills: string;
+  description: string;
+  responsibilities: string[];
   careerPath: Array<{
-    position: string
-    description: string
-  }>
-  certificates: string[]
-  tags: string[]
+    position: string;
+    description: string;
+  }>;
+  certificates: string[];
+  tags: string[];
 }
 
 // 职业分类
-const categories = [
-  { id: 'tech', name: '技术类' },
-  { id: 'finance', name: '金融类' },
-  { id: 'management', name: '管理类' },
-  { id: 'creative', name: '创意类' },
-  { id: 'medical', name: '医疗类' },
-  { id: 'education', name: '教育类' }
-]
+const categories = ref([]);
+const activeCategory = ref('');
+const searchQuery = ref('');
+const selectedCareer = ref<Career | null>(null);
+const sortBy = ref('salary');
+const router = useRouter();
 
-// 模拟职业数据
-const careers: Career[] = [
-  {
-    id: 1,
-    name: '软件工程师',
-    category: 'tech',
-    level: '快速发展期',
-    salary: '15k-30k',
-    education: '本科及以上',
-    experience: '3-5年',
-    skills: 'Java, Spring Boot, MySQL, Redis',
-    description: '软件工程师负责设计、开发和维护软件系统，需要具备扎实的编程功底和系统设计能力。',
-    responsibilities: [
-      '参与软件系统的设计和开发',
-      '编写高质量、可维护的代码',
-      '解决技术难题和性能优化',
-      '参与代码评审和技术分享'
-    ],
-    careerPath: [
-      { position: '初级工程师', description: '基础编码工作' },
-      { position: '中级工程师', description: '独立负责模块开发' },
-      { position: '高级工程师', description: '系统架构设计' },
-      { position: '技术专家', description: '技术战略规划' }
-    ],
-    certificates: [
-      'Oracle认证工程师',
-      'AWS解决方案架构师',
-      'PMP项目管理认证'
-    ],
-    tags: ['高薪', '发展快', '技术导向']
+// 获取职业分类数据
+const fetchCategories = async () => {
+  try {
+    // 从本地存储获取token，使用auth_token作为键名
+    const token = localStorage.getItem('auth_token')
+    
+    if (!token) {
+      console.error('未找到认证token')
+      ElMessage.error('请先登录后再访问')
+      // 添加重定向到登录页的逻辑
+      router.push('/login')
+      return
+    }
+    
+    // 使用封装好的request发送请求
+    const response = await request({
+      url: '/api/v1/career-categories/roots',
+      method: 'GET',
+      params: {
+        include_children: true,
+        include_all_children: true
+      },
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    // 处理响应数据
+    if (response) {
+      categories.value = response;
+      console.log('分类数据:', response);
+      
+      if (response.length > 0) {
+        // 默认选择第一个分类
+        activeCategory.value = String(response[0].id);
+      }
+    }
+  } catch (error) {
+    console.error('获取职业分类出错:', error);
+    
+    // 显示详细错误信息
+    if (error.response) {
+      if (error.response.status === 401) {
+        ElMessage.error('请先登录后再访问')
+        // 添加跳转到登录页面的逻辑
+        router.push('/login')
+      } else {
+        ElMessage.error(`获取职业分类失败: ${error.response.status} ${error.response.data?.detail || ''}`)
+      }
+    } else if (error.request) {
+      ElMessage.error('服务器未响应，请检查网络连接')
+    } else {
+      ElMessage.error(`请求错误: ${error.message}`)
+    }
   }
-]
+}
 
-const activeCategory = ref('tech')
-const searchQuery = ref('')
-const selectedCareer = ref<Career | null>(null)
-const sortBy = ref('salary')
+// 在组件挂载时获取数据
+onMounted(() => {
+  fetchCategories()
+})
+
+// 递归查找分类
+const findCategory = (id, categoryList) => {
+  for (const category of categoryList || []) {
+    if (String(category.id) === String(id)) {
+      return category
+    }
+    
+    // 查找子分类
+    if (category.subcategories) {
+      const found = findCategory(id, category.subcategories)
+      if (found) return found
+    }
+  }
+  return null
+}
 
 // 获取分类职业数量
-const getCategoryCount = (categoryId: string) => {
-  return careers.filter(career => career.category === categoryId).length
+const getCategoryCount = (categoryId) => {
+  return careers.value.filter(career => career.category === categoryId).length || 0
 }
 
 // 获取当前分类名称
 const getCurrentCategoryName = () => {
-  const category = categories.find(c => c.id === activeCategory.value)
+  const category = findCategory(activeCategory.value, categories.value)
   return category ? category.name : ''
 }
 
@@ -286,7 +361,7 @@ const getCareerLevelType = (level: string) => {
 
 // 过滤后的职业列表
 const filteredCareers = computed(() => {
-  let result = careers.filter(career => {
+  let result = careers.value.filter(career => {
     const matchCategory = career.category === activeCategory.value
     const matchSearch = !searchQuery.value || 
       career.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -325,6 +400,39 @@ const handleSaveCareer = () => {
 const handleShareCareer = () => {
   ElMessage.success('分享链接已复制到剪贴板')
 }
+
+// 模拟职业数据
+const careers = ref<Career[]>([
+  {
+    id: 1,
+    name: '软件工程师',
+    category: '2',  // 假设"2"是技术类职业的分类ID
+    level: '快速发展期',
+    salary: '15k-30k',
+    education: '本科及以上',
+    experience: '3-5年',
+    skills: 'Java, Spring Boot, MySQL, Redis',
+    description: '软件工程师负责设计、开发和维护软件系统，需要具备扎实的编程功底和系统设计能力。',
+    responsibilities: [
+      '参与软件系统的设计和开发',
+      '编写高质量、可维护的代码',
+      '解决技术难题和性能优化',
+      '参与代码评审和技术分享'
+    ],
+    careerPath: [
+      { position: '初级工程师', description: '基础编码工作' },
+      { position: '中级工程师', description: '独立负责模块开发' },
+      { position: '高级工程师', description: '系统架构设计' },
+      { position: '技术专家', description: '技术战略规划' }
+    ],
+    certificates: [
+      'Oracle认证工程师',
+      'AWS解决方案架构师',
+      'PMP项目管理认证'
+    ],
+    tags: ['高薪', '发展快', '技术导向']
+  }
+]);
 </script>
 
 <style scoped>

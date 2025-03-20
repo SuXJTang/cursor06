@@ -9,10 +9,26 @@
       <div class="footer-section">
         <h3>快速链接</h3>
         <ul>
-          <li><router-link to="/">首页</router-link></li>
-          <li><router-link to="/assessment">职业测评</router-link></li>
-          <li><router-link to="/careers">职业库</router-link></li>
-          <li><router-link to="/about">关于我们</router-link></li>
+          <li>
+            <router-link to="/">
+              首页
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/assessment">
+              职业测评
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/careers">
+              职业库
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/about">
+              关于我们
+            </router-link>
+          </li>
         </ul>
       </div>
       

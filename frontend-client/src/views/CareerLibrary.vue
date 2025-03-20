@@ -67,9 +67,15 @@
               <h3>{{ getCurrentCategoryName() }}</h3>
               <div class="sort-actions">
                 <el-radio-group v-model="sortBy" size="small">
-                  <el-radio-button label="salary">薪资</el-radio-button>
-                  <el-radio-button label="hot">热度</el-radio-button>
-                  <el-radio-button label="growth">增长</el-radio-button>
+                  <el-radio-button label="salary">
+                    薪资
+                  </el-radio-button>
+                  <el-radio-button label="hot">
+                    热度
+                  </el-radio-button>
+                  <el-radio-button label="growth">
+                    增长
+                  </el-radio-button>
                 </el-radio-group>
               </div>
             </div>
@@ -166,7 +172,9 @@
               <!-- 职业描述 -->
               <section class="detail-section">
                 <h3>职业描述</h3>
-                <p class="description">{{ selectedCareer.description }}</p>
+                <p class="description">
+                  {{ selectedCareer.description }}
+                </p>
               </section>
 
               <!-- 工作职责 -->

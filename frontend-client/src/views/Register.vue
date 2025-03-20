@@ -106,7 +106,9 @@ const goToLogin = () => {
   <div class="register-container">
     <el-card class="register-card">
       <template #header>
-        <h2 class="register-title">注册</h2>
+        <h2 class="register-title">
+          注册
+        </h2>
       </template>
       
       <el-form
@@ -179,7 +181,9 @@ const goToLogin = () => {
         </el-form-item>
         
         <div class="register-footer">
-          <el-link type="primary" @click="goToLogin">已有账号？立即登录</el-link>
+          <el-link type="primary" @click="goToLogin">
+            已有账号？立即登录
+          </el-link>
         </div>
       </el-form>
     </el-card>

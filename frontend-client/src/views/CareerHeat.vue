@@ -38,12 +38,16 @@
       <div class="heat-content">
         <div class="filters">
           <el-radio-group v-model="viewType">
-            <el-radio-button label="city">城市分布</el-radio-button>
-            <el-radio-button label="trend">趋势分析</el-radio-button>
+            <el-radio-button label="city">
+              城市分布
+            </el-radio-button>
+            <el-radio-button label="trend">
+              趋势分析
+            </el-radio-button>
           </el-radio-group>
         </div>
         
-        <div ref="heatmapContainer" class="heatmap-container"></div>
+        <div ref="heatmapContainer" class="heatmap-container" />
         
         <div class="heat-summary">
           <el-row :gutter="20">

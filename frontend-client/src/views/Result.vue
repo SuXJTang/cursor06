@@ -10,8 +10,18 @@
           <div class="score-display">
             <div class="score-circle">
               <svg viewBox="0 0 100 100">
-                <circle class="score-circle-bg" cx="50" cy="50" r="45" />
-                <circle class="score-circle-progress" cx="50" cy="50" r="45" />
+                <circle
+                  class="score-circle-bg"
+                  cx="50"
+                  cy="50"
+                  r="45"
+                />
+                <circle
+                  class="score-circle-progress"
+                  cx="50"
+                  cy="50"
+                  r="45"
+                />
                 <text x="50" y="45" class="score-text">{{ score }}</text>
                 <text x="50" y="65" class="score-label">分</text>
               </svg>
@@ -22,13 +32,19 @@
           <h3>最适合的职业方向</h3>
           <div class="career-card">
             <div class="career-icon">
-              <el-icon size="32"><Briefcase /></el-icon>
+              <el-icon size="32">
+                <Briefcase />
+              </el-icon>
             </div>
             <div class="career-details">
               <h4>{{ bestCareer.title }}</h4>
-              <div class="match-rate">匹配度 {{ bestCareer.matchRate }}%</div>
+              <div class="match-rate">
+                匹配度 {{ bestCareer.matchRate }}%
+              </div>
               <div class="career-tags">
-                <el-tag v-for="skill in bestCareer.skills" :key="skill">{{ skill }}</el-tag>
+                <el-tag v-for="skill in bestCareer.skills" :key="skill">
+                  {{ skill }}
+                </el-tag>
               </div>
             </div>
           </div>
@@ -46,9 +62,13 @@
                 <span class="match-badge">{{ career.matchRate }}%</span>
               </div>
               <div class="career-item-content">
-                <p class="career-description">{{ career.description }}</p>
+                <p class="career-description">
+                  {{ career.description }}
+                </p>
                 <div class="career-tags">
-                  <el-tag v-for="skill in career.skills" :key="skill" size="small">{{ skill }}</el-tag>
+                  <el-tag v-for="skill in career.skills" :key="skill" size="small">
+                    {{ skill }}
+                  </el-tag>
                 </div>
               </div>
             </div>
@@ -58,8 +78,12 @@
     </div>
 
     <div class="result-footer">
-      <el-button type="primary" @click="downloadReport">下载完整报告</el-button>
-      <el-button @click="backToHome">返回首页</el-button>
+      <el-button type="primary" @click="downloadReport">
+        下载完整报告
+      </el-button>
+      <el-button @click="backToHome">
+        返回首页
+      </el-button>
     </div>
   </div>
 </template>

@@ -3,7 +3,9 @@
     <div class="nav-content">
       <!-- Logo 区域 -->
       <router-link to="/" class="nav-logo">
-        <el-icon :size="32" class="logo-icon"><School /></el-icon>
+        <el-icon :size="32" class="logo-icon">
+          <School />
+        </el-icon>
         <span class="logo-text">高校职业推荐系统</span>
       </router-link>
 
@@ -22,22 +24,32 @@
 
       <!-- 用户区域 -->
       <div class="nav-user">
-        <template v-if="userStore.isLoggedIn">
+        <template v-if="authStore.isAuthenticated">
           <el-dropdown trigger="click" @command="handleCommand">
-            <el-avatar 
-              :size="32" 
-              :src="userStore.userInfo?.avatar || defaultAvatarUrl" 
-            />
+            <template v-if="showDefaultAvatar">
+              <el-avatar :size="32" :style="defaultAvatarStyle">
+                <el-icon><UserFilled /></el-icon>
+              </el-avatar>
+            </template>
+            <template v-else>
+              <el-avatar :size="32" :src="authStore.userInfo?.avatar_url" />
+            </template>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="profile">个人中心</el-dropdown-item>
-                <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
+                <el-dropdown-item command="userCenter">
+                  个人中心
+                </el-dropdown-item>
+                <el-dropdown-item divided command="logout">
+                  退出登录
+                </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
         </template>
         <template v-else>
-          <el-button type="primary" @click="handleLogin">登录</el-button>
+          <el-button type="primary" @click="handleLogin">
+            登录
+          </el-button>
         </template>
       </div>
     </div>
@@ -46,12 +58,13 @@
 
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
-import { useUserStore } from '@/stores/user'
-import { School } from '@element-plus/icons-vue'
+import { useAuthStore } from '@/stores/auth'
+import { School, UserFilled } from '@element-plus/icons-vue'
+import { computed } from 'vue'
 
 const router = useRouter()
 const route = useRoute()
-const userStore = useUserStore()
+const authStore = useAuthStore()
 
 // 导航菜单项
 const menuItems = [
@@ -61,17 +74,58 @@ const menuItems = [
   { name: '职业热力图', path: '/career-heat' }
 ]
 
-// 默认头像
-const defaultAvatarUrl = '/default-avatar.png'
+// 根据用户名生成颜色
+const getRandomColor = (username: string) => {
+  // 预定义的一组美观颜色
+  const colors = [
+    '#409EFF', // 蓝色（主题色）
+    '#67C23A', // 绿色（成功色）
+    '#E6A23C', // 黄色（警告色）
+    '#F56C6C', // 红色（危险色）
+    '#909399', // 灰色（信息色）
+    '#8e44ad', // 紫色
+    '#16a085', // 青绿色
+    '#d35400', // 橙色
+    '#2c3e50', // 深蓝灰色
+    '#27ae60'  // 翠绿色
+  ]
+  
+  // 如果没有用户名，返回主题色
+  if (!username) return colors[0]
+  
+  // 根据用户名生成一个索引
+  let sum = 0
+  for (let i = 0; i < username.length; i++) {
+    sum += username.charCodeAt(i)
+  }
+  return colors[sum % colors.length]
+}
+
+// 计算得到的默认头像样式
+const defaultAvatarStyle = computed(() => {
+  const color = getRandomColor(authStore.userInfo?.username || '')
+  return {
+    backgroundColor: color,
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  }
+})
+
+// 是否显示默认头像
+const showDefaultAvatar = computed(() => {
+  return !authStore.userInfo?.avatar_url || authStore.userInfo.avatar_url === ''
+})
 
 // 处理下拉菜单命令
 const handleCommand = (command: string) => {
   switch (command) {
-    case 'profile':
-      router.push('/profile')
+    case 'userCenter':
+      router.push('/user-center')
       break
     case 'logout':
-      userStore.logout()
+      authStore.logout()
       router.push('/')
       break
   }

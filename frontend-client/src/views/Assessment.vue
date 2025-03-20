@@ -510,7 +510,7 @@ const getCurrentTip = () => {
               >
                 <div class="option-content">
                   <div class="option-radio">
-                    <div class="radio-inner" v-if="answers[currentQuestion.id] === option.value"></div>
+                    <div v-if="answers[currentQuestion.id] === option.value" class="radio-inner" />
                   </div>
                   <span>{{ option.label }}</span>
                 </div>
@@ -522,8 +522,8 @@ const getCurrentTip = () => {
         <div class="assessment-footer">
           <el-button
             v-if="!(activeStep === 0 && currentQuestionIndex === 0)"
-            @click="prevQuestion"
             class="nav-button"
+            @click="prevQuestion"
           >
             <el-icon><ArrowLeft /></el-icon>
             上一题
@@ -531,11 +531,13 @@ const getCurrentTip = () => {
           <el-button
             type="primary"
             :disabled="!answers[currentQuestion.id]"
-            @click="nextQuestion"
             class="nav-button"
+            @click="nextQuestion"
           >
             {{ isLastQuestion ? '提交测评' : '下一题' }}
-            <el-icon v-if="!isLastQuestion"><ArrowRight /></el-icon>
+            <el-icon v-if="!isLastQuestion">
+              <ArrowRight />
+            </el-icon>
           </el-button>
         </div>
       </div>
@@ -551,11 +553,15 @@ const getCurrentTip = () => {
           </template>
           <div class="progress-stats">
             <div class="stat-item">
-              <div class="stat-label">总体进度</div>
+              <div class="stat-label">
+                总体进度
+              </div>
               <el-progress type="circle" :percentage="getProgress" />
             </div>
-            <div class="stat-item" v-for="(section, index) in questions" :key="index">
-              <div class="stat-label">{{ section.title }}</div>
+            <div v-for="(section, index) in questions" :key="index" class="stat-item">
+              <div class="stat-label">
+                {{ section.title }}
+              </div>
               <el-progress 
                 :percentage="getSectionProgress(index)"
                 :color="getSectionColor(index)"
@@ -575,21 +581,37 @@ const getCurrentTip = () => {
 
   <!-- 分析动画 -->
   <div v-else class="analysis-container">
-    <div class="cyber-grid"></div>
+    <div class="cyber-grid" />
     <div class="analysis-content">
       <div class="tech-circle">
-        <div class="circle-outer"></div>
+        <div class="circle-outer" />
         <div class="circle-inner">
           <div class="progress-ring">
             <svg class="progress-ring__circle" viewBox="0 0 100 100">
               <defs>
-                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <linearGradient
+                  id="gradient"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="0%"
+                >
                   <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
                   <stop offset="100%" style="stop-color:#2196F3;stop-opacity:1" />
                 </linearGradient>
               </defs>
-              <circle class="progress-ring__background" cx="50" cy="50" r="45" />
-              <circle class="progress-ring__progress" cx="50" cy="50" r="45" />
+              <circle
+                class="progress-ring__background"
+                cx="50"
+                cy="50"
+                r="45"
+              />
+              <circle
+                class="progress-ring__progress"
+                cx="50"
+                cy="50"
+                r="45"
+              />
             </svg>
             <div class="progress-ring__icon">
               <el-icon v-if="currentStep < analyzeSteps.length" class="rotating">
@@ -602,12 +624,12 @@ const getCurrentTip = () => {
           </div>
         </div>
         <div class="tech-dots">
-          <span v-for="i in 8" :key="i" class="dot"></span>
+          <span v-for="i in 8" :key="i" class="dot" />
         </div>
       </div>
 
       <div class="analysis-steps-container">
-        <div class="step-line"></div>
+        <div class="step-line" />
         <div class="steps-wrapper">
           <div 
             v-for="(step, index) in analyzeSteps" 
@@ -619,7 +641,7 @@ const getCurrentTip = () => {
             }"
           >
             <div class="step-node">
-              <div class="node-inner"></div>
+              <div class="node-inner" />
             </div>
             <div class="step-content">
               <h4>{{ step.title }}</h4>
@@ -631,18 +653,18 @@ const getCurrentTip = () => {
 
       <div class="tech-card">
         <div class="card-header">
-          <div class="header-line"></div>
+          <div class="header-line" />
           <h3>职业小贴士</h3>
-          <div class="header-line"></div>
+          <div class="header-line" />
         </div>
         <div class="card-content">
           <p>{{ getCurrentTip() }}</p>
         </div>
         <div class="card-decoration">
-          <div class="corner top-left"></div>
-          <div class="corner top-right"></div>
-          <div class="corner bottom-left"></div>
-          <div class="corner bottom-right"></div>
+          <div class="corner top-left" />
+          <div class="corner top-right" />
+          <div class="corner bottom-left" />
+          <div class="corner bottom-right" />
         </div>
       </div>
     </div>

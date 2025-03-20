@@ -1,7 +1,0 @@
-node_modules
-dist
-public
-*.d.ts
-*.min.js
-vite.config.ts
-env.d.ts 

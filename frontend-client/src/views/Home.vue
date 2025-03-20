@@ -87,32 +87,44 @@ const startAssessment = () => {
         <p>基于科学的测评体系，为你找到最适合的职业发展方向</p>
         <el-button type="primary" size="large" @click="startAssessment">
           开始职业测评
-          <el-icon class="el-icon--right"><ArrowRight /></el-icon>
+          <el-icon class="el-icon--right">
+            <ArrowRight />
+          </el-icon>
         </el-button>
       </div>
     </div>
 
     <!-- 服务介绍区域 -->
     <div class="services-section">
-      <h2 class="section-title">我们的服务</h2>
+      <h2 class="section-title">
+        我们的服务
+      </h2>
       <div class="service-cards">
         <div class="service-card">
-          <el-icon class="service-icon"><Edit /></el-icon>
+          <el-icon class="service-icon">
+            <Edit />
+          </el-icon>
           <h3>兴趣探索</h3>
           <p>通过科学的测评方法，发现你的职业兴趣倾向</p>
         </div>
         <div class="service-card">
-          <el-icon class="service-icon"><DataLine /></el-icon>
+          <el-icon class="service-icon">
+            <DataLine />
+          </el-icon>
           <h3>能力评估</h3>
           <p>全方位评估个人能力特征，找到最适合的发展方向</p>
         </div>
         <div class="service-card">
-          <el-icon class="service-icon"><User /></el-icon>
+          <el-icon class="service-icon">
+            <User />
+          </el-icon>
           <h3>个性分析</h3>
           <p>深入分析性格特征，匹配适合的职业环境</p>
         </div>
         <div class="service-card">
-          <el-icon class="service-icon"><Promotion /></el-icon>
+          <el-icon class="service-icon">
+            <Promotion />
+          </el-icon>
           <h3>职业推荐</h3>
           <p>基于测评结果，智能推荐适合的职业发展路径</p>
         </div>
@@ -124,8 +136,12 @@ const startAssessment = () => {
       <div class="section-content">
         <div class="stats-grid">
           <div v-for="stat in stats" :key="stat.label" class="stat-item">
-            <div class="stat-value">{{ stat.value }}</div>
-            <div class="stat-label">{{ stat.label }}</div>
+            <div class="stat-value">
+              {{ stat.value }}
+            </div>
+            <div class="stat-label">
+              {{ stat.label }}
+            </div>
           </div>
         </div>
       </div>

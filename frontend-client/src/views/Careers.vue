@@ -93,7 +93,9 @@ const showCareerDetail = (career: Career) => {
   <div class="careers-container">
     <div class="careers-header">
       <h1>职业库</h1>
-      <p class="subtitle">探索不同职业的详细信息，了解职业发展前景</p>
+      <p class="subtitle">
+        探索不同职业的详细信息，了解职业发展前景
+      </p>
     </div>
 
     <!-- 搜索和筛选区域 -->
@@ -134,10 +136,14 @@ const showCareerDetail = (career: Career) => {
       >
         <div class="career-header">
           <h3>{{ career.name }}</h3>
-          <el-tag size="small">{{ career.category }}</el-tag>
+          <el-tag size="small">
+            {{ career.category }}
+          </el-tag>
         </div>
         
-        <p class="career-description">{{ career.description }}</p>
+        <p class="career-description">
+          {{ career.description }}
+        </p>
         
         <div class="career-info">
           <div class="info-item">

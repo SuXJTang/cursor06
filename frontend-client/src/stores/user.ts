@@ -123,8 +123,11 @@ export const useUserStore = defineStore('user', {
     // 登录
     async login(params: LoginParams): Promise<boolean> {
       try {
+        console.log('User store login:', params);
         // 检查测试账号
-        if (params.username !== 'admin' || params.password !== 'admin123') {
+        const isTestAccount = params.username === 'admin' && params.password === 'admin123';
+        
+        if (!isTestAccount) {
           ElMessage.error('用户名或密码错误')
           return false
         }
@@ -158,6 +161,7 @@ export const useUserStore = defineStore('user', {
         }
         return false
       } catch (error) {
+        console.error('Login error:', error);
         ElMessage.error('登录失败，请稍后重试')
         return false
       }

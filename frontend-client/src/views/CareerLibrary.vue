@@ -295,6 +295,8 @@ const fetchCategories = async () => {
       if (response.length > 0) {
         // 默认选择第一个分类
         activeCategory.value = String(response[0].id);
+        // 获取第一个分类的职业数据
+        fetchCareers(activeCategory.value);
       }
     }
   } catch (error) {
@@ -314,6 +316,79 @@ const fetchCategories = async () => {
     } else {
       ElMessage.error(`请求错误: ${error.message}`)
     }
+  }
+}
+
+// 获取特定分类的职业数据
+const fetchCareers = async (categoryId: string) => {
+  try {
+    const token = localStorage.getItem('auth_token')
+    if (!token) {
+      console.error('未找到认证token')
+      return
+    }
+    
+    // 显示加载状态
+    ElMessage.info('正在加载职业数据...')
+    
+    // 获取职业数据
+    const response = await request({
+      url: '/api/v1/careers/',
+      method: 'GET',
+      params: {
+        category_id: categoryId,
+        limit: 50,  // 限制返回数量
+        offset: 0   // 从第一条开始
+      },
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (response && response.items) {
+      // 更新职业数据
+      careers.value = response.items.map(item => ({
+        id: item.id,
+        name: item.name,
+        category: String(item.category_id),
+        level: item.development_stage || '稳定发展期',
+        salary: item.salary_range || '薪资未知',
+        education: item.education_requirement || '学历未知',
+        experience: item.experience_requirement || '经验未知',
+        skills: item.skills_required || '',
+        description: item.description || '暂无描述',
+        responsibilities: item.responsibilities 
+          ? item.responsibilities.split('\n').filter(r => r.trim()) 
+          : ['暂无职责描述'],
+        careerPath: [
+          { position: '初级', description: item.entry_level_description || '入门级职位' },
+          { position: '中级', description: item.mid_level_description || '有经验职位' },
+          { position: '高级', description: item.senior_level_description || '资深职位' }
+        ],
+        certificates: item.certifications 
+          ? item.certifications.split(',').map(c => c.trim()).filter(c => c) 
+          : ['暂无认证信息'],
+        tags: item.tags 
+          ? item.tags.split(',').map(t => t.trim()).filter(t => t) 
+          : ['暂无标签']
+      }));
+      
+      console.log(`已加载 ${careers.value.length} 个职业数据`);
+      
+      // 如果没有选中的职业，自动选择第一个
+      if (careers.value.length > 0 && !selectedCareer.value) {
+        selectedCareer.value = careers.value[0];
+      }
+    } else {
+      // 如果没有数据，清空职业列表
+      careers.value = [];
+      selectedCareer.value = null;
+      console.log('该分类下没有职业数据');
+    }
+  } catch (error) {
+    console.error('获取职业数据出错:', error);
+    ElMessage.error('获取职业数据失败');
+    careers.value = []; // 清空数据
   }
 }
 
@@ -384,6 +459,8 @@ const filteredCareers = computed(() => {
 const handleCategorySelect = (categoryId: string) => {
   activeCategory.value = categoryId
   selectedCareer.value = null
+  // 加载所选分类的职业数据
+  fetchCareers(categoryId)
 }
 
 // 选择职业
@@ -401,38 +478,8 @@ const handleShareCareer = () => {
   ElMessage.success('分享链接已复制到剪贴板')
 }
 
-// 模拟职业数据
-const careers = ref<Career[]>([
-  {
-    id: 1,
-    name: '软件工程师',
-    category: '2',  // 假设"2"是技术类职业的分类ID
-    level: '快速发展期',
-    salary: '15k-30k',
-    education: '本科及以上',
-    experience: '3-5年',
-    skills: 'Java, Spring Boot, MySQL, Redis',
-    description: '软件工程师负责设计、开发和维护软件系统，需要具备扎实的编程功底和系统设计能力。',
-    responsibilities: [
-      '参与软件系统的设计和开发',
-      '编写高质量、可维护的代码',
-      '解决技术难题和性能优化',
-      '参与代码评审和技术分享'
-    ],
-    careerPath: [
-      { position: '初级工程师', description: '基础编码工作' },
-      { position: '中级工程师', description: '独立负责模块开发' },
-      { position: '高级工程师', description: '系统架构设计' },
-      { position: '技术专家', description: '技术战略规划' }
-    ],
-    certificates: [
-      'Oracle认证工程师',
-      'AWS解决方案架构师',
-      'PMP项目管理认证'
-    ],
-    tags: ['高薪', '发展快', '技术导向']
-  }
-]);
+// 模拟职业数据 (改为空数组，数据将从API获取)
+const careers = ref<Career[]>([]);
 </script>
 
 <style scoped>

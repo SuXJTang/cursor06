@@ -19,8 +19,9 @@ const TOKEN_KEY = 'auth_token'
 // 使用全局axios实例，这样可以被mock拦截
 // 创建axios实例
 export const request = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',  // 使用环境变量中的API URL
-  timeout: 10000
+  baseURL: 'http://localhost:8000',  // 直接指定后端API基础地址，不包含/api/v1
+  timeout: 10000,
+  withCredentials: true  // 允许跨域携带cookie
 })
 
 // 请求拦截器

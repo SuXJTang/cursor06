@@ -1,6 +1,7 @@
 import os
 import subprocess
 import json
+import requests
 
 print("====== 步骤1: 使用curl登录获取令牌 ======")
 login_cmd = """curl -s -X POST http://localhost:8000/api/v1/auth/login -H "Content-Type: application/json" -d "{\\"username\\":\\"admin11\\",\\"password\\":\\"password\\"}" """
@@ -37,4 +38,49 @@ except subprocess.CalledProcessError as e:
     print(f"执行命令出错: {str(e)}")
     print(f"错误输出: {e.output.decode('utf-8') if hasattr(e, 'output') else 'None'}")
 except Exception as e:
-    print(f"发生异常: {str(e)}") 
+    print(f"发生异常: {str(e)}")
+
+def pretty_print(data):
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+
+# 基础URL
+base_url = "http://localhost:8000/api/v1"
+
+# 1. 测试获取根职业分类及其子分类
+print("=== 测试获取根职业分类及其子分类 ===")
+response = requests.get(f"{base_url}/career-categories/roots", params={"include_children": True})
+if response.status_code == 200:
+    pretty_print(response.json())
+else:
+    print(f"请求失败: {response.status_code}")
+    print(response.text)
+
+# 2. 测试获取职业分类树
+print("\n=== 测试获取职业分类树 ===")
+# 假设有一个ID为1的分类
+category_id = 1
+response = requests.get(f"{base_url}/career-categories/{category_id}/tree")
+if response.status_code == 200:
+    pretty_print(response.json())
+else:
+    print(f"请求失败: {response.status_code}")
+    print(response.text)
+
+# 3. 测试获取职业列表（带缓存）
+print("\n=== 测试获取职业列表（带缓存） ===")
+response = requests.get(f"{base_url}/careers/")
+if response.status_code == 200:
+    pretty_print(response.json())
+else:
+    print(f"请求失败: {response.status_code}")
+    print(response.text)
+
+# 4. 测试按分类获取职业
+print("\n=== 测试按分类获取职业 ===")
+category_id = 1  # 假设有一个ID为1的分类
+response = requests.get(f"{base_url}/careers/category/{category_id}")
+if response.status_code == 200:
+    pretty_print(response.json())
+else:
+    print(f"请求失败: {response.status_code}")
+    print(response.text) 

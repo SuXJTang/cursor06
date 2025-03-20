@@ -1,0 +1,1266 @@
+=== 测试获取根职业分类及其子分类（包括三级分类） ===
+[
+  {
+    "name": "技术/互联网",
+    "description": "各类技术研发和互联网相关职业",
+    "parent_id": null,
+    "level": 1,
+    "id": 1,
+    "created_at": "2025-03-16T16:09:15",
+    "updated_at": "2025-03-20T12:45:11",
+    "subcategories": [
+      {
+        "name": "技术开发",
+        "description": "软件与技术开发相关职业",
+        "parent_id": 1,
+        "level": 2,
+        "id": 32,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "软件工程师",
+            "description": "负责软件系统研发与维护的专业人员",
+            "parent_id": 32,
+            "level": 3,
+            "id": 33,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "前端开发",
+            "description": "负责网站和应用程序用户界面开发的工程师",
+            "parent_id": 32,
+            "level": 3,
+            "id": 34,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "算法工程师",
+            "description": "负责开发和优化算法的专业技术人员",
+            "parent_id": 32,
+            "level": 3,
+            "id": 35,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "硬件与运维",
+        "description": "计算机硬件和系统运维相关职业",
+        "parent_id": 1,
+        "level": 2,
+        "id": 36,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "网络工程师",
+            "description": "负责网络系统规划、部署与维护的专业人员",
+            "parent_id": 36,
+            "level": 3,
+            "id": 37,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "硬件测试员",
+            "description": "负责计算机硬件产品质量测试的技术人员",
+            "parent_id": 36,
+            "level": 3,
+            "id": 38,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "服务器运维",
+            "description": "负责服务器系统运行维护的专业人员",
+            "parent_id": 36,
+            "level": 3,
+            "id": 39,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "新兴技术",
+        "description": "新兴数字技术领域相关职业",
+        "parent_id": 1,
+        "level": 2,
+        "id": 40,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "区块链开发工程师",
+            "description": "从事区块链技术研发的工程师",
+            "parent_id": 40,
+            "level": 3,
+            "id": 41,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "AI训练师",
+            "description": "负责人工智能模型训练与优化的专业人员",
+            "parent_id": 40,
+            "level": 3,
+            "id": 42,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "元宇宙架构师",
+            "description": "负责虚拟现实世界构建的技术专家",
+            "parent_id": 40,
+            "level": 3,
+            "id": 43,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "产品与运营",
+        "description": "互联网产品设计与运营相关职业",
+        "parent_id": 1,
+        "level": 2,
+        "id": 44,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "产品经理",
+            "description": "负责产品规划、设计与管理的专业人员",
+            "parent_id": 44,
+            "level": 3,
+            "id": 45,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "用户运营",
+            "description": "负责产品用户增长与活跃度提升的专业人员",
+            "parent_id": 44,
+            "level": 3,
+            "id": 46,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "数据分析师",
+            "description": "通过数据分析提供决策支持的专业人员",
+            "parent_id": 44,
+            "level": 3,
+            "id": 47,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "金融/财会",
+    "description": "金融行业和财会相关职业",
+    "parent_id": null,
+    "level": 1,
+    "id": 6,
+    "created_at": "2025-03-16T16:09:16",
+    "updated_at": "2025-03-20T12:45:11",
+    "subcategories": [
+      {
+        "name": "投资交易",
+        "description": "投资和交易相关职业",
+        "parent_id": 6,
+        "level": 2,
+        "id": 48,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "证券分析师",
+            "description": "负责证券市场研究与分析的专业人员",
+            "parent_id": 48,
+            "level": 3,
+            "id": 49,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "基金经纪人",
+            "description": "负责基金销售与客户服务的专业人员",
+            "parent_id": 48,
+            "level": 3,
+            "id": 50,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "量化交易员",
+            "description": "利用数学模型进行金融交易的专业人员",
+            "parent_id": 48,
+            "level": 3,
+            "id": 51,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "财税审计",
+        "description": "财务、税务与审计相关职业",
+        "parent_id": 6,
+        "level": 2,
+        "id": 52,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "注册会计师",
+            "description": "提供专业审计与会计服务的认证人员",
+            "parent_id": 52,
+            "level": 3,
+            "id": 53,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "税务筹划师",
+            "description": "负责税务合规与优化的专业人员",
+            "parent_id": 52,
+            "level": 3,
+            "id": 54,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "合规审计员",
+            "description": "负责企业合规性检查与审计的专业人员",
+            "parent_id": 52,
+            "level": 3,
+            "id": 55,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "金融科技",
+        "description": "金融技术创新相关职业",
+        "parent_id": 6,
+        "level": 2,
+        "id": 56,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "区块链金融师",
+            "description": "负责区块链金融产品开发与应用的专业人员",
+            "parent_id": 56,
+            "level": 3,
+            "id": 57,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "支付安全工程师",
+            "description": "负责金融支付安全保障的技术人员",
+            "parent_id": 56,
+            "level": 3,
+            "id": 58,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "ESG投资顾问",
+            "description": "专注环境、社会和治理投资领域的专业顾问",
+            "parent_id": 56,
+            "level": 3,
+            "id": 59,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "医疗/健康",
+    "description": "医疗卫生和健康管理相关职业",
+    "parent_id": null,
+    "level": 1,
+    "id": 10,
+    "created_at": "2025-03-16T16:09:16",
+    "updated_at": "2025-03-20T12:45:11",
+    "subcategories": [
+      {
+        "name": "临床医学",
+        "description": "临床医疗相关职业",
+        "parent_id": 10,
+        "level": 2,
+        "id": 60,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "外科医生",
+            "description": "专门从事外科手术治疗的医生",
+            "parent_id": 60,
+            "level": 3,
+            "id": 61,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "全科医师",
+            "description": "提供综合基础医疗服务的医生",
+            "parent_id": 60,
+            "level": 3,
+            "id": 62,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "中医师",
+            "description": "运用传统中医理论进行诊疗的医生",
+            "parent_id": 60,
+            "level": 3,
+            "id": 63,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "健康管理",
+        "description": "健康维护与管理相关职业",
+        "parent_id": 10,
+        "level": 2,
+        "id": 64,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "营养师",
+            "description": "提供饮食营养指导的专业人员",
+            "parent_id": 64,
+            "level": 3,
+            "id": 65,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "康复治疗师",
+            "description": "帮助患者恢复身体功能的专业医疗人员",
+            "parent_id": 64,
+            "level": 3,
+            "id": 66,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "基因检测顾问",
+            "description": "提供基因检测分析与健康建议的专业人员",
+            "parent_id": 64,
+            "level": 3,
+            "id": 67,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "医疗技术",
+        "description": "医疗技术相关职业",
+        "parent_id": 10,
+        "level": 2,
+        "id": 68,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "医学影像技师",
+            "description": "负责医学影像设备操作与图像采集的专业人员",
+            "parent_id": 68,
+            "level": 3,
+            "id": 69,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "医疗器械研发",
+            "description": "从事医疗设备研发与创新的专业人员",
+            "parent_id": 68,
+            "level": 3,
+            "id": 70,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "AI辅助诊断工程师",
+            "description": "开发人工智能医疗诊断系统的技术人员",
+            "parent_id": 68,
+            "level": 3,
+            "id": 71,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "教育/培训",
+    "description": "教育体系和培训服务相关职业",
+    "parent_id": null,
+    "level": 1,
+    "id": 14,
+    "created_at": "2025-03-16T16:09:16",
+    "updated_at": "2025-03-20T12:45:11",
+    "subcategories": [
+      {
+        "name": "学科教育",
+        "description": "学科知识教育相关职业",
+        "parent_id": 14,
+        "level": 2,
+        "id": 88,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "K12教师",
+            "description": "基础教育阶段各学科教师",
+            "parent_id": 88,
+            "level": 3,
+            "id": 89,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "STEAM教育导师",
+            "description": "科学、技术、工程、艺术和数学综合教育专家",
+            "parent_id": 88,
+            "level": 3,
+            "id": 90,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "职业教育讲师",
+            "description": "职业技能与知识培训的专业教师",
+            "parent_id": 88,
+            "level": 3,
+            "id": 91,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "技能培训",
+        "description": "专业技能培训相关职业",
+        "parent_id": 14,
+        "level": 2,
+        "id": 92,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "职业规划师",
+            "description": "帮助个人规划职业发展路径的专业人员",
+            "parent_id": 92,
+            "level": 3,
+            "id": 93,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "企业内训师",
+            "description": "为企业员工提供专业培训的讲师",
+            "parent_id": 92,
+            "level": 3,
+            "id": 94,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "语言教练",
+            "description": "专注语言能力培养与提升的教育工作者",
+            "parent_id": 92,
+            "level": 3,
+            "id": 95,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "管理类",
+    "description": "各类管理岗位相关职业",
+    "parent_id": null,
+    "level": 1,
+    "id": 21,
+    "created_at": "2025-03-19T21:02:39",
+    "updated_at": "2025-03-20T12:45:11",
+    "subcategories": [
+      {
+        "name": "职能管理",
+        "description": "企业职能部门管理相关职业",
+        "parent_id": 21,
+        "level": 2,
+        "id": 72,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "HRBP",
+            "description": "人力资源业务合作伙伴，负责人力资源战略实施",
+            "parent_id": 72,
+            "level": 3,
+            "id": 73,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "行政主管",
+            "description": "负责企业行政事务管理与协调的管理人员",
+            "parent_id": 72,
+            "level": 3,
+            "id": 74,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "供应链经理",
+            "description": "负责供应链规划与管理的专业人员",
+            "parent_id": 72,
+            "level": 3,
+            "id": 75,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "战略管理",
+        "description": "企业战略发展相关职业",
+        "parent_id": 21,
+        "level": 2,
+        "id": 76,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "项目经理",
+            "description": "负责项目全生命周期管理的专业人员",
+            "parent_id": 76,
+            "level": 3,
+            "id": 77,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "品牌总监",
+            "description": "负责企业品牌策略与管理的高级管理人员",
+            "parent_id": 76,
+            "level": 3,
+            "id": 78,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "企业咨询顾问",
+            "description": "为企业提供专业管理咨询的顾问",
+            "parent_id": 76,
+            "level": 3,
+            "id": 79,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "创意类",
+    "description": "创意设计和内容创作相关职业",
+    "parent_id": null,
+    "level": 1,
+    "id": 22,
+    "created_at": "2025-03-19T21:02:39",
+    "updated_at": "2025-03-20T12:45:11",
+    "subcategories": [
+      {
+        "name": "内容创作",
+        "description": "内容创意与创作相关职业",
+        "parent_id": 22,
+        "level": 2,
+        "id": 80,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "短视频编导",
+            "description": "负责短视频内容策划与制作的创意人员",
+            "parent_id": 80,
+            "level": 3,
+            "id": 81,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "广告文案",
+            "description": "负责创作广告文字内容的创意人员",
+            "parent_id": 80,
+            "level": 3,
+            "id": 82,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "新媒体策划",
+            "description": "负责新媒体内容策划与运营的专业人员",
+            "parent_id": 80,
+            "level": 3,
+            "id": 83,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "视觉设计",
+        "description": "视觉艺术与设计相关职业",
+        "parent_id": 22,
+        "level": 2,
+        "id": 84,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "UI/UX设计师",
+            "description": "负责用户界面与体验设计的专业人员",
+            "parent_id": 84,
+            "level": 3,
+            "id": 85,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "3D建模师",
+            "description": "创建三维数字模型的设计专家",
+            "parent_id": 84,
+            "level": 3,
+            "id": 86,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "数字艺术创作者",
+            "description": "使用数字技术进行艺术创作的专业人员",
+            "parent_id": 84,
+            "level": 3,
+            "id": 87,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "行政职业",
+    "description": "负责办公室行政管理工作的职业分类",
+    "parent_id": null,
+    "level": 1,
+    "id": 29,
+    "created_at": "2025-03-20T12:31:23",
+    "updated_at": "2025-03-20T12:45:11",
+    "subcategories": [
+      {
+        "name": "政府事务",
+        "description": "政府行政工作相关职业",
+        "parent_id": 29,
+        "level": 2,
+        "id": 96,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "政策制定专员",
+            "description": "参与政府政策研究与制定的专业人员",
+            "parent_id": 96,
+            "level": 3,
+            "id": 97,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "公共资源管理",
+            "description": "负责公共资源规划与管理的行政人员",
+            "parent_id": 96,
+            "level": 3,
+            "id": 98,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "行政监督",
+            "description": "从事行政监察与审计工作的专业人员",
+            "parent_id": 96,
+            "level": 3,
+            "id": 99,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "企业行政",
+        "description": "企业行政事务相关职业",
+        "parent_id": 29,
+        "level": 2,
+        "id": 100,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "办公事务主管",
+            "description": "负责企业日常办公事务管理的行政人员",
+            "parent_id": 100,
+            "level": 3,
+            "id": 101,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "人力资源支持",
+            "description": "提供人力资源服务与支持的专业人员",
+            "parent_id": 100,
+            "level": 3,
+            "id": 102,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "远程行政支持岗",
+            "description": "为远程工作团队提供行政支持的专业人员",
+            "parent_id": 100,
+            "level": 3,
+            "id": 103,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "社区服务",
+        "description": "社区行政服务相关职业",
+        "parent_id": 29,
+        "level": 2,
+        "id": 104,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "社区工作者",
+            "description": "从事社区服务与管理的基层工作人员",
+            "parent_id": 104,
+            "level": 3,
+            "id": 105,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "基层调解员",
+            "description": "负责社区纠纷调解的专业人员",
+            "parent_id": 104,
+            "level": 3,
+            "id": 106,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "公共事务协调员",
+            "description": "负责社区公共事务协调的工作人员",
+            "parent_id": 104,
+            "level": 3,
+            "id": 107,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "新兴领域",
+    "description": "数字技术和新兴产业相关职业",
+    "parent_id": null,
+    "level": 1,
+    "id": 30,
+    "created_at": "2025-03-20T12:45:11",
+    "updated_at": "2025-03-20T12:45:11",
+    "subcategories": [
+      {
+        "name": "数字技术",
+        "description": "数字技术创新相关职业",
+        "parent_id": 30,
+        "level": 2,
+        "id": 108,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "人工智能工程师",
+            "description": "从事人工智能技术研发的专业工程师",
+            "parent_id": 108,
+            "level": 3,
+            "id": 109,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "区块链应用开发",
+            "description": "从事区块链技术研发与应用的工程师",
+            "parent_id": 108,
+            "level": 3,
+            "id": 110,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "元宇宙内容设计师",
+            "description": "负责虚拟世界内容创作的设计师",
+            "parent_id": 108,
+            "level": 3,
+            "id": 111,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "绿色经济",
+        "description": "环保与可持续发展相关职业",
+        "parent_id": 30,
+        "level": 2,
+        "id": 112,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "碳资产管理师",
+            "description": "负责碳排放权交易与管理的专业人员",
+            "parent_id": 112,
+            "level": 3,
+            "id": 113,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "新能源技术员",
+            "description": "从事新能源技术应用与维护的专业人员",
+            "parent_id": 112,
+            "level": 3,
+            "id": 114,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "循环经济顾问",
+            "description": "提供资源循环利用咨询服务的专业顾问",
+            "parent_id": 112,
+            "level": 3,
+            "id": 115,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "跨界服务",
+        "description": "跨领域创新服务相关职业",
+        "parent_id": 30,
+        "level": 2,
+        "id": 116,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "互联网医疗顾问",
+            "description": "提供在线医疗咨询服务的专业人员",
+            "parent_id": 116,
+            "level": 3,
+            "id": 117,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "数字化农业技术员",
+            "description": "负责农业数字化转型技术应用的专业人员",
+            "parent_id": 116,
+            "level": 3,
+            "id": 118,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "智能家居规划师",
+            "description": "为客户设计智能家居解决方案的专业人员",
+            "parent_id": 116,
+            "level": 3,
+            "id": 119,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "生活服务",
+    "description": "生活服务和便民服务相关职业",
+    "parent_id": null,
+    "level": 1,
+    "id": 31,
+    "created_at": "2025-03-20T12:45:11",
+    "updated_at": "2025-03-20T12:45:11",
+    "subcategories": [
+      {
+        "name": "家庭服务",
+        "description": "家庭生活服务相关职业",
+        "parent_id": 31,
+        "level": 2,
+        "id": 120,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "家政服务",
+            "description": "提供专业家庭事务管理的服务人员",
+            "parent_id": 120,
+            "level": 3,
+            "id": 121,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "家庭健康管理",
+            "description": "负责家庭成员健康指导的专业人员",
+            "parent_id": 120,
+            "level": 3,
+            "id": 122,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "养老护理员",
+            "description": "为老年人提供专业照料服务的护理人员",
+            "parent_id": 120,
+            "level": 3,
+            "id": 123,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "个人消费",
+        "description": "个人消费服务相关职业",
+        "parent_id": 31,
+        "level": 2,
+        "id": 124,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "美容美发师",
+            "description": "提供美容美发服务的专业人员",
+            "parent_id": 124,
+            "level": 3,
+            "id": 125,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "健身教练",
+            "description": "提供健身指导与训练的专业教练",
+            "parent_id": 124,
+            "level": 3,
+            "id": 126,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "宠物医疗顾问",
+            "description": "提供宠物健康咨询与医疗服务的专业人员",
+            "parent_id": 124,
+            "level": 3,
+            "id": 127,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      },
+      {
+        "name": "本地化服务",
+        "description": "社区本地服务相关职业",
+        "parent_id": 31,
+        "level": 2,
+        "id": 128,
+        "created_at": "2025-03-20T13:00:49",
+        "updated_at": "2025-03-20T13:00:49",
+        "subcategories": [
+          {
+            "name": "旅游向导",
+            "description": "提供旅游行程指导与讲解的专业人员",
+            "parent_id": 128,
+            "level": 3,
+            "id": 129,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "民宿运营",
+            "description": "负责特色民宿经营与管理的专业人员",
+            "parent_id": 128,
+            "level": 3,
+            "id": 130,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          },
+          {
+            "name": "社区团购团长",
+            "description": "组织社区团体购物活动的服务人员",
+            "parent_id": 128,
+            "level": 3,
+            "id": 131,
+            "created_at": "2025-03-20T13:00:49",
+            "updated_at": "2025-03-20T13:00:49",
+            "subcategories": []
+          }
+        ]
+      }
+    ]
+  }
+]
+
+=== 测试获取职业分类树 ===
+{
+  "id": 1,
+  "name": "技术/互联网",
+  "description": "各类技术研发和互联网相关职业",
+  "level": 1,
+  "subcategories": [
+    {
+      "id": 32,
+      "name": "技术开发",
+      "description": "软件与技术开发相关职业",
+      "level": 2,
+      "subcategories": [
+        {
+          "id": 33,
+          "name": "软件工程师",
+          "description": "负责软件系统研发与维护的专业人员",
+          "level": 3,
+          "subcategories": []
+        },
+        {
+          "id": 34,
+          "name": "前端开发",
+          "description": "负责网站和应用程序用户界面开发的工程师",
+          "level": 3,
+          "subcategories": []
+        },
+        {
+          "id": 35,
+          "name": "算法工程师",
+          "description": "负责开发和优化算法的专业技术人员",
+          "level": 3,
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "硬件与运维",
+      "description": "计算机硬件和系统运维相关职业",
+      "level": 2,
+      "subcategories": [
+        {
+          "id": 37,
+          "name": "网络工程师",
+          "description": "负责网络系统规划、部署与维护的专业人员",
+          "level": 3,
+          "subcategories": []
+        },
+        {
+          "id": 38,
+          "name": "硬件测试员",
+          "description": "负责计算机硬件产品质量测试的技术人员",
+          "level": 3,
+          "subcategories": []
+        },
+        {
+          "id": 39,
+          "name": "服务器运维",
+          "description": "负责服务器系统运行维护的专业人员",
+          "level": 3,
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "新兴技术",
+      "description": "新兴数字技术领域相关职业",
+      "level": 2,
+      "subcategories": [
+        {
+          "id": 41,
+          "name": "区块链开发工程师",
+          "description": "从事区块链技术研发的工程师",
+          "level": 3,
+          "subcategories": []
+        },
+        {
+          "id": 42,
+          "name": "AI训练师",
+          "description": "负责人工智能模型训练与优化的专业人员",
+          "level": 3,
+          "subcategories": []
+        },
+        {
+          "id": 43,
+          "name": "元宇宙架构师",
+          "description": "负责虚拟现实世界构建的技术专家",
+          "level": 3,
+          "subcategories": []
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "name": "产品与运营",
+      "description": "互联网产品设计与运营相关职业",
+      "level": 2,
+      "subcategories": [
+        {
+          "id": 45,
+          "name": "产品经理",
+          "description": "负责产品规划、设计与管理的专业人员",
+          "level": 3,
+          "subcategories": []
+        },
+        {
+          "id": 46,
+          "name": "用户运营",
+          "description": "负责产品用户增长与活跃度提升的专业人员",
+          "level": 3,
+          "subcategories": []
+        },
+        {
+          "id": 47,
+          "name": "数据分析师",
+          "description": "通过数据分析提供决策支持的专业人员",
+          "level": 3,
+          "subcategories": []
+        }
+      ]
+    }
+  ]
+}
+
+=== 测试获取职业列表（带缓存） ===
+请求失败: 500
+Internal Server Error
+
+=== 测试按分类获取职业 ===
+{
+  "careers": [],
+  "total": 0,
+  "page": 1,
+  "per_page": 100,
+  "pages": 0
+}

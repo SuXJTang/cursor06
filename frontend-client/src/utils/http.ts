@@ -4,11 +4,12 @@ import { ElMessage } from 'element-plus'
 
 // 创建 axios 实例
 const instance: AxiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: 'http://localhost:8000/api/v1',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  withCredentials: true
 })
 
 // 请求拦截器

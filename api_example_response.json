@@ -1,0 +1,6 @@
+{
+  "endpoint": "/health",
+  "data": {
+    "status": "healthy"
+  }
+}

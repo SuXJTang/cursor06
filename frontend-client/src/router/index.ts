@@ -13,6 +13,7 @@ import CareerLibrary from '@/views/CareerLibrary.vue'
 import Careers from '@/views/Careers.vue'
 import CareerHeat from '@/views/CareerHeat.vue'
 import CareerRecommend from '@/views/CareerRecommend.vue'
+import FavoriteCareers from '@/views/FavoriteCareers.vue'
 import Result from '@/views/Result.vue'
 
 const routes: Array<RouteRecordRaw> = [
@@ -70,6 +71,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'userRecommend',
         component: CareerRecommend,
         meta: { requiresAuth: true }
+      },
+      {
+        path: 'favorites',
+        name: 'userFavorites',
+        component: FavoriteCareers,
+        meta: { requiresAuth: true }
       }
     ]
   },
@@ -101,6 +108,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/career-recommend',
     name: 'careerRecommend',
     component: CareerRecommend,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/favorite-careers',
+    name: 'favoriteCareers',
+    component: FavoriteCareers,
     meta: { requiresAuth: true }
   },
   {

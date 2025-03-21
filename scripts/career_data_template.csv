@@ -1,0 +1,6 @@
+title,description,category_id,required_skills,education_required,experience_required,career_path,salary_range,future_prospect
+Java开发工程师,负责Java后端服务的设计与开发，包括API、微服务等,33,"['Java', 'Spring Boot', 'MySQL', 'Redis', 'Git']",本科及以上,3年以上,"['初级开发', '中级开发', '高级开发', '架构师']","{""min"": 15000, ""max"": 30000}",需求稳定
+Python开发工程师,负责Python应用开发，包括Web后端、数据处理等,33,"['Python', 'Django/Flask', 'SQL', 'RESTful API', 'Linux']",本科及以上,2年以上,"['初级开发', '中级开发', '高级开发', '技术专家']","{""min"": 12000, ""max"": 25000}",需求增长
+前端开发工程师,负责Web前端界面开发和用户体验优化,34,"['HTML', 'CSS', 'JavaScript', 'React/Vue', 'TypeScript']",本科及以上,2年以上,"['初级前端', '中级前端', '高级前端', '前端架构师']","{""min"": 10000, ""max"": 22000}",市场需求大
+大数据工程师,负责大数据平台搭建和数据处理流程开发,35,"['Hadoop', 'Spark', 'Hive', 'Python/Java', '分布式系统']",本科及以上,3年以上,"['数据工程师', '高级工程师', '架构师']","{""min"": 18000, ""max"": 35000}",快速发展
+移动产品经理,负责移动应用产品规划、需求分析和产品迭代,36,"['产品规划', '用户研究', '原型设计', '项目管理', '数据分析']",本科及以上,3年以上,"['助理产品经理', '产品经理', '高级产品经理', '产品总监']","{""min"": 12000, ""max"": 28000}",持续增长 

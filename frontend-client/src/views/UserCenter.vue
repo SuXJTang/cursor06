@@ -31,8 +31,12 @@
               <el-icon><UserFilled /></el-icon>
               <span>个人资料</span>
             </el-menu-item>
-            <el-menu-item index="/user-center/recommend">
+            <el-menu-item index="/user-center/favorites">
               <el-icon><Star /></el-icon>
+              <span>收藏职业</span>
+            </el-menu-item>
+            <el-menu-item index="/user-center/recommend">
+              <el-icon><DataAnalysis /></el-icon>
               <span>职业推荐</span>
             </el-menu-item>
           </el-menu>

@@ -1,0 +1,282 @@
+{
+  "careers": [
+    {
+      "title": "软件工程师",
+      "description": "软件工程师是软件工程师行业的骨干力量，需要具备良好的专业素养和职业道德。",
+      "required_skills": [
+        "沟通能力",
+        "C++",
+        "问题解决",
+        "Node.js",
+        "Java"
+      ],
+      "average_salary": null,
+      "job_outlook": null,
+      "education_required": "高中",
+      "experience_required": "3-5年",
+      "career_path": {
+        "mid": "专员",
+        "entry": "实习生",
+        "senior": "总监"
+      },
+      "market_analysis": {
+        "demand": "较低",
+        "growth": "明显下降",
+        "competition": "较激烈"
+      },
+      "salary_range": {
+        "max": 29000,
+        "min": 5000,
+        "unit": "元/月"
+      },
+      "future_prospect": "中高",
+      "related_majors": null,
+      "work_activities": null,
+      "category_id": 33,
+      "id": 251,
+      "created_at": "2025-03-20T13:49:30",
+      "updated_at": "2025-03-20T13:49:30"
+    },
+    {
+      "title": "资深软件工程师",
+      "description": "资深软件工程师是软件工程师行业的骨干力量，需要具备良好的专业素养和职业道德。",
+      "required_skills": [
+        "创新思维",
+        "沟通能力",
+        "Node.js",
+        "JavaScript",
+        "C++"
+      ],
+      "average_salary": null,
+      "job_outlook": null,
+      "education_required": "硕士",
+      "experience_required": "3-5年",
+      "career_path": {
+        "mid": "专员",
+        "entry": "初级资深软件工程师",
+        "senior": "总监"
+      },
+      "market_analysis": {
+        "demand": "较高",
+        "growth": "稳定增长",
+        "competition": "低"
+      },
+      "salary_range": {
+        "max": 30000,
+        "min": 9000,
+        "unit": "元/月"
+      },
+      "future_prospect": "低",
+      "related_majors": null,
+      "work_activities": null,
+      "category_id": 33,
+      "id": 252,
+      "created_at": "2025-03-20T13:49:30",
+      "updated_at": "2025-03-20T13:49:30"
+    },
+    {
+      "title": "资深软件工程师",
+      "description": "作为资深软件工程师，需要具备扎实的软件工程师专业知识和实践经验。",
+      "required_skills": [
+        "SQL",
+        "创新思维",
+        "Vue",
+        "HTML/CSS",
+        "时间管理"
+      ],
+      "average_salary": null,
+      "job_outlook": null,
+      "education_required": "大专",
+      "experience_required": "1-3年",
+      "career_path": {
+        "mid": "项目负责人",
+        "entry": "初级资深软件工程师",
+        "senior": "主管"
+      },
+      "market_analysis": {
+        "demand": "高",
+        "growth": "快速增长",
+        "competition": "较激烈"
+      },
+      "salary_range": {
+        "max": 27000,
+        "min": 10000,
+        "unit": "元/月"
+      },
+      "future_prospect": "中高",
+      "related_majors": null,
+      "work_activities": null,
+      "category_id": 33,
+      "id": 253,
+      "created_at": "2025-03-20T13:49:30",
+      "updated_at": "2025-03-20T13:49:30"
+    },
+    {
+      "title": "全栈工程师",
+      "description": "负责前后端全栈开发，精通多种编程语言和框架",
+      "required_skills": [
+        "JavaScript",
+        "Python",
+        "React",
+        "Node.js",
+        "SQL"
+      ],
+      "average_salary": null,
+      "job_outlook": null,
+      "education_required": "本科及以上",
+      "experience_required": "3年以上",
+      "career_path": [
+        "初级开发",
+        "高级开发",
+        "技术专家",
+        "架构师"
+      ],
+      "market_analysis": null,
+      "salary_range": {
+        "max": 30000,
+        "min": 15000
+      },
+      "future_prospect": "发展前景广阔",
+      "related_majors": null,
+      "work_activities": null,
+      "category_id": 33,
+      "id": 476,
+      "created_at": "2025-03-21T08:44:11",
+      "updated_at": "2025-03-21T08:44:11"
+    },
+    {
+      "title": "后端工程师",
+      "description": "负责服务器端开发，处理业务逻辑和数据存储",
+      "required_skills": [
+        "Java",
+        "Python",
+        "Spring",
+        "MySQL",
+        "Redis"
+      ],
+      "average_salary": null,
+      "job_outlook": null,
+      "education_required": "本科及以上",
+      "experience_required": "2年以上",
+      "career_path": [
+        "初级开发",
+        "高级开发",
+        "架构师"
+      ],
+      "market_analysis": null,
+      "salary_range": {
+        "max": 25000,
+        "min": 12000
+      },
+      "future_prospect": "稳定需求",
+      "related_majors": null,
+      "work_activities": null,
+      "category_id": 33,
+      "id": 477,
+      "created_at": "2025-03-21T08:44:11",
+      "updated_at": "2025-03-21T08:44:11"
+    },
+    {
+      "title": "移动开发工程师",
+      "description": "专注于移动应用开发，包括iOS和Android平台",
+      "required_skills": [
+        "Swift",
+        "Kotlin",
+        "Java",
+        "Flutter",
+        "移动UI设计"
+      ],
+      "average_salary": null,
+      "job_outlook": null,
+      "education_required": "本科及以上",
+      "experience_required": "2年以上",
+      "career_path": [
+        "初级开发",
+        "高级开发",
+        "移动架构师"
+      ],
+      "market_analysis": null,
+      "salary_range": {
+        "max": 26000,
+        "min": 13000
+      },
+      "future_prospect": "需求稳定",
+      "related_majors": null,
+      "work_activities": null,
+      "category_id": 33,
+      "id": 478,
+      "created_at": "2025-03-21T08:44:11",
+      "updated_at": "2025-03-21T08:44:11"
+    },
+    {
+      "title": "Java开发工程师",
+      "description": "负责Java后端服务的设计与开发，包括API、微服务等",
+      "required_skills": [
+        "Java",
+        "Spring Boot",
+        "MySQL",
+        "Redis",
+        "Git"
+      ],
+      "average_salary": null,
+      "job_outlook": null,
+      "education_required": "本科及以上",
+      "experience_required": "3年以上",
+      "career_path": [
+        "初级开发",
+        "中级开发",
+        "高级开发",
+        "架构师"
+      ],
+      "market_analysis": null,
+      "salary_range": {
+        "max": 30000,
+        "min": 15000
+      },
+      "future_prospect": "需求稳定",
+      "related_majors": null,
+      "work_activities": null,
+      "category_id": 33,
+      "id": 481,
+      "created_at": "2025-03-21T08:47:31",
+      "updated_at": "2025-03-21T08:47:31"
+    },
+    {
+      "title": "Python开发工程师",
+      "description": "负责Python应用开发，包括Web后端、数据处理等",
+      "required_skills": [
+        "Python",
+        "Django/Flask",
+        "SQL",
+        "RESTful API",
+        "Linux"
+      ],
+      "average_salary": null,
+      "job_outlook": null,
+      "education_required": "本科及以上",
+      "experience_required": "2年以上",
+      "career_path": [
+        "初级开发",
+        "中级开发",
+        "高级开发",
+        "技术专家"
+      ],
+      "market_analysis": null,
+      "salary_range": {
+        "max": 25000,
+        "min": 12000
+      },
+      "future_prospect": "需求增长",
+      "related_majors": null,
+      "work_activities": null,
+      "category_id": 33,
+      "id": 482,
+      "created_at": "2025-03-21T08:47:31",
+      "updated_at": "2025-03-21T08:47:31"
+    }
+  ],
+  "total": 8,
+  "page": 1,
+  "per_page": 100,
+  "pages": 1
+}

@@ -1,0 +1,29 @@
+{
+  "id": 32,
+  "name": "技术开发",
+  "description": "软件与技术开发相关职业",
+  "level": 2,
+  "subcategories": [
+    {
+      "id": 33,
+      "name": "软件工程师",
+      "description": "负责软件系统研发与维护的专业人员",
+      "level": 3,
+      "subcategories": []
+    },
+    {
+      "id": 34,
+      "name": "前端开发",
+      "description": "负责网站和应用程序用户界面开发的工程师",
+      "level": 3,
+      "subcategories": []
+    },
+    {
+      "id": 35,
+      "name": "算法工程师",
+      "description": "负责开发和优化算法的专业技术人员",
+      "level": 3,
+      "subcategories": []
+    }
+  ]
+}

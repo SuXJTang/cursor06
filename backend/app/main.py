@@ -11,6 +11,7 @@ from app.db.init_db import init_db
 from app.db.session import SessionLocal
 from app.core.cache import cache
 from app.utils.redis_service import start_redis_service
+from app.db.session import async_redis_client
 
 # 配置日志
 logging.basicConfig(
@@ -28,7 +29,15 @@ async def lifespan(app: FastAPI):
         logger.info("正在启动Redis服务...")
         if not start_redis_service():
             logger.error("Redis服务启动失败，应用将无法使用缓存功能")
-            raise RuntimeError("Redis服务启动失败")
+            # 不抛出异常，让应用继续运行
+            pass
+        else:
+            # 测试Redis连接
+            try:
+                await async_redis_client.ping()
+                logger.info("Redis连接测试成功")
+            except Exception as e:
+                logger.error(f"Redis连接测试失败: {str(e)}")
         
         # 初始化数据库
         logger.info("正在初始化数据库...")
@@ -40,12 +49,17 @@ async def lifespan(app: FastAPI):
             db.close()
     except Exception as e:
         logger.error(f"应用启动失败: {str(e)}")
-        raise
+        # 不抛出异常，让应用继续运行
+        pass
     
     yield  # 应用运行
     
     # 关闭事件
     logger.info("应用关闭")
+    try:
+        await async_redis_client.close()
+    except Exception as e:
+        logger.error(f"关闭Redis连接时出错: {str(e)}")
 
 app = FastAPI(
     title=settings.PROJECT_NAME, 
@@ -70,7 +84,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 # 添加测试路由
 @app.get("/test-cache")
 @cache(ttl=60)  # 缓存1分钟
-def test_cache():
+async def test_cache():
     """测试缓存功能的简单API"""
     try:
         logger.debug("正在生成测试缓存数据...")
@@ -88,7 +102,7 @@ def test_cache():
         raise HTTPException(status_code=500, detail=f"缓存测试失败: {str(e)}")
 
 @app.get("/test")
-def test():
+async def test():
     """测试API"""
     try:
         logger.debug("正在生成测试数据...")
@@ -104,11 +118,11 @@ def test():
         raise HTTPException(status_code=500, detail=f"测试失败: {str(e)}")
 
 @app.get("/")
-def root():
+async def root():
     """根路由"""
     return {"message": "欢迎使用求职平台API"}
 
 @app.get("/health")
-def health_check():
+async def health_check():
     """健康检查接口"""
     return {"status": "healthy"} 

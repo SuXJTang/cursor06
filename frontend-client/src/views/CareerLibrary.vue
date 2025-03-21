@@ -199,8 +199,15 @@
                   :class="{ active: selectedCareer?.id === career.id }"
                   @click="selectCareer(career)"
                 >
+                  <div v-if="isCareerFavorited(career.id)" class="favorite-icon" @click.stop="toggleFavorite(career)">
+                    <el-icon color="#FFD700">
+                      <Star fill="true" />
+                    </el-icon>
+                  </div>
                   <div class="career-item-header">
                     <h4>{{ career.name }}</h4>
+                  </div>
+                  <div class="career-level">
                     <el-tag :type="getCareerLevelType(career.level)" size="small">
                       {{ career.level }}
                     </el-tag>
@@ -244,7 +251,7 @@
               <h2>{{ selectedCareer.name }}</h2>
               <div class="action-buttons">
                 <el-button type="primary" @click="handleSaveCareer">
-                  <el-icon><Star /></el-icon>收藏
+                  <el-icon><Star /></el-icon>{{ isFavorite ? '取消收藏' : '收藏' }}
                 </el-button>
                 <el-button @click="handleShareCareer">
                   <el-icon><Share /></el-icon>分享
@@ -335,23 +342,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
-import { 
-  Search, 
-  Money, 
-  School, 
-  Timer, 
-  Star, 
-  Share, 
-  Document, 
-  Folder, 
+import { ref, computed, onMounted, watch, nextTick, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+import request from '../api/request'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Search,
   FolderOpened,
+  Folder,
+  Document,
+  Money,
+  School,
+  Timer,
+  Share,
+  Star,
+  Delete,
   WarningFilled,
   Tools
 } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
-import { useRouter } from 'vue-router'
-import request from '../api/request'
 
 // 职业类型定义
 interface Career {
@@ -414,8 +423,11 @@ const categories = ref<CategoryResponse[]>([]);
 const activeCategory = ref('');
 const searchQuery = ref('');
 const selectedCareer = ref<Career | null>(null);
+const selectedCareerId = ref<number | null>(null);
+const isFavorite = ref(false);
 const sortBy = ref('salary');
 const router = useRouter();
+const authStore = useAuthStore();
 
 // 新增：调试面板状态
 const showDebugPanel = ref(false);
@@ -1174,9 +1186,19 @@ const createDefaultCareer = (id: number, categoryId: string, name: string, level
 };
 
 // 在组件挂载时获取数据
-onMounted(() => {
+onMounted(async () => {
   console.log('组件已挂载，开始获取分类数据');
   fetchCategories();
+  
+  // 检查URL中是否有职业ID参数
+  const urlParams = new URLSearchParams(window.location.search);
+  const careerId = urlParams.get('careerId');
+  
+  if (careerId) {
+    console.log('从URL获取到职业ID:', careerId);
+    // 记录需要选择的职业ID，稍后在职业数据加载完成后进行选择
+    selectedCareerId.value = parseInt(careerId, 10);
+  }
   
   // 优化检查逻辑，增加重试次数和时间
   let checkCount = 0;
@@ -1189,9 +1211,22 @@ onMounted(() => {
     // 检查并修复careers状态
     const stateFixed = checkAndFixCareersState();
     
+    // 如果URL包含职业ID且已加载职业数据，尝试选择该职业
+    if (selectedCareerId.value && careers.value.length > 0) {
+      const targetCareer = careers.value.find(c => c.id === selectedCareerId.value);
+      if (targetCareer) {
+        console.log('根据URL参数选择职业:', targetCareer.name);
+        selectCareer(targetCareer);
+        return;
+      }
+    }
+    
+    // 如果没有特定的职业ID，或者没有找到指定职业，使用默认选择
     if (careers.value.length > 0 && !selectedCareer.value) {
       console.log('发现数据加载后未自动选中职业，执行手动选择');
       selectedCareer.value = { ...careers.value[0] };
+      selectedCareerId.value = careers.value[0].id;
+      checkIsFavorite(careers.value[0].id);
       ElMessage.success('已自动选择第一个职业');
     } else if (stateFixed || (checkCount < maxChecks && careers.value.length === 0)) {
       // 如果状态被修复或者需要继续检查
@@ -1201,6 +1236,23 @@ onMounted(() => {
   
   // 首次检查延迟2秒
   setTimeout(checkSelection, 2000);
+  
+  // 获取收藏职业列表
+  fetchFavoriteCareersIds();
+  
+  // 确保收藏列表加载
+  if (authStore.isAuthenticated) {
+    console.log('页面加载时获取收藏列表');
+    await fetchFavoriteCareersIds();
+  }
+  
+  // 每10秒自动刷新一次收藏状态
+  if (authStore.isAuthenticated) {
+    refreshFavoritesInterval = setInterval(() => {
+      console.log('定时刷新收藏状态');
+      fetchFavoriteCareersIds();
+    }, 10000);
+  }
 })
 
 // 递归查找分类
@@ -1556,6 +1608,12 @@ const fetchCategoryCareers = async (categoryId: string) => {
         });
         
         ElMessage.success(`获取到${careers.value.length}个职业数据`);
+        
+        // 在获取职业完成后，确保刷新收藏状态
+        if (authStore.isAuthenticated) {
+          await fetchFavoriteCareersIds();
+        }
+        
         return;
       } else {
         console.warn('API响应成功但未找到职业数据，尝试回退到旧方法');
@@ -1598,8 +1656,12 @@ const selectCareer = (career: Career) => {
   
   // 确保设置的是一个新对象以触发响应式更新
   selectedCareer.value = { ...career };
+  selectedCareerId.value = career.id;
   
   console.log('选择职业后的selectedCareer:', selectedCareer.value.name);
+  
+  // 检查是否已收藏
+  checkIsFavorite(career.id);
   
   // 确保DOM元素更新
   nextTick(() => {
@@ -1621,9 +1683,169 @@ const selectCareer = (career: Career) => {
 }
 
 // 收藏职业
-const handleSaveCareer = () => {
-  ElMessage.success('收藏成功')
-}
+const handleSaveCareer = async () => {
+  try {
+    if (!selectedCareerId.value) {
+      ElMessage.warning('请先选择职业');
+      return;
+    }
+    
+    if (!authStore.isAuthenticated) {
+      ElMessage.warning('请先登录');
+      router.push('/login');
+      return;
+    }
+    
+    console.log('保存/取消收藏职业ID:', selectedCareerId.value, '类型:', typeof selectedCareerId.value);
+    
+    try {
+      // 安全转换为整数
+      const numericId = safeParseInt(selectedCareerId.value);
+      
+      // 添加请求调试信息
+      const token = localStorage.getItem('auth_token');
+      console.log('当前令牌:', token ? `${token.substring(0, 10)}...${token.substring(token.length - 10)}` : '未设置');
+      console.log('认证状态:', authStore.isAuthenticated ? '已登录' : '未登录');
+      
+      if (isFavorite.value) {
+        // 已收藏，取消收藏
+        console.log(`准备取消收藏: ${numericId}`);
+        
+        // 使用正确的DELETE API端点
+        const url = `/api/v1/careers/${numericId}/favorite`;
+        console.log(`调用API: ${url} (DELETE)`);
+        
+        try {
+          // 使用DELETE方法
+          const response = await request.delete(url);
+          console.log('API响应:', response);
+          
+          isFavorite.value = false;
+          // 从收藏集合中移除
+          favoriteCareersIds.value.delete(String(selectedCareerId.value));
+          ElMessage.success('已取消收藏');
+        } catch (apiError) {
+          console.error('API调用失败:', apiError);
+          
+          // 详细记录API错误信息
+          if (apiError.response) {
+            console.error('错误状态码:', apiError.response.status);
+            console.error('错误头信息:', apiError.response.headers);
+            console.error('错误数据:', apiError.response.data);
+            
+            // 尝试使用备用方法
+            if (apiError.response.status === 404 || apiError.response.status === 422) {
+              console.log('尝试使用备用方法...');
+              const success = await tryFallbackFavorite(numericId, 'delete');
+              
+              if (success) {
+                favoriteCareersIds.value.delete(String(selectedCareerId.value));
+                
+                // 如果当前选中的职业就是这个，也要更新其状态
+                if (String(selectedCareerId.value) === String(selectedCareer.value?.id)) {
+                  isFavorite.value = false;
+                }
+                
+                ElMessage.success('已取消收藏 (备用方法)');
+                return;
+              }
+            }
+            
+            // 根据错误码提供更具体的提示
+            const statusCode = apiError.response.status;
+            if (statusCode === 401) {
+              ElMessage.error('请重新登录');
+              router.push('/login');
+            } else if (statusCode === 404) {
+              ElMessage.error('职业不存在');
+            } else if (statusCode === 422) {
+              ElMessage.error('参数验证错误: ' + 
+                (apiError.response.data.detail || '请检查职业ID格式'));
+            } else {
+              ElMessage.error(`操作失败 (${statusCode}): ${apiError.response.data.message || '未知错误'}`);
+            }
+          } else {
+            ElMessage.error('网络连接失败，请稍后重试');
+          }
+        }
+      } else {
+        // 未收藏，添加收藏
+        console.log(`准备添加收藏: ${numericId}`);
+        
+        // 使用正确的POST API端点
+        const url = `/api/v1/careers/${numericId}/favorite`;
+        console.log(`调用API: ${url} (POST)`);
+        
+        try {
+          // 使用POST方法
+          const response = await request.post(url);
+          console.log('API响应:', response);
+          
+          isFavorite.value = true;
+          // 添加到收藏集合
+          favoriteCareersIds.value.add(String(selectedCareerId.value));
+          ElMessage.success('收藏成功');
+        } catch (apiError) {
+          console.error('API调用失败:', apiError);
+          
+          // 详细记录API错误信息
+          if (apiError.response) {
+            console.error('错误状态码:', apiError.response.status);
+            console.error('错误头信息:', apiError.response.headers);
+            console.error('错误数据:', apiError.response.data);
+            
+            // 尝试使用备用方法
+            if (apiError.response.status === 404 || apiError.response.status === 422) {
+              console.log('尝试使用备用方法...');
+              const success = await tryFallbackFavorite(numericId, 'add');
+              
+              if (success) {
+                favoriteCareersIds.value.add(String(selectedCareerId.value));
+                
+                // 如果当前选中的职业就是这个，也要更新其状态
+                if (String(selectedCareerId.value) === String(selectedCareer.value?.id)) {
+                  isFavorite.value = true;
+                }
+                
+                ElMessage.success('收藏成功 (备用方法)');
+                return;
+              }
+            }
+            
+            // 根据错误码提供更具体的提示
+            const statusCode = apiError.response.status;
+            if (statusCode === 401) {
+              ElMessage.error('请重新登录');
+              router.push('/login');
+            } else if (statusCode === 404) {
+              ElMessage.error('职业不存在');
+            } else if (statusCode === 422) {
+              ElMessage.error('参数验证错误: ' + 
+                (apiError.response.data.detail || '请检查职业ID格式'));
+            } else {
+              ElMessage.error(`操作失败 (${statusCode}): ${apiError.response.data.message || '未知错误'}`);
+            }
+          } else {
+            ElMessage.error('网络连接失败，请稍后重试');
+          }
+        }
+      }
+    } catch (conversionError) {
+      console.error('ID转换失败:', conversionError);
+      ElMessage.error('无效的职业ID格式');
+    }
+  } catch (error) {
+    console.error('收藏操作失败:', error);
+    // 增加更详细的错误信息
+    if (error.response) {
+      console.error('错误响应数据:', error.response.data);
+      console.error('错误状态码:', error.response.status);
+      ElMessage.error(`操作失败 (${error.response.status}): ${error.response.data.message || '未知错误'}`);
+    } else {
+      ElMessage.error('操作失败，请稍后重试');
+    }
+  }
+};
 
 // 分享职业
 const handleShareCareer = () => {
@@ -1846,6 +2068,421 @@ const handleSubMenuTitleClick = (categoryId: number | string) => {
   // 获取分类职业数据
   fetchCategoryCareers(categoryIdStr);
 }
+
+// 处理职业选择
+const handleCareerSelect = (career: Career) => {
+  selectCareer(career);
+}
+
+// 检查职业是否已收藏 - 强化版
+const checkIsFavorite = async (careerId: number) => {
+  try {
+    if (!authStore.isAuthenticated) {
+      isFavorite.value = false;
+      return;
+    }
+    
+    console.log('检查收藏状态，职业ID:', careerId, '类型:', typeof careerId);
+    const careerIdStr = String(careerId);
+    
+    // 先从已获取的收藏列表中检查
+    if (favoriteCareersIds.value.size > 0) {
+      const result = favoriteCareersIds.value.has(careerIdStr);
+      console.log(`从已加载列表检查收藏: ID=${careerIdStr}, 结果=${result}`);
+      isFavorite.value = result;
+      return;
+    }
+    
+    try {
+      // 安全转换为整数
+      const numericId = safeParseInt(careerId);
+      
+      // 使用后端API的正确端点格式
+      const url = `/api/v1/careers/${numericId}/is_favorite`;
+      console.log(`调用API: ${url}`);
+      
+      const response = await request.get(url);
+      console.log('API响应:', response);
+      
+      // 根据后端API响应格式获取is_favorite字段 - response已经是data部分
+      if (typeof response === 'object' && response !== null) {
+        // 详细记录响应对象的结构
+        console.log('响应对象键:', Object.keys(response));
+        
+        // 使用类型断言处理动态字段
+        const respObj = response as Record<string, any>;
+        
+        // 尝试获取不同可能的字段名称
+        const isFavoriteValue = 
+          respObj.is_favorite !== undefined ? respObj.is_favorite : 
+          respObj.isFavorite !== undefined ? respObj.isFavorite : false;
+        
+        isFavorite.value = !!isFavoriteValue;
+        console.log(`API返回收藏状态: ${isFavorite.value}, 原始值: ${isFavoriteValue}`);
+      } else {
+        console.log('响应不是有效对象:', response);
+        isFavorite.value = false;
+      }
+    } catch (conversionError) {
+      console.error('ID转换失败:', conversionError);
+      isFavorite.value = false;
+    }
+  } catch (error) {
+    console.error('检查收藏状态失败:', error);
+    // 增加更详细的错误信息
+    if (error.response) {
+      console.error('错误响应数据:', error.response.data);
+      console.error('错误状态码:', error.response.status);
+    }
+    isFavorite.value = false;
+  }
+};
+
+// 已收藏职业ID列表 - 改用Set结构提高查询性能
+const favoriteCareersIds = ref(new Set<string>());
+
+// 获取用户收藏的职业ID列表 - 强化版
+const fetchFavoriteCareersIds = async () => {
+  try {
+    console.log('开始获取收藏列表...');
+    if (!authStore.isAuthenticated) {
+      console.log('用户未登录，清空收藏列表');
+      favoriteCareersIds.value.clear();
+      return;
+    }
+    
+    // 使用正确的API端点获取收藏列表
+    const response = await request.get('/api/v1/careers/user/favorites');
+    console.log('收藏列表API响应:', response);
+    
+    // 使用类型断言处理响应
+    const respObj = response as Record<string, any>;
+    
+    // 检查careers字段是否存在
+    if (respObj && respObj.careers && Array.isArray(respObj.careers)) {
+      // 清空现有集合
+      favoriteCareersIds.value.clear();
+      
+      // 添加所有ID，确保转为字符串
+      respObj.careers.forEach((career: any) => {
+        if (career && career.id) {
+          favoriteCareersIds.value.add(String(career.id));
+        }
+      });
+      
+      console.log('收藏列表获取成功，数量:', favoriteCareersIds.value.size);
+      console.log('收藏IDs:', Array.from(favoriteCareersIds.value));
+      
+      // 强制更新收藏状态
+      if (selectedCareerId.value) {
+        isFavorite.value = isCareerFavorited(selectedCareerId.value);
+      }
+    } else {
+      console.warn('无效的收藏列表响应格式:', respObj);
+      // 尝试其他可能的响应格式
+      if (Array.isArray(respObj)) {
+        // 如果直接返回数组
+        favoriteCareersIds.value.clear();
+        respObj.forEach((career: any) => {
+          if (career && career.id) {
+            favoriteCareersIds.value.add(String(career.id));
+          }
+        });
+        console.log('从数组响应获取收藏，数量:', favoriteCareersIds.value.size);
+      }
+    }
+  } catch (error) {
+    console.error('获取收藏职业列表失败:', error);
+    
+    if (error.response) {
+      console.error('错误状态码:', error.response.status);
+      console.error('错误响应:', error.response.data);
+    }
+    
+    // 清空收藏列表
+    favoriteCareersIds.value.clear();
+    
+    // 如果出现404错误，可能是API路径问题，尝试备用路径
+    if (error.response && error.response.status === 404) {
+      try {
+        console.log('尝试备用API路径获取收藏列表');
+        const backupResponse = await request.get('/api/v1/careers/favorites');
+        
+        // 使用类型断言处理响应
+        const backupRespObj = backupResponse as Record<string, any>;
+        
+        if (backupRespObj && backupRespObj.careers && Array.isArray(backupRespObj.careers)) {
+          // 清空现有集合
+          favoriteCareersIds.value.clear();
+          
+          // 添加所有ID
+          backupRespObj.careers.forEach((career: any) => {
+            if (career && career.id) {
+              favoriteCareersIds.value.add(String(career.id));
+            }
+          });
+          
+          console.log('备用路径获取收藏列表成功，数量:', favoriteCareersIds.value.size);
+        }
+      } catch (backupError) {
+        console.error('备用路径获取收藏列表失败:', backupError);
+      }
+    }
+  }
+};
+
+// 检查职业是否被收藏（使用Set提高性能）
+const isCareerFavorited = (careerId: number | string): boolean => {
+  const idStr = String(careerId);
+  const result = favoriteCareersIds.value.has(idStr);
+  console.log(`检查ID=${idStr}是否收藏: ${result}`);
+  return result;
+};
+
+// 切换收藏状态 - 强化版
+const toggleFavorite = async (career: Career) => {
+  try {
+    if (!authStore.isAuthenticated) {
+      ElMessage.warning('请先登录');
+      router.push('/login');
+      return;
+    }
+    
+    // 输出career对象用于调试
+    console.log('职业信息:', career);
+    
+    const careerIdStr = String(career.id);
+    const isCurrentlyFavorite = favoriteCareersIds.value.has(careerIdStr);
+    console.log(`切换收藏状态: 原始ID=${career.id}, 字符串ID=${careerIdStr}, 当前状态=${isCurrentlyFavorite}`);
+    
+    try {
+      // 尝试安全转换ID
+      const numericId = safeParseInt(career.id);
+      
+      // 添加请求调试信息
+      const token = localStorage.getItem('auth_token');
+      console.log('当前令牌:', token ? `${token.substring(0, 10)}...${token.substring(token.length - 10)}` : '未设置');
+      console.log('认证状态:', authStore.isAuthenticated ? '已登录' : '未登录');
+      
+      if (isCurrentlyFavorite) {
+        // 已收藏，取消收藏
+        console.log(`准备取消收藏: ${numericId}`);
+        
+        // 使用正确的DELETE API端点
+        const url = `/api/v1/careers/${numericId}/favorite`;
+        console.log(`调用API: ${url} (DELETE)`);
+        
+        try {
+          // 使用DELETE方法
+          const response = await request.delete(url);
+          console.log('API响应:', response);
+          
+          favoriteCareersIds.value.delete(careerIdStr);
+          
+          // 如果当前选中的职业就是这个，也要更新其状态
+          if (String(selectedCareerId.value) === careerIdStr) {
+            isFavorite.value = false;
+          }
+          
+          ElMessage.success('已取消收藏');
+        } catch (apiError) {
+          console.error('API调用失败:', apiError);
+          
+          // 详细记录API错误信息
+          if (apiError.response) {
+            console.error('错误状态码:', apiError.response.status);
+            console.error('错误头信息:', apiError.response.headers);
+            console.error('错误数据:', apiError.response.data);
+            
+            // 尝试使用备用方法
+            if (apiError.response.status === 404 || apiError.response.status === 422) {
+              console.log('尝试使用备用方法...');
+              const success = await tryFallbackFavorite(numericId, 'delete');
+              
+              if (success) {
+                favoriteCareersIds.value.delete(careerIdStr);
+                
+                // 如果当前选中的职业就是这个，也要更新其状态
+                if (String(selectedCareerId.value) === careerIdStr) {
+                  isFavorite.value = false;
+                }
+                
+                ElMessage.success('已取消收藏 (备用方法)');
+                return;
+              }
+            }
+            
+            // 根据错误码提供更具体的提示
+            const statusCode = apiError.response.status;
+            if (statusCode === 401) {
+              ElMessage.error('请重新登录');
+              router.push('/login');
+            } else if (statusCode === 404) {
+              ElMessage.error('职业不存在');
+            } else if (statusCode === 422) {
+              ElMessage.error('参数验证错误: ' + 
+                (apiError.response.data.detail || '请检查职业ID格式'));
+            } else {
+              ElMessage.error(`操作失败 (${statusCode}): ${apiError.response.data.message || '未知错误'}`);
+            }
+          } else {
+            ElMessage.error('网络连接失败，请稍后重试');
+          }
+        }
+      } else {
+        // 未收藏，添加收藏
+        console.log(`准备添加收藏: ${numericId}`);
+        
+        // 使用正确的POST API端点
+        const url = `/api/v1/careers/${numericId}/favorite`;
+        console.log(`调用API: ${url} (POST)`);
+        
+        try {
+          // 使用POST方法
+          const response = await request.post(url);
+          console.log('API响应:', response);
+          
+          favoriteCareersIds.value.add(careerIdStr);
+          
+          // 如果当前选中的职业就是这个，也要更新其状态
+          if (String(selectedCareerId.value) === careerIdStr) {
+            isFavorite.value = true;
+          }
+          
+          ElMessage.success('收藏成功');
+        } catch (apiError) {
+          console.error('API调用失败:', apiError);
+          
+          // 详细记录API错误信息
+          if (apiError.response) {
+            console.error('错误状态码:', apiError.response.status);
+            console.error('错误头信息:', apiError.response.headers);
+            console.error('错误数据:', apiError.response.data);
+            
+            // 尝试使用备用方法
+            if (apiError.response.status === 404 || apiError.response.status === 422) {
+              console.log('尝试使用备用方法...');
+              const success = await tryFallbackFavorite(numericId, 'add');
+              
+              if (success) {
+                favoriteCareersIds.value.add(careerIdStr);
+                
+                // 如果当前选中的职业就是这个，也要更新其状态
+                if (String(selectedCareerId.value) === careerIdStr) {
+                  isFavorite.value = true;
+                }
+                
+                ElMessage.success('收藏成功 (备用方法)');
+                return;
+              }
+            }
+            
+            // 根据错误码提供更具体的提示
+            const statusCode = apiError.response.status;
+            if (statusCode === 401) {
+              ElMessage.error('请重新登录');
+              router.push('/login');
+            } else if (statusCode === 404) {
+              ElMessage.error('职业不存在');
+            } else if (statusCode === 422) {
+              ElMessage.error('参数验证错误: ' + 
+                (apiError.response.data.detail || '请检查职业ID格式'));
+            } else {
+              ElMessage.error(`操作失败 (${statusCode}): ${apiError.response.data.message || '未知错误'}`);
+            }
+          } else {
+            ElMessage.error('网络连接失败，请稍后重试');
+          }
+        }
+      }
+    } catch (conversionError) {
+      console.error('ID转换失败:', conversionError);
+      ElMessage.error('无效的职业ID格式');
+    }
+  } catch (error) {
+    console.error('收藏操作失败:', error);
+    // 增加更详细的错误信息
+    if (error.response) {
+      console.error('错误响应数据:', error.response.data);
+      console.error('错误状态码:', error.response.status);
+      ElMessage.error(`操作失败 (${error.response.status}): ${error.response.data.message || '未知错误'}`);
+    } else {
+      ElMessage.error('操作失败，请稍后重试');
+    }
+  }
+};
+
+// 自动重新获取收藏状态的计时器
+let refreshFavoritesInterval: any = null;
+
+onMounted(() => {
+  // 其他现有代码...
+  
+  // 每10秒自动刷新一次收藏状态
+  if (authStore.isAuthenticated) {
+    refreshFavoritesInterval = setInterval(() => {
+      console.log('定时刷新收藏状态');
+      fetchFavoriteCareersIds();
+    }, 10000);
+  }
+})
+
+// 在组件卸载时清除定时器
+onUnmounted(() => {
+  if (refreshFavoritesInterval) {
+    clearInterval(refreshFavoritesInterval);
+  }
+});
+
+// 添加更安全的ID转换函数
+const safeParseInt = (value: any): number => {
+  // 首先输出原始值用于调试
+  console.log('尝试转换ID:', value, '类型:', typeof value);
+  
+  if (typeof value === 'number') {
+    return value; // 已经是数字，直接返回
+  }
+  
+  if (typeof value === 'string') {
+    // 处理可能的字符串格式问题
+    const cleanedValue = value.trim().replace(/[^0-9]/g, '');
+    if (cleanedValue) {
+      const num = parseInt(cleanedValue, 10);
+      console.log('转换结果:', num);
+      return num;
+    }
+  }
+  
+  // 默认返回一个安全值，或者抛出异常
+  console.error('无法转换为有效整数:', value);
+  throw new Error(`无法将 ${value} 转换为有效整数ID`);
+};
+
+// 失败时使用备用API调用方式
+const tryFallbackFavorite = async (careerId: number, action: 'add' | 'delete') => {
+  try {
+    console.log(`尝试备用方法进行${action === 'add' ? '添加' : '删除'}收藏...`);
+    
+    // 使用旧的API路径和表单数据方式
+    const url = action === 'add' 
+      ? `/api/v1/careers/favorite/add` 
+      : `/api/v1/careers/favorite/delete`;
+    
+    console.log(`备用API调用: ${url}, 参数:`, { career_id: careerId });
+    
+    const response = await request.post(url, { 
+      career_id: careerId,
+      // 如果是删除，添加_method参数
+      ...(action === 'delete' ? { _method: 'DELETE' } : {})
+    });
+    
+    console.log('备用API响应:', response);
+    return true;
+  } catch (fallbackError) {
+    console.error('备用API调用也失败:', fallbackError);
+    return false;
+  }
+};
 </script>
 
 <style scoped>
@@ -1944,13 +2581,25 @@ const handleSubMenuTitleClick = (categoryId: number | string) => {
 }
 
 .career-item {
-  padding: 16px;
-  border-radius: 8px;
-  background-color: #fff;
-  margin-bottom: 12px;
+  position: relative;
+  padding: 12px;
+  border-bottom: 1px solid #ebeef5;
   cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid #e4e7ed;
+  transition: all 0.3s;
+}
+
+.favorite-icon {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  cursor: pointer;
+  font-size: 22px;
+  transition: all 0.2s ease;
+}
+
+.favorite-icon:hover {
+  transform: scale(1.2);
 }
 
 .career-item:hover,
@@ -1962,15 +2611,20 @@ const handleSubMenuTitleClick = (categoryId: number | string) => {
 
 .career-item-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+  padding-right: 30px; /* 为收藏图标留出空间 */
 }
 
 .career-item-header h4 {
   margin: 0;
   font-size: 16px;
   color: var(--el-color-primary);
+}
+
+.career-level {
+  margin-bottom: 8px;
 }
 
 .career-brief {

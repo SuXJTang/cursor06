@@ -1,0 +1,32 @@
+[
+  {
+    "name": "软件工程师",
+    "description": "负责软件系统研发与维护的专业人员",
+    "parent_id": 32,
+    "level": 3,
+    "id": 33,
+    "created_at": "2025-03-20T13:00:49",
+    "updated_at": "2025-03-20T13:00:49",
+    "subcategories": []
+  },
+  {
+    "name": "前端开发",
+    "description": "负责网站和应用程序用户界面开发的工程师",
+    "parent_id": 32,
+    "level": 3,
+    "id": 34,
+    "created_at": "2025-03-20T13:00:49",
+    "updated_at": "2025-03-20T13:00:49",
+    "subcategories": []
+  },
+  {
+    "name": "算法工程师",
+    "description": "负责开发和优化算法的专业技术人员",
+    "parent_id": 32,
+    "level": 3,
+    "id": 35,
+    "created_at": "2025-03-20T13:00:49",
+    "updated_at": "2025-03-20T13:00:49",
+    "subcategories": []
+  }
+]

@@ -1,0 +1,248 @@
+{
+  "careers": [
+    {
+      "title": "前端开发",
+      "description": "前端开发是前端开发领域的专业人才，负责前端开发相关的工作内容。",
+      "required_skills": [
+        "Angular",
+        "创新思维",
+        "问题解决",
+        "React",
+        "C++"
+      ],
+      "average_salary": null,
+      "job_outlook": null,
+      "education_required": "博士",
+      "experience_required": "5-10年",
+      "career_path": {
+        "mid": "专员",
+        "entry": "助理",
+        "senior": "前端开发专家"
+      },
+      "market_analysis": {
+        "demand": "较高",
+        "growth": "保持稳定",
+        "competition": "较低"
+      },
+      "salary_range": {
+        "max": 26000,
+        "min": 9000,
+        "unit": "元/月"
+      },
+      "future_prospect": "中低",
+      "related_majors": null,
+      "work_activities": null,
+      "category_id": 34,
+      "id": 254,
+      "created_at": "2025-03-20T13:49:30",
+      "updated_at": "2025-03-20T13:49:30"
+    },
+    {
+      "title": "专家级前端开发",
+      "description": "专家级前端开发是前端开发领域的专业人才，负责前端开发相关的工作内容。",
+      "required_skills": [
+        "沟通能力",
+        "JavaScript",
+        "创新思维",
+        "Vue",
+        "SQL"
+      ],
+      "average_salary": null,
+      "job_outlook": null,
+      "education_required": "高中",
+      "experience_required": "10年以上",
+      "career_path": {
+        "mid": "高级专家级前端开发",
+        "entry": "初级专家级前端开发",
+        "senior": "总监"
+      },
+      "market_analysis": {
+        "demand": "较低",
+        "growth": "略有下降",
+        "competition": "较激烈"
+      },
+      "salary_range": {
+        "max": 28000,
+        "min": 3000,
+        "unit": "元/月"
+      },
+      "future_prospect": "高",
+      "related_majors": null,
+      "work_activities": null,
+      "category_id": 34,
+      "id": 255,
+      "created_at": "2025-03-20T13:49:30",
+      "updated_at": "2025-03-20T13:49:30"
+    },
+    {
+      "title": "前端开发",
+      "description": "前端开发是前端开发行业的骨干力量，需要具备良好的专业素养和职业道德。",
+      "required_skills": [
+        "沟通能力",
+        "Vue",
+        "问题解决",
+        "SQL",
+        "Angular"
+      ],
+      "average_salary": null,
+      "job_outlook": null,
+      "education_required": "大专",
+      "experience_required": "3-5年",
+      "career_path": {
+        "mid": "专员",
+        "entry": "实习生",
+        "senior": "前端开发专家"
+      },
+      "market_analysis": {
+        "demand": "高",
+        "growth": "保持稳定",
+        "competition": "低"
+      },
+      "salary_range": {
+        "max": 21000,
+        "min": 3000,
+        "unit": "元/月"
+      },
+      "future_prospect": "中",
+      "related_majors": null,
+      "work_activities": null,
+      "category_id": 34,
+      "id": 256,
+      "created_at": "2025-03-20T13:49:30",
+      "updated_at": "2025-03-20T13:49:30"
+    },
+    {
+      "title": "前端工程师",
+      "description": "负责网站和应用的用户界面开发",
+      "required_skills": [
+        "HTML",
+        "CSS",
+        "JavaScript",
+        "React/Vue/Angular",
+        "响应式设计"
+      ],
+      "average_salary": null,
+      "job_outlook": null,
+      "education_required": "本科及以上",
+      "experience_required": "1-3年",
+      "career_path": [
+        "初级前端",
+        "高级前端",
+        "前端架构师"
+      ],
+      "market_analysis": null,
+      "salary_range": {
+        "max": 25000,
+        "min": 10000
+      },
+      "future_prospect": "需求量大",
+      "related_majors": null,
+      "work_activities": null,
+      "category_id": 34,
+      "id": 479,
+      "created_at": "2025-03-21T08:44:11",
+      "updated_at": "2025-03-21T08:44:11"
+    },
+    {
+      "title": "UI/UX设计师",
+      "description": "负责用户界面和用户体验设计",
+      "required_skills": [
+        "Figma",
+        "Sketch",
+        "用户研究",
+        "交互设计",
+        "视觉设计"
+      ],
+      "average_salary": null,
+      "job_outlook": null,
+      "education_required": "本科及以上",
+      "experience_required": "2年以上",
+      "career_path": [
+        "初级设计师",
+        "高级设计师",
+        "设计主管"
+      ],
+      "market_analysis": null,
+      "salary_range": {
+        "max": 22000,
+        "min": 12000
+      },
+      "future_prospect": "行业需求稳定",
+      "related_majors": null,
+      "work_activities": null,
+      "category_id": 34,
+      "id": 480,
+      "created_at": "2025-03-21T08:44:11",
+      "updated_at": "2025-03-21T08:44:11"
+    },
+    {
+      "title": "前端开发工程师",
+      "description": "负责Web前端界面开发和用户体验优化",
+      "required_skills": [
+        "HTML",
+        "CSS",
+        "JavaScript",
+        "React/Vue",
+        "TypeScript"
+      ],
+      "average_salary": null,
+      "job_outlook": null,
+      "education_required": "本科及以上",
+      "experience_required": "2年以上",
+      "career_path": [
+        "初级前端",
+        "中级前端",
+        "高级前端",
+        "前端架构师"
+      ],
+      "market_analysis": null,
+      "salary_range": {
+        "max": 22000,
+        "min": 10000
+      },
+      "future_prospect": "市场需求大",
+      "related_majors": null,
+      "work_activities": null,
+      "category_id": 34,
+      "id": 483,
+      "created_at": "2025-03-21T08:47:32",
+      "updated_at": "2025-03-21T08:47:32"
+    },
+    {
+      "title": "UI设计师",
+      "description": "负责用户界面视觉设计和交互设计",
+      "required_skills": [
+        "Figma/Sketch",
+        "视觉设计",
+        "交互设计",
+        "用户体验",
+        "界面原型"
+      ],
+      "average_salary": null,
+      "job_outlook": null,
+      "education_required": "本科及以上",
+      "experience_required": "2年以上",
+      "career_path": [
+        "初级设计师",
+        "高级设计师",
+        "设计总监"
+      ],
+      "market_analysis": null,
+      "salary_range": {
+        "max": 20000,
+        "min": 10000
+      },
+      "future_prospect": "需求稳定 ",
+      "related_majors": null,
+      "work_activities": null,
+      "category_id": 34,
+      "id": 495,
+      "created_at": "2025-03-21T08:47:33",
+      "updated_at": "2025-03-21T08:47:33"
+    }
+  ],
+  "total": 7,
+  "page": 1,
+  "per_page": 100,
+  "pages": 1
+}

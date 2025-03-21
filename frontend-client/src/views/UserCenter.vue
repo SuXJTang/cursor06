@@ -143,4 +143,4 @@ const defaultAvatarStyle = computed(() => {
 .el-menu-item .el-icon {
   margin-right: 8px;
 }
-</style> 
+</style> // Added comment

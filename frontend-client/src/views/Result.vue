@@ -441,4 +441,4 @@ const backToHome = () => {
 .result-content {
   animation: appear 0.5s ease-out forwards;
 }
-</style>
+</style>// Added comment

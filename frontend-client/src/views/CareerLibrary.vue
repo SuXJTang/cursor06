@@ -83,16 +83,20 @@
               <div v-for="category in categories" :key="category.id">
                 <el-sub-menu v-if="category.subcategories && category.subcategories.length" :index="String(category.id)">
                   <template #title>
-                <el-icon><FolderOpened /></el-icon>
-                <span>{{ category.name }}</span>
+                    <div class="submenu-title" @click.stop="handleSubMenuTitleClick(category.id)">
+                      <el-icon><FolderOpened /></el-icon>
+                      <span>{{ category.name }}</span>
+                    </div>
                   </template>
                   
                   <div v-for="subcategory in category.subcategories" :key="subcategory.id">
                     <el-sub-menu v-if="subcategory.subcategories && subcategory.subcategories.length" :index="String(subcategory.id)">
-                <template #title>
-                        <el-icon><Folder /></el-icon>
-                        <span>{{ subcategory.name }}</span>
-                </template>
+                      <template #title>
+                        <div class="submenu-title" @click.stop="handleSubMenuTitleClick(subcategory.id)">
+                          <el-icon><Folder /></el-icon>
+                          <span>{{ subcategory.name }}</span>
+                        </div>
+                      </template>
                       
                       <el-menu-item 
                         v-for="thirdCategory in subcategory.subcategories" 
@@ -114,7 +118,7 @@
                 <el-menu-item v-else :index="String(category.id)">
                   <el-icon><Document /></el-icon>
                   <span>{{ category.name }}</span>
-              </el-menu-item>
+                </el-menu-item>
               </div>
             </el-menu>
           </el-scrollbar>
@@ -1419,7 +1423,162 @@ const handleCategorySelect = (categoryId: string) => {
   selectedCareer.value = null;
   
   // 获取该分类下的职业数据
-  fetchCareers(categoryId);
+  fetchCategoryCareers(categoryId);
+}
+
+// 新函数：获取分类及其子分类的所有职业数据
+const fetchCategoryCareers = async (categoryId: string) => {
+  try {
+    // 显示加载状态
+    isLoading.value = true;
+    errorMessage.value = '';
+    
+    // 清空当前数据
+    careers.value = [];
+    
+    // 更新调试信息
+    console.log(`尝试获取分类ID ${categoryId} 及其子分类的所有职业数据`);
+    ElMessage.info(`正在获取${getCurrentCategoryName()}分类数据...`);
+    
+    // 获取认证令牌
+    const token = localStorage.getItem('auth_token')
+    if (!token) {
+      console.error('未找到认证token');
+      ElMessage.error('请先登录后再访问');
+      router.push('/login');
+      return;
+    }
+    
+    // 显示请求前状态
+    console.log('当前分类ID:', categoryId);
+    console.log('发送请求前careers.length =', careers.value.length);
+    
+    try {
+      // 使用新的API端点获取分类及其子分类的所有职业
+      console.log(`正在请求API：/api/v1/career-categories/${categoryId}/careers`);
+      
+      // 记录请求开始时间
+      const requestStartTime = Date.now();
+      
+      const response = await request<any>({
+        url: `/api/v1/career-categories/${categoryId}/careers`,
+        method: 'GET',
+        params: {
+          limit: 100,
+          include_subcategories: true // 确保包含子分类的职业
+        },
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        timeout: 15000
+      });
+      
+      // 计算请求耗时
+      const requestTime = Date.now() - requestStartTime;
+      console.log(`API请求完成，耗时: ${requestTime}ms`);
+      
+      // 保存原始响应到调试面板
+      console.log('API响应数据:', response);
+      rawApiData.value = JSON.stringify(response, null, 2);
+      
+      // 使用更安全的方式提取数据，确保处理各种可能的响应格式
+      let careerItems: any[] = [];
+      let responseData: any = response;
+      
+      // 如果是标准Axios响应，先获取data属性
+      if (responseData && responseData.data !== undefined) {
+        responseData = responseData.data;
+      }
+      
+      // 解析不同格式的响应
+      if (Array.isArray(responseData)) {
+        // 直接是数组
+        careerItems = responseData;
+        console.log('响应直接是职业数组，长度:', careerItems.length);
+      } else if (responseData && typeof responseData === 'object') {
+        // 对象格式，检查不同可能的数据字段
+        if (responseData.careers && Array.isArray(responseData.careers)) {
+          careerItems = responseData.careers;
+          console.log('职业数据在careers字段中，长度:', careerItems.length);
+        } else if (responseData.data && Array.isArray(responseData.data)) {
+          careerItems = responseData.data;
+          console.log('职业数据在data字段中，长度:', careerItems.length);
+        } else if (responseData.items && Array.isArray(responseData.items)) {
+          careerItems = responseData.items;
+          console.log('职业数据在items字段中，长度:', careerItems.length);
+        } else if (responseData.results && Array.isArray(responseData.results)) {
+          careerItems = responseData.results;
+          console.log('职业数据在results字段中，长度:', careerItems.length);
+        } else {
+          // 尝试查找任何数组属性
+          for (const key in responseData) {
+            if (Array.isArray(responseData[key]) && responseData[key].length > 0) {
+              console.log(`发现数组属性 ${key}，长度:`, responseData[key].length);
+              // 检查第一个元素是否看起来像职业数据
+              const firstItem = responseData[key][0];
+              if (firstItem && (firstItem.id || firstItem.title || firstItem.name)) {
+                careerItems = responseData[key];
+                console.log(`使用 ${key} 字段作为职业数据源，长度:`, careerItems.length);
+                break;
+              }
+            }
+          }
+        }
+      }
+      
+      if (careerItems.length > 0) {
+        console.log(`成功获取 ${careerItems.length} 条职业数据，第一项:`, careerItems[0]);
+        
+        // 转换职业数据格式
+        careers.value = careerItems.map(item => processCareerItem(item, categoryId));
+        console.log('处理后的职业数据长度:', careers.value.length);
+        
+        // 缓存获取到的数据
+        saveToCache(categoryId, careers.value);
+        
+        // 确保选中第一个职业
+        nextTick(() => {
+          if (careers.value.length > 0) {
+            selectedCareer.value = { ...careers.value[0] };
+            console.log('自动选择第一个职业:', selectedCareer.value.name);
+          }
+        });
+        
+        ElMessage.success(`获取到${careers.value.length}个职业数据`);
+        return;
+      } else {
+        console.warn('API响应成功但未找到职业数据，尝试回退到旧方法');
+        ElMessage.warning('未找到相关职业数据，正在尝试其他获取方式...');
+      }
+    } catch (apiError) {
+      console.error('新API请求失败:', apiError);
+      ElMessage.error('新接口请求失败，正在尝试备用方法...');
+    }
+    
+    // 如果新API失败，回退到旧方法
+    console.log('回退到原有fetchCareers方法获取数据');
+    await fetchCareers(categoryId);
+    
+  } catch (error) {
+    console.error('获取分类职业数据失败:', error);
+    ElMessage.error('获取数据失败，请稍后重试');
+    errorMessage.value = '获取职业数据失败，请稍后重试';
+    
+    // 尝试从缓存加载数据
+    const cachedData = getFromCache(categoryId, false);
+    if (cachedData && cachedData.data.length > 0) {
+      console.log('从缓存加载数据:', cachedData.data.length);
+      careers.value = cachedData.data;
+      
+      if (careers.value.length > 0) {
+        selectedCareer.value = { ...careers.value[0] };
+      }
+      
+      ElMessage.info('已加载缓存数据');
+    }
+  } finally {
+    isLoading.value = false;
+  }
 }
 
 // 选择职业
@@ -1654,6 +1813,17 @@ watch(() => activeCategory.value, (newCategory) => {
     fetchCareers(newCategory);
   }
 }, { immediate: true });
+
+// 新增函数：处理子菜单标题点击事件
+const handleSubMenuTitleClick = (categoryId: number | string) => {
+  console.log('子菜单标题点击，分类ID:', categoryId);
+  // 转换为字符串
+  const categoryIdStr = String(categoryId);
+  // 设置活动分类
+  activeCategory.value = categoryIdStr;
+  // 获取分类职业数据
+  fetchCategoryCareers(categoryIdStr);
+}
 </script>
 
 <style scoped>
@@ -1675,6 +1845,18 @@ watch(() => activeCategory.value, (newCategory) => {
 
 .category-menu {
   border-right: none;
+}
+
+/* 添加子菜单标题样式 */
+:deep(.submenu-title) {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  cursor: pointer;
+}
+
+:deep(.submenu-title:hover) {
+  color: var(--el-color-primary);
 }
 
 .career-count {

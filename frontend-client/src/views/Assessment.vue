@@ -1407,4 +1407,4 @@ const getCurrentTip = () => {
     transform: translateY(0);
   }
 }
-</style> 
+</style> // Updated file

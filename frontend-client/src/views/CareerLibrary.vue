@@ -1901,15 +1901,20 @@ const handleSubMenuTitleClick = (categoryId: number | string) => {
 /* 子菜单展开后增加一些间距和背景色区分 */
 :deep(.el-menu--inline) {
   background-color: var(--el-color-info-light-9);
-  margin-left: 8px;
+  margin-left: 12px;
   border-radius: 4px;
+  padding-left: 0;
 }
 
 :deep(.submenu-title) {
   display: flex;
   align-items: center;
-  width: 100%;
-  cursor: pointer;
+  height: 40px;
+  line-height: 40px;
+  padding-left: 20px !important;
+  transition: all 0.3s ease;
+  width: 100%; /* 恢复宽度样式 */
+  cursor: pointer; /* 恢复鼠标指针样式 */
 }
 
 :deep(.submenu-title:hover) {
@@ -2222,5 +2227,117 @@ const handleSubMenuTitleClick = (categoryId: number | string) => {
 .active-indicator {
   background-color: var(--el-color-primary);
   box-shadow: 0 0 4px var(--el-color-primary);
+}
+
+/* 为菜单添加垂直连接线 */
+.category-menu {
+  position: relative;
+}
+
+/* 为子菜单添加垂直连接线 */
+:deep(.el-sub-menu.is-opened) {
+  position: relative;
+}
+
+:deep(.el-sub-menu.is-opened::before) {
+  content: '';
+  position: absolute;
+  left: 18px; /* 调整连接线的位置，与图标对齐 */
+  top: 40px;
+  bottom: 14px;
+  width: 2px;
+  background-color: var(--el-color-primary-light-7);
+  z-index: 1;
+}
+
+/* 二级和三级菜单项的连接线 */
+:deep(.el-menu--inline .el-menu-item::before) {
+  content: '';
+  position: absolute;
+  left: -12px; /* 调整水平连接线位置 */
+  top: 50%;
+  width: 12px;
+  height: 2px;
+  background-color: var(--el-color-primary-light-7);
+}
+
+/* 统一选中样式 */
+:deep(.el-menu-item.is-active) {
+  background-color: var(--el-color-primary-light-8) !important;
+  color: var(--el-color-primary) !important;
+  font-weight: bold;
+  border-left: 3px solid var(--el-color-primary);
+}
+
+:deep(.el-sub-menu.is-active > .el-sub-menu__title) {
+  color: var(--el-color-primary) !important;
+  font-weight: bold;
+}
+
+/* 改进圆点选中指示器 */
+.category-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background-color: transparent;
+  transition: all 0.3s ease;
+}
+
+.active-indicator {
+  background-color: var(--el-color-primary);
+  box-shadow: 0 0 4px var(--el-color-primary);
+}
+
+/* 添加悬停效果 */
+:deep(.el-menu-item:hover) {
+  background-color: var(--el-color-primary-light-9) !important;
+}
+
+:deep(.el-sub-menu__title:hover) {
+  background-color: var(--el-color-primary-light-9) !important;
+}
+
+/* 统一菜单项的布局和对齐 */
+:deep(.el-menu-item), :deep(.el-sub-menu__title) {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  line-height: 40px;
+  padding-left: 20px !important;
+  transition: all 0.3s ease;
+}
+
+/* 统一菜单图标大小和位置 */
+:deep(.el-icon) {
+  margin-right: 6px;
+  font-size: 16px;
+  width: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 选中项的左侧蓝色标识 */
+:deep(.el-menu-item.is-active::after), 
+:deep(.el-sub-menu.is-active > .el-sub-menu__title::after) {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  background-color: var(--el-color-primary);
+}
+
+/* 确保菜单项有足够的内边距，让左侧指示器显示 */
+:deep(.category-menu) {
+  border-right: none;
+  padding: 4px;
+}
+
+/* 增强选中子菜单的视觉效果 */
+:deep(.el-sub-menu.is-active.is-opened > .el-sub-menu__title) {
+  background-color: var(--el-color-primary-light-9);
 }
 </style> 

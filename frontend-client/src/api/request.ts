@@ -29,7 +29,9 @@ request.interceptors.request.use(
   config => {
     // 保存silent参数到config对象
     if (config.silent) {
-      config.isSilent = true
+      // config.isSilent = true  // 原本允许silent模式
+      config.isSilent = false // 强制禁用silent模式，确保所有错误都显示
+      console.log('请求原本为silent模式，但已禁用')
       // 删除自定义参数，避免axios警告
       delete config.silent
     }
@@ -39,13 +41,20 @@ request.interceptors.request.use(
     if (token && token.trim() !== '') {
       // 使用Bearer格式，符合OAuth2标准
       config.headers['Authorization'] = `Bearer ${token}`
-      console.log('请求中添加token:', `Bearer ${token}`)
+      console.log('请求中添加token:', `Bearer ${token.substring(0, 10)}...${token.substring(token.length - 10)}`)
+    } else {
+      console.warn('请求未携带token，URL:', config.url)
     }
     
     // 详细记录请求信息
     console.log(`发送${config.method?.toUpperCase()}请求:`, {
       url: config.url,
-      headers: config.headers, 
+      headers: {
+        ...config.headers,
+        'Authorization': config.headers?.['Authorization'] ? 
+                        `Bearer ${config.headers['Authorization'].toString().substring(7, 17)}...` : 
+                        '未设置'
+      }, 
       data: config.data,
       params: config.params,
       isSilent: config.isSilent
@@ -63,6 +72,17 @@ request.interceptors.request.use(
 request.interceptors.response.use(
   response => {
     console.log('API请求成功:', response.config.url)
+    console.log('响应状态码:', response.status)
+    console.log('响应类型:', typeof response.data)
+    
+    if (Array.isArray(response.data)) {
+      console.log('响应是数组，长度:', response.data.length)
+      if (response.data.length > 0) {
+        console.log('第一个元素:', response.data[0])
+      }
+    } else if (response.data && typeof response.data === 'object') {
+      console.log('响应对象的键:', Object.keys(response.data))
+    }
     
     // 直接返回响应数据，不做额外处理
     // 如果响应直接包含数据（例如后端直接返回的内容），则返回response.data
@@ -71,6 +91,9 @@ request.interceptors.response.use(
   },
   error => {
     console.error('API请求错误:', error)
+    console.error('请求URL:', error.config?.url)
+    console.error('请求方法:', error.config?.method)
+    console.error('请求参数:', error.config?.params)
     
     // 检查是否为静默请求，如果是则不显示错误消息
     const isSilent = error.config?.isSilent === true

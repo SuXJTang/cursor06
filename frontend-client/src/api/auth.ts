@@ -108,13 +108,22 @@ export const authApi = {
   
   // 获取当前用户信息
   async getCurrentUser(): Promise<ApiResponse<UserInfo>> {
-    // 使用后端实际提供的用户信息API路径
-    const response = await request.get('/api/v1/auth/me')
-    // 使用适配器处理响应
-    return {
-      code: response.status,
-      data: response.data,
-      message: response.statusText
+    try {
+      console.log('正在调用getCurrentUser API')
+      // 使用后端实际提供的用户信息API路径
+      const response = await request.get('/api/v1/auth/me')
+      console.log('getCurrentUser API响应:', response)
+      
+      // 使用适配器处理响应
+      return {
+        code: response.status || 200,
+        data: response.data || response,
+        message: response.statusText || 'success'
+      }
+    } catch (error) {
+      console.error('getCurrentUser API错误:', error)
+      // 重新抛出错误以便上层处理
+      throw error
     }
   },
   

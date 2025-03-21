@@ -187,8 +187,12 @@ const passwordRules = reactive({
 
 // 获取用户信息
 const getUserInfo = async () => {
+  console.log('调用了getUserInfo函数')
   try {
+    console.log('准备发送请求，token状态:', localStorage.getItem('auth_token') ? '存在' : '不存在')
     const response = await authApi.getCurrentUser()
+    console.log('获取到的用户数据:', response)
+    
     // 使用适配器提取数据，无论是直接返回的对象还是标准格式
     const userData = extractData(response)
 
@@ -197,10 +201,31 @@ const getUserInfo = async () => {
       userForm.email = userData.email || ''
       userForm.phone = userData.phone || ''
       userForm.avatar_url = userData.avatar_url || ''
+    } else {
+      console.warn('API返回了空数据，尝试从auth store获取')
+      // 如果API请求没有返回有效数据，尝试从auth store获取
+      if (userStore.userInfo) {
+        userForm.username = userStore.userInfo.username || ''
+        userForm.email = userStore.userInfo.email || ''
+        userForm.phone = userStore.userInfo.phone || ''
+        userForm.avatar_url = userStore.userInfo.avatar_url || ''
+        console.log('从auth store获取到用户数据')
+      } else {
+        console.error('auth store中也没有用户数据')
+      }
     }
   } catch (error) {
     console.error('获取用户信息失败:', error)
     ElMessage.error('获取用户信息失败')
+    
+    // 出错时也尝试从auth store获取
+    if (userStore.userInfo) {
+      userForm.username = userStore.userInfo.username || ''
+      userForm.email = userStore.userInfo.email || ''
+      userForm.phone = userStore.userInfo.phone || ''
+      userForm.avatar_url = userStore.userInfo.avatar_url || ''
+      console.log('从auth store获取到用户数据')
+    }
   }
 }
 
@@ -282,7 +307,18 @@ const handleAvatarUpload = async (options: any) => {
 
 // 组件挂载时获取用户信息
 onMounted(() => {
+  console.log('UserInfo组件已挂载')
+  console.log('authStore.userInfo:', userStore.userInfo)
+  console.log('token状态:', localStorage.getItem('auth_token') ? '存在' : '不存在')
+  
+  // 立即调用一次获取用户信息
   getUserInfo()
+  
+  // 为了解决可能的timing问题，再延迟调用一次
+  setTimeout(() => {
+    console.log('延迟1秒后再次尝试获取用户信息')
+    getUserInfo()
+  }, 1000)
 })
 </script>
 

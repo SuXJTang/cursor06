@@ -83,7 +83,11 @@
               <div v-for="category in categories" :key="category.id">
                 <el-sub-menu v-if="category.subcategories && category.subcategories.length" :index="String(category.id)">
                   <template #title>
-                    <div class="submenu-title" @click.stop="handleSubMenuTitleClick(category.id)">
+                    <div 
+                      class="submenu-title" 
+                      @click.stop="handleSubMenuTitleClick(category.id)"
+                    >
+                      <div class="category-indicator" :class="{'active-indicator': activeCategory === String(category.id)}"></div>
                       <el-icon><FolderOpened /></el-icon>
                       <span>{{ category.name }}</span>
                     </div>
@@ -92,7 +96,11 @@
                   <div v-for="subcategory in category.subcategories" :key="subcategory.id">
                     <el-sub-menu v-if="subcategory.subcategories && subcategory.subcategories.length" :index="String(subcategory.id)">
                       <template #title>
-                        <div class="submenu-title" @click.stop="handleSubMenuTitleClick(subcategory.id)">
+                        <div 
+                          class="submenu-title" 
+                          @click.stop="handleSubMenuTitleClick(subcategory.id)"
+                        >
+                          <div class="category-indicator" :class="{'active-indicator': activeCategory === String(subcategory.id)}"></div>
                           <el-icon><Folder /></el-icon>
                           <span>{{ subcategory.name }}</span>
                         </div>
@@ -103,12 +111,14 @@
                         :key="thirdCategory.id" 
                         :index="String(thirdCategory.id)"
                       >
+                        <div class="category-indicator" :class="{'active-indicator': activeCategory === String(thirdCategory.id)}"></div>
                         <el-icon><Document /></el-icon>
                         <span>{{ thirdCategory.name }}</span>
                       </el-menu-item>
                     </el-sub-menu>
                     
                     <el-menu-item v-else :index="String(subcategory.id)">
+                      <div class="category-indicator" :class="{'active-indicator': activeCategory === String(subcategory.id)}"></div>
                       <el-icon><Document /></el-icon>
                       <span>{{ subcategory.name }}</span>
                     </el-menu-item>
@@ -116,6 +126,7 @@
                 </el-sub-menu>
                 
                 <el-menu-item v-else :index="String(category.id)">
+                  <div class="category-indicator" :class="{'active-indicator': activeCategory === String(category.id)}"></div>
                   <el-icon><Document /></el-icon>
                   <span>{{ category.name }}</span>
                 </el-menu-item>
@@ -1821,6 +1832,17 @@ const handleSubMenuTitleClick = (categoryId: number | string) => {
   const categoryIdStr = String(categoryId);
   // 设置活动分类
   activeCategory.value = categoryIdStr;
+  
+  // 确保El-Menu的活动项状态与我们的activeCategory一致
+  nextTick(() => {
+    // 使用DOM操作手动添加活动类标记
+    document.querySelectorAll('.el-sub-menu').forEach(el => {
+      if (el.getAttribute('index') === categoryIdStr) {
+        el.classList.add('is-active');
+      }
+    });
+  });
+  
   // 获取分类职业数据
   fetchCategoryCareers(categoryIdStr);
 }
@@ -1847,7 +1869,42 @@ const handleSubMenuTitleClick = (categoryId: number | string) => {
   border-right: none;
 }
 
-/* 添加子菜单标题样式 */
+/* 增强分类菜单中选中项的样式 */
+:deep(.el-menu-item.is-active) {
+  background-color: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-weight: bold;
+  border-left: 3px solid var(--el-color-primary);
+  transition: all 0.3s ease;
+}
+
+/* 添加hover效果 */
+:deep(.el-menu-item:hover) {
+  background-color: var(--el-color-primary-light-8);
+  transition: all 0.3s ease;
+}
+
+/* 当子菜单展开并且是活动状态时增加视觉效果 */
+:deep(.el-sub-menu.is-active > .el-sub-menu__title) {
+  color: var(--el-color-primary);
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+/* 为选中状态的子菜单添加左边框标识 */
+:deep(.el-sub-menu.is-opened.is-active > .el-sub-menu__title) {
+  border-left: 3px solid var(--el-color-primary);
+  background-color: var(--el-color-primary-light-9);
+  transition: all 0.3s ease;
+}
+
+/* 子菜单展开后增加一些间距和背景色区分 */
+:deep(.el-menu--inline) {
+  background-color: var(--el-color-info-light-9);
+  margin-left: 8px;
+  border-radius: 4px;
+}
+
 :deep(.submenu-title) {
   display: flex;
   align-items: center;
@@ -2150,5 +2207,20 @@ const handleSubMenuTitleClick = (categoryId: number | string) => {
 .career-item {
   padding: 14px;
   margin-bottom: 10px;
+}
+
+/* 添加选中指示器样式 */
+.category-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background-color: transparent;
+  transition: all 0.3s ease;
+}
+
+.active-indicator {
+  background-color: var(--el-color-primary);
+  box-shadow: 0 0 4px var(--el-color-primary);
 }
 </style> 

@@ -2240,41 +2240,39 @@ const handleSubMenuTitleClick = (categoryId: number | string) => {
 }
 
 :deep(.el-sub-menu.is-opened::before) {
-  content: '';
-  position: absolute;
-  left: 18px; /* 调整连接线的位置，与图标对齐 */
-  top: 40px;
-  bottom: 14px;
-  width: 2px;
-  background-color: var(--el-color-primary-light-7);
-  z-index: 1;
+  display: none;
 }
 
-/* 二级和三级菜单项的连接线 */
 :deep(.el-menu--inline .el-menu-item::before) {
-  content: '';
-  position: absolute;
-  left: -12px; /* 调整水平连接线位置 */
-  top: 50%;
-  width: 12px;
-  height: 2px;
-  background-color: var(--el-color-primary-light-7);
+  display: none;
 }
 
-/* 统一选中样式 */
+:deep(.el-menu-item.is-active::after), 
+:deep(.el-sub-menu.is-active > .el-sub-menu__title::after) {
+  display: none;
+}
+
+/* 重置菜单项的样式为默认样式 */
 :deep(.el-menu-item.is-active) {
-  background-color: var(--el-color-primary-light-8) !important;
-  color: var(--el-color-primary) !important;
+  background-color: transparent;
+  color: var(--el-color-primary);
   font-weight: bold;
-  border-left: 3px solid var(--el-color-primary);
+  border-left: none;
 }
 
 :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
-  color: var(--el-color-primary) !important;
+  background-color: transparent;
+  color: var(--el-color-primary);
   font-weight: bold;
+  border-left: none;
 }
 
-/* 改进圆点选中指示器 */
+:deep(.el-sub-menu.is-opened.is-active > .el-sub-menu__title) {
+  background-color: transparent;
+  border-left: none;
+}
+
+/* 蓝色点样式优化 */
 .category-indicator {
   width: 8px;
   height: 8px;
@@ -2289,55 +2287,88 @@ const handleSubMenuTitleClick = (categoryId: number | string) => {
   box-shadow: 0 0 4px var(--el-color-primary);
 }
 
-/* 添加悬停效果 */
-:deep(.el-menu-item:hover) {
-  background-color: var(--el-color-primary-light-9) !important;
+/* 子菜单样式简化 */
+:deep(.el-menu--inline) {
+  background-color: #f5f7fa;  /* 灰色背景 */
+  margin-left: 20px;
+  padding-left: 0;
+  border-radius: 4px;
 }
 
-:deep(.el-sub-menu__title:hover) {
-  background-color: var(--el-color-primary-light-9) !important;
-}
-
-/* 统一菜单项的布局和对齐 */
+/* 基本菜单项布局 */
 :deep(.el-menu-item), :deep(.el-sub-menu__title) {
   display: flex;
   align-items: center;
   height: 40px;
   line-height: 40px;
-  padding-left: 20px !important;
-  transition: all 0.3s ease;
+  transition: all 0.3s ease;  /* 加长过渡时间使动画更丝滑 */
 }
 
-/* 统一菜单图标大小和位置 */
+/* 基本图标样式 */
 :deep(.el-icon) {
   margin-right: 6px;
   font-size: 16px;
-  width: 24px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
-/* 选中项的左侧蓝色标识 */
-:deep(.el-menu-item.is-active::after), 
-:deep(.el-sub-menu.is-active > .el-sub-menu__title::after) {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 4px;
-  background-color: var(--el-color-primary);
+/* 菜单悬停效果 */
+:deep(.el-menu-item:hover), :deep(.el-sub-menu__title:hover) {
+  background-color: var(--el-color-primary-light-9);
 }
 
-/* 确保菜单项有足够的内边距，让左侧指示器显示 */
+/* 保持菜单风格一致 */
 :deep(.category-menu) {
   border-right: none;
-  padding: 4px;
 }
 
-/* 增强选中子菜单的视觉效果 */
-:deep(.el-sub-menu.is-active.is-opened > .el-sub-menu__title) {
+/* 一级菜单展开时的背景 */
+:deep(.el-sub-menu.is-opened > .el-sub-menu__title) {
+  transition: all 0.3s ease;
+}
+
+/* 菜单展开/折叠的丝滑过渡 */
+:deep(.el-menu-item), 
+:deep(.el-sub-menu__title), 
+:deep(.el-sub-menu__icon-arrow) {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 选中状态的文本过渡效果 */
+:deep(.el-menu-item.is-active), 
+:deep(.el-sub-menu.is-active > .el-sub-menu__title) {
+  color: var(--el-color-primary);
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+/* 子菜单展开箭头动画 */
+:deep(.el-sub-menu.is-opened > .el-sub-menu__title .el-sub-menu__icon-arrow) {
+  transform: rotateZ(180deg);
+}
+
+/* 一级菜单展开时的背景效果 */
+:deep(.el-sub-menu.is-opened:not(.is-nested)) {
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+/* 选中的子菜单项背景 */
+:deep(.el-menu--inline .el-menu-item.is-active) {
   background-color: var(--el-color-primary-light-9);
+}
+
+/* 蓝色点样式增强 */
+.category-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background-color: transparent;
+  transition: all 0.3s ease;
+}
+
+.active-indicator {
+  background-color: var(--el-color-primary);
+  box-shadow: 0 0 6px var(--el-color-primary);
 }
 </style> 

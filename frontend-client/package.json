@@ -8,7 +8,8 @@
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint --ext .js,.vue,.ts src/",
-    "lint:fix": "eslint --ext .js,.vue,.ts src/ --fix"
+    "lint:fix": "eslint --ext .js,.vue,.ts src/ --fix",
+    "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
     "@element-plus/icons-vue": "2.3.1",

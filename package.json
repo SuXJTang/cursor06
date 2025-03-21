@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "scripts": {
     "lint": "cd frontend-client && pnpm lint",
-    "type-check": "cd frontend-client && pnpm vue-tsc -b",
+    "type-check": "cd frontend-client && pnpm vue-tsc --noEmit",
     "test:unit": "echo \"No tests configured\" && exit 0",
     "build": "cd frontend-client && pnpm build"
   }

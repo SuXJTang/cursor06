@@ -33,7 +33,14 @@
 
     <!-- 职业列表 -->
     <el-row v-else :gutter="20" class="career-list-row">
-      <el-col v-for="career in favoriteCareers" :key="career.id" :xs="24" :sm="12" :md="8" :lg="6">
+      <el-col 
+        v-for="career in favoriteCareers" 
+        :key="career.id" 
+        :xs="24" 
+        :sm="12" 
+        :md="8" 
+        :lg="6"
+      >
         <el-card class="career-card" shadow="hover">
           <template #header>
             <div class="career-card-header">

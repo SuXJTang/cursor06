@@ -87,7 +87,7 @@
                       class="submenu-title" 
                       @click.stop="handleSubMenuTitleClick(category.id)"
                     >
-                      <div class="category-indicator" :class="{'active-indicator': activeCategory === String(category.id)}"></div>
+                      <div class="category-indicator" :class="{'active-indicator': activeCategory === String(category.id)}" />
                       <el-icon><FolderOpened /></el-icon>
                       <span>{{ category.name }}</span>
                     </div>
@@ -100,7 +100,7 @@
                           class="submenu-title" 
                           @click.stop="handleSubMenuTitleClick(subcategory.id)"
                         >
-                          <div class="category-indicator" :class="{'active-indicator': activeCategory === String(subcategory.id)}"></div>
+                          <div class="category-indicator" :class="{'active-indicator': activeCategory === String(subcategory.id)}" />
                           <el-icon><Folder /></el-icon>
                           <span>{{ subcategory.name }}</span>
                         </div>
@@ -111,14 +111,14 @@
                         :key="thirdCategory.id" 
                         :index="String(thirdCategory.id)"
                       >
-                        <div class="category-indicator" :class="{'active-indicator': activeCategory === String(thirdCategory.id)}"></div>
+                        <div class="category-indicator" :class="{'active-indicator': activeCategory === String(thirdCategory.id)}" />
                         <el-icon><Document /></el-icon>
                         <span>{{ thirdCategory.name }}</span>
                       </el-menu-item>
                     </el-sub-menu>
                     
                     <el-menu-item v-else :index="String(subcategory.id)">
-                      <div class="category-indicator" :class="{'active-indicator': activeCategory === String(subcategory.id)}"></div>
+                      <div class="category-indicator" :class="{'active-indicator': activeCategory === String(subcategory.id)}" />
                       <el-icon><Document /></el-icon>
                       <span>{{ subcategory.name }}</span>
                     </el-menu-item>
@@ -126,7 +126,7 @@
                 </el-sub-menu>
                 
                 <el-menu-item v-else :index="String(category.id)">
-                  <div class="category-indicator" :class="{'active-indicator': activeCategory === String(category.id)}"></div>
+                  <div class="category-indicator" :class="{'active-indicator': activeCategory === String(category.id)}" />
                   <el-icon><Document /></el-icon>
                   <span>{{ category.name }}</span>
                 </el-menu-item>

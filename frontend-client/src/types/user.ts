@@ -88,4 +88,22 @@ export interface UserState {
   token: string
   userInfo: UserInfo | null
   permissions: string[]
+}
+
+// 反馈类型
+export interface FeedbackData {
+  satisfaction: number
+  feedbackType: string
+  content: string
+  contactInfo?: string
+  careerId?: string
+  assessmentId?: string
+  submissionDate?: string
+}
+
+// 反馈提交响应
+export interface FeedbackResult {
+  id: number
+  points: number
+  message: string
 } 

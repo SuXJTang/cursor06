@@ -15,6 +15,7 @@ import CareerHeat from '@/views/CareerHeat.vue'
 import CareerRecommend from '@/views/CareerRecommend.vue'
 import FavoriteCareers from '@/views/FavoriteCareers.vue'
 import Result from '@/views/Result.vue'
+import Feedback from '@/views/Feedback.vue'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -120,6 +121,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/result',
     name: 'result',
     component: Result,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/feedback',
+    name: 'feedback',
+    component: Feedback,
     meta: { requiresAuth: true }
   },
   {

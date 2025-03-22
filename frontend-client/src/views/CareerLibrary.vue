@@ -51,7 +51,7 @@
       <div class="debug-actions">
         <el-button type="primary" size="small" @click="debugForceRender">强制渲染</el-button>
         <el-button type="success" size="small" @click="refreshData">刷新数据</el-button>
-        <el-button type="warning" size="small" @click="clearCache">清除缓存</el-button>
+        <el-button type="warning" size="small" @click="debugClearCache">清除缓存</el-button>
       </div>
     </div>
     
@@ -461,6 +461,9 @@ const fetchCategories = async () => {
       }
     });
     
+    // 更新调试面板中的原始数据
+    rawApiData.value = JSON.stringify(response, null, 2);
+    
     // 处理响应数据
     if (response && Array.isArray(response)) {
       // 检查并处理分类数据
@@ -535,12 +538,37 @@ const fetchCategories = async () => {
         }
       }
       
-      categories.value = response;
-      console.log('最终分类数据:', response);
+      console.log('API原始响应数据:', response);
       
-      if (response.length > 0) {
+      // 标准化分类数据结构，处理可能的字段不一致问题
+      const normalizedCategories = response.map(category => normalizeCategory(category));
+      categories.value = normalizedCategories;
+      
+      console.log('标准化后的分类数据:', normalizedCategories);
+      console.log('一级分类数量:', normalizedCategories.length);
+      
+      // 输出子分类和三级分类的数量，用于调试
+      let level2Count = 0;
+      let level3Count = 0;
+      
+      normalizedCategories.forEach(category => {
+        if (category.subcategories && Array.isArray(category.subcategories)) {
+          level2Count += category.subcategories.length;
+          
+          category.subcategories.forEach(subcat => {
+            if (subcat.subcategories && Array.isArray(subcat.subcategories)) {
+              level3Count += subcat.subcategories.length;
+            }
+          });
+        }
+      });
+      
+      console.log('二级分类数量:', level2Count);
+      console.log('三级分类数量:', level3Count);
+      
+      if (normalizedCategories.length > 0) {
         // 默认选择第一个分类
-        activeCategory.value = String(response[0].id);
+        activeCategory.value = String(normalizedCategories[0].id);
         // 获取第一个分类的职业数据
         fetchCareers(activeCategory.value);
       }
@@ -567,6 +595,264 @@ const fetchCategories = async () => {
     }
   }
 }
+
+// 标准化分类数据结构，处理可能的字段不一致问题
+const normalizeCategory = (category: any): CategoryResponse => {
+  return {
+    id: category.id,
+    name: category.name,
+    parent_id: category.parent_id,
+    level: category.level,
+    description: category.description,
+    // 递归处理子分类
+    subcategories: Array.isArray(category.subcategories) 
+      ? category.subcategories.map(sub => normalizeCategory(sub))
+      : Array.isArray(category.children) // 处理可能后端返回children而不是subcategories的情况
+        ? category.children.map(sub => normalizeCategory(sub))
+        : []
+  };
+}
+
+// 调试: 显示原始API响应，帮助排查子分类问题
+const debugShowApiResponse = () => {
+  console.log('---API原始响应数据结构---');
+  console.log(JSON.stringify(categories.value, null, 2));
+
+  // 检查分类结构
+  categories.value.forEach((category, index) => {
+    console.log(`分类${index+1}: ${category.name} (ID:${category.id})`);
+    console.log('  subcategories属性:', category.subcategories);
+    console.log('  children属性:', category.children);
+    
+    // 检查子分类格式
+    if (category.subcategories && category.subcategories.length) {
+      console.log(`  有 ${category.subcategories.length} 个子分类`);
+      category.subcategories.forEach((sub, subIndex) => {
+        console.log(`    子分类${subIndex+1}: ${sub.name} (ID:${sub.id})`);
+        if (sub.subcategories && sub.subcategories.length) {
+          console.log(`      有 ${sub.subcategories.length} 个三级分类`);
+        }
+      });
+    } else if (category.children && category.children.length) {
+      console.log(`  有 ${category.children.length} 个子分类(children属性)`);
+    } else {
+      console.log('  没有子分类');
+    }
+  });
+
+  // 如果有数据但没有正确显示，尝试修复
+  if (categories.value.length > 0) {
+    // 检查是否由于字段名称不匹配导致的问题
+    let hasChildrenField = false;
+    let hasSubcategoriesField = false;
+    
+    categories.value.forEach(cat => {
+      if (cat.children) hasChildrenField = true;
+      if (cat.subcategories) hasSubcategoriesField = true;
+    });
+    
+    if (hasChildrenField && !hasSubcategoriesField) {
+      // 如果API返回的是children而不是subcategories，进行修复
+      ElMessage.warning('发现API使用children字段而不是subcategories字段，尝试修复显示问题');
+      fixCategoryStructure();
+    }
+  }
+};
+
+// 修复分类结构
+const fixCategoryStructure = () => {
+  console.log('开始修复分类结构...');
+
+  // 检查每个分类的结构，确保使用标准格式
+  categories.value = categories.value.map(category => {
+    // 处理一级分类
+    const normalized = {
+      ...category,
+      // 确保一级分类有subcategories字段
+      subcategories: category.subcategories || category.children || []
+    };
+    
+    // 处理二级分类
+    if (normalized.subcategories && normalized.subcategories.length > 0) {
+      normalized.subcategories = normalized.subcategories.map(subcat => {
+        return {
+          ...subcat,
+          // 确保二级分类有subcategories字段
+          subcategories: subcat.subcategories || subcat.children || []
+        };
+      });
+    }
+    
+    return normalized;
+  });
+  
+  // 检查三级分类的父子关系
+  console.log('修复后的分类结构:', categories.value);
+  
+  // 收集统计数据
+  let level1Count = categories.value.length;
+  let level2Count = 0;
+  let level3Count = 0;
+  let level2WithChildrenCount = 0;
+  
+  categories.value.forEach(cat => {
+    if (cat.subcategories) {
+      level2Count += cat.subcategories.length;
+      
+      cat.subcategories.forEach(subcat => {
+        if (subcat.subcategories && subcat.subcategories.length > 0) {
+          level2WithChildrenCount++;
+          level3Count += subcat.subcategories.length;
+        }
+      });
+    }
+  });
+  
+  console.log(`分类统计: 一级(${level1Count}), 二级(${level2Count}), 三级(${level3Count})`);
+  console.log(`有子分类的二级分类数: ${level2WithChildrenCount}/${level2Count}`);
+  
+  ElMessage.success(`分类结构已修复: 一级(${level1Count}), 二级(${level2Count}), 三级(${level3Count})`);
+};
+
+// 添加更详细的调试方法
+const debugMissingSubcategories = () => {
+  console.log('开始分析三级分类数据...');
+  
+  // 查找数据库中的总分类数
+  const dbCategoryCounts = {
+    level1: 9,   // 来自Python后端日志的数据
+    level2: 27,  // 来自Python后端日志的数据
+    level3: 84   // 来自Python后端日志的数据
+  };
+  
+  // 统计前端分类数
+  let frontendCounts = {
+    level1: 0,
+    level2: 0,
+    level3: 0
+  };
+  
+  // 分类ID记录，用于检查重复和缺失
+  const categoryIds = {
+    level1: new Set(),
+    level2: new Set(),
+    level3: new Set()
+  };
+  
+  // 详细分析分类树
+  if (categories.value) {
+    frontendCounts.level1 = categories.value.length;
+    
+    categories.value.forEach((l1, i1) => {
+      categoryIds.level1.add(l1.id);
+      console.log(`L1[${i1}]: ID=${l1.id}, 名称=${l1.name}`);
+      
+      if (l1.subcategories && Array.isArray(l1.subcategories)) {
+        frontendCounts.level2 += l1.subcategories.length;
+        
+        l1.subcategories.forEach((l2, i2) => {
+          categoryIds.level2.add(l2.id);
+          console.log(`  L2[${i1}-${i2}]: ID=${l2.id}, 名称=${l2.name}, 父ID=${l2.parent_id}`);
+          
+          // 验证父子关系
+          if (l2.parent_id !== l1.id) {
+            console.warn(`  ⚠️ 父子关系不匹配: L2分类(${l2.id})的父ID=${l2.parent_id}, 但当前父分类ID=${l1.id}`);
+          }
+          
+          if (l2.subcategories && Array.isArray(l2.subcategories)) {
+            frontendCounts.level3 += l2.subcategories.length;
+            
+            l2.subcategories.forEach((l3, i3) => {
+              categoryIds.level3.add(l3.id);
+              console.log(`    L3[${i1}-${i2}-${i3}]: ID=${l3.id}, 名称=${l3.name}, 父ID=${l3.parent_id}`);
+              
+              // 验证父子关系
+              if (l3.parent_id !== l2.id) {
+                console.warn(`    ⚠️ 父子关系不匹配: L3分类(${l3.id})的父ID=${l3.parent_id}, 但当前父分类ID=${l2.id}`);
+              }
+            });
+          } else {
+            console.log(`    L2分类(${l2.id})没有三级子分类`);
+          }
+        });
+      } else {
+        console.log(`  L1分类(${l1.id})没有二级子分类`);
+      }
+    });
+  }
+  
+  // 显示结果
+  console.log('分类数量比较:');
+  console.log(`一级分类: 前端(${frontendCounts.level1}) vs 数据库(${dbCategoryCounts.level1})`);
+  console.log(`二级分类: 前端(${frontendCounts.level2}) vs 数据库(${dbCategoryCounts.level2})`);
+  console.log(`三级分类: 前端(${frontendCounts.level3}) vs 数据库(${dbCategoryCounts.level3})`);
+  
+  if (frontendCounts.level3 < dbCategoryCounts.level3) {
+    ElMessage.warning(`存在${dbCategoryCounts.level3 - frontendCounts.level3}个三级分类未显示，请查看控制台获取详细信息`);
+  }
+  
+  return {
+    dbCounts: dbCategoryCounts,
+    frontendCounts: frontendCounts,
+    categoryIds: categoryIds
+  };
+};
+
+// 更新调试面板功能
+const debugForceRender = () => {
+  console.log('强制渲染分类', categories.value);
+  ElMessage.info(`检测到 ${categories.value.length} 个一级分类`);
+  
+  // 添加API响应调试
+  debugShowApiResponse();
+  
+  // 分析缺失的三级分类
+  const analysis = debugMissingSubcategories();
+  
+  // 计算各层级分类数量
+  let level2Count = 0;
+  let level3Count = 0;
+  
+  categories.value.forEach(category => {
+    if (category.subcategories && Array.isArray(category.subcategories)) {
+      level2Count += category.subcategories.length;
+      
+      category.subcategories.forEach(subcat => {
+        if (subcat.subcategories && Array.isArray(subcat.subcategories)) {
+          level3Count += subcat.subcategories.length;
+        }
+      });
+    }
+  });
+  
+  ElMessage.info(`二级分类: ${level2Count}, 三级分类: ${level3Count}`);
+  
+  // 如果三级分类数量少于数据库记录，显示强调信息
+  if (level3Count < analysis.dbCounts.level3) {
+    ElMessage.warning('检测到三级分类数据不完整，尝试修复中...');
+    // 尝试修复问题
+    fixCategoryStructure();
+  }
+};
+
+// 重命名为debugClearCache，避免命名冲突
+const debugClearCache = () => {
+  // 清除分类和职业相关的本地缓存
+  const keys = Object.keys(localStorage);
+  let clearedCount = 0;
+  
+  keys.forEach(key => {
+    if (key.startsWith('careers_') || key.startsWith('categories_')) {
+      localStorage.removeItem(key);
+      clearedCount++;
+    }
+  });
+  
+  ElMessage.success(`已清除${clearedCount}个缓存项`);
+  
+  // 重新加载分类数据
+  fetchCategories();
+};
 
 // 获取特定分类的职业数据
 const careers = ref<Career[]>([]);
@@ -1584,143 +1870,156 @@ const fetchCategoryCareers = async (categoryId: string) => {
       return;
     }
     
+    // 确定分类级别，收集所有需要查询的分类ID
+    let allCategoryIds = [categoryId];
+    let categoryLevel = 0;
+    let hasSubcategories = false;
+    
+    // 遍历查找该分类及其子分类
+    categories.value.forEach(cat => {
+      // 如果是一级分类
+      if (cat.id === parseInt(categoryId)) {
+        categoryLevel = 1;
+        console.log(`选中的是一级分类: ${cat.name}, ID: ${cat.id}`);
+        
+        // 收集所有二级分类ID
+        if (cat.subcategories && cat.subcategories.length > 0) {
+          hasSubcategories = true;
+          cat.subcategories.forEach(subcat => {
+            allCategoryIds.push(String(subcat.id));
+            
+            // 收集所有三级分类ID
+            if (subcat.subcategories && subcat.subcategories.length > 0) {
+              subcat.subcategories.forEach(thirdcat => {
+                allCategoryIds.push(String(thirdcat.id));
+              });
+            }
+          });
+        }
+      } else if (cat.subcategories) {
+        // 检查是否是二级分类
+        cat.subcategories.forEach(subcat => {
+          if (subcat.id === parseInt(categoryId)) {
+            categoryLevel = 2;
+            console.log(`选中的是二级分类: ${subcat.name}, ID: ${subcat.id}, 父分类: ${cat.name}`);
+            
+            // 收集所有三级分类ID
+            if (subcat.subcategories && subcat.subcategories.length > 0) {
+              hasSubcategories = true;
+              subcat.subcategories.forEach(thirdcat => {
+                allCategoryIds.push(String(thirdcat.id));
+              });
+            }
+          }
+        });
+      }
+    });
+    
+    console.log(`分类级别: ${categoryLevel}, 包含子分类: ${hasSubcategories}`);
+    console.log('需要查询的所有分类ID:', allCategoryIds);
+    
     // 显示请求前状态
     console.log('当前分类ID:', categoryId);
     console.log('发送请求前careers.length =', careers.value.length);
     
-    try {
-      // 使用新的API端点获取分类及其子分类的所有职业
-      console.log(`正在请求API：/api/v1/career-categories/${categoryId}/careers`);
-      
-      // 记录请求开始时间
-      const requestStartTime = Date.now();
-      
-      const response = await request<any>({
-        url: `/api/v1/career-categories/${categoryId}/careers`,
-        method: 'GET',
-        params: {
-          limit: 100,
-          include_subcategories: true // 确保包含子分类的职业
-        },
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        timeout: 15000
-      });
-      
-      // 计算请求耗时
-      const requestTime = Date.now() - requestStartTime;
-      console.log(`API请求完成，耗时: ${requestTime}ms`);
-      
-      // 保存原始响应到调试面板
-      console.log('API响应数据:', response);
-      rawApiData.value = JSON.stringify(response, null, 2);
-      
-      // 使用更安全的方式提取数据，确保处理各种可能的响应格式
-      let careerItems: any[] = [];
-      let responseData: any = response;
-      
-      // 如果是标准Axios响应，先获取data属性
-      if (responseData && responseData.data !== undefined) {
-        responseData = responseData.data;
-      }
-      
-      // 解析不同格式的响应
-      if (Array.isArray(responseData)) {
-        // 直接是数组
-        careerItems = responseData;
-        console.log('响应直接是职业数组，长度:', careerItems.length);
-      } else if (responseData && typeof responseData === 'object') {
-        // 对象格式，检查不同可能的数据字段
-        if (responseData.careers && Array.isArray(responseData.careers)) {
-          careerItems = responseData.careers;
-          console.log('职业数据在careers字段中，长度:', careerItems.length);
-        } else if (responseData.data && Array.isArray(responseData.data)) {
-          careerItems = responseData.data;
-          console.log('职业数据在data字段中，长度:', careerItems.length);
-        } else if (responseData.items && Array.isArray(responseData.items)) {
-          careerItems = responseData.items;
-          console.log('职业数据在items字段中，长度:', careerItems.length);
-        } else if (responseData.results && Array.isArray(responseData.results)) {
-          careerItems = responseData.results;
-          console.log('职业数据在results字段中，长度:', careerItems.length);
-        } else {
-          // 尝试查找任何数组属性
-          for (const key in responseData) {
-            if (Array.isArray(responseData[key]) && responseData[key].length > 0) {
-              console.log(`发现数组属性 ${key}，长度:`, responseData[key].length);
-              // 检查第一个元素是否看起来像职业数据
-              const firstItem = responseData[key][0];
-              if (firstItem && (firstItem.id || firstItem.title || firstItem.name)) {
-                careerItems = responseData[key];
-                console.log(`使用 ${key} 字段作为职业数据源，长度:`, careerItems.length);
-                break;
-              }
-            }
-          }
-        }
-      }
-      
-      if (careerItems.length > 0) {
-        console.log(`成功获取 ${careerItems.length} 条职业数据，第一项:`, careerItems[0]);
+    // 所有分类的职业数据
+    let allCareers: any[] = [];
+    
+    // 对每个分类ID进行查询
+    for (const catId of allCategoryIds) {
+      try {
+        // 使用API端点获取分类的职业
+        console.log(`正在请求API：/api/v1/career-categories/${catId}/careers`);
         
-        // 转换职业数据格式
-        careers.value = careerItems.map(item => processCareerItem(item, categoryId));
-        console.log('处理后的职业数据长度:', careers.value.length);
+        // 记录请求开始时间
+        const requestStartTime = Date.now();
         
-        // 缓存获取到的数据
-        saveToCache(categoryId, careers.value);
-        
-        // 确保选中第一个职业
-        nextTick(() => {
-          if (careers.value.length > 0) {
-            selectedCareer.value = { ...careers.value[0] };
-            console.log('自动选择第一个职业:', selectedCareer.value.name);
-          }
+        const response = await request<any>({
+          url: `/api/v1/career-categories/${catId}/careers`,
+          method: 'GET',
+          params: {
+            limit: 100,
+            include_subcategories: true // 确保包含子分类的职业
+          },
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          timeout: 15000
         });
         
-        ElMessage.success(`获取到${careers.value.length}个职业数据`);
+        // 计算请求耗时
+        const requestTime = Date.now() - requestStartTime;
+        console.log(`分类ID ${catId} 的API请求完成，耗时: ${requestTime}ms`);
         
-        // 在获取职业完成后，确保刷新收藏状态
-        if (authStore.isAuthenticated) {
-          await fetchFavoriteCareersIds();
+        // 提取职业数据
+        let careerItems: any[] = [];
+        let responseData: any = response;
+        
+        // 如果是标准Axios响应，先获取data属性
+        if (responseData && responseData.data !== undefined) {
+          responseData = responseData.data;
         }
         
-        return;
-      } else {
-        console.warn('API响应成功但未找到职业数据，尝试回退到旧方法');
-        ElMessage.warning('未找到相关职业数据，正在尝试其他获取方式...');
+        // 解析不同格式的响应
+        if (Array.isArray(responseData)) {
+          careerItems = responseData;
+        } else if (responseData && typeof responseData === 'object') {
+          if (responseData.careers && Array.isArray(responseData.careers)) {
+            careerItems = responseData.careers;
+          } else if (responseData.data && Array.isArray(responseData.data)) {
+            careerItems = responseData.data;
+          } else if (responseData.items && Array.isArray(responseData.items)) {
+            careerItems = responseData.items;
+          } else if (responseData.results && Array.isArray(responseData.results)) {
+            careerItems = responseData.results;
+          }
+        }
+        
+        console.log(`分类ID ${catId} 获取到 ${careerItems.length} 条职业数据`);
+        allCareers = [...allCareers, ...careerItems];
+      } catch (error) {
+        console.error(`获取分类ID ${catId} 的职业数据失败:`, error);
       }
-    } catch (apiError) {
-      console.error('新API请求失败:', apiError);
-      ElMessage.error('新接口请求失败，正在尝试备用方法...');
     }
     
-    // 如果新API失败，回退到旧方法
-    console.log('回退到原有fetchCareers方法获取数据');
-    await fetchCareers(categoryId);
+    console.log(`所有分类共获取到 ${allCareers.length} 条职业数据`);
     
-  } catch (error) {
-    console.error('获取分类职业数据失败:', error);
-    ElMessage.error('获取数据失败，请稍后重试');
-    errorMessage.value = '获取职业数据失败，请稍后重试';
+    // 去重：可能有些职业会出现在多个分类中
+    const uniqueCareers = allCareers.filter((career, index, self) => 
+      index === self.findIndex(c => c.id === career.id)
+    );
     
-    // 尝试从缓存加载数据
-    const cachedData = getFromCache(categoryId, false);
-    if (cachedData && cachedData.data.length > 0) {
-      console.log('从缓存加载数据:', cachedData.data.length);
-      careers.value = cachedData.data;
-      
-      if (careers.value.length > 0) {
-        selectedCareer.value = { ...careers.value[0] };
-      }
-      
-      ElMessage.info('已加载缓存数据');
+    console.log(`去重后剩余 ${uniqueCareers.length} 条职业数据`);
+    
+    // 转换职业数据格式
+    const parsedCareers = uniqueCareers.map(item => {
+      return processCareerItem(item, categoryId);
+    });
+    
+    // 更新职业数据
+    careers.value = parsedCareers;
+    console.log(`成功解析 ${careers.value.length} 条职业数据`);
+    
+    // 保存到缓存
+    saveToCache(categoryId, careers.value);
+    
+    // 如果有职业数据，选择第一个
+    if (careers.value.length > 0 && !selectedCareer.value) {
+      selectCareer(careers.value[0]);
     }
+    
+    // 如果职业数量很少并且是二级分类，显示警告
+    if (parsedCareers.length < 3 && (categoryLevel === 2 || hasSubcategories)) {
+      ElMessage.warning(`仅找到 ${parsedCareers.length} 条职业数据，可能数据不完整`);
+    }
+  } catch (e) {
+    console.error('获取职业数据失败:', e);
+    errorMessage.value = `获取职业数据失败: ${e.message || '未知错误'}`;
+    ElMessage.error(errorMessage.value);
   } finally {
     isLoading.value = false;
   }
-}
+};
 
 // 选择职业
 const selectCareer = (career: Career) => {
@@ -1944,22 +2243,7 @@ const handleGoToCategory = () => {
   }
 }
 
-// 新增：强制渲染函数，优化逻辑
-const debugForceRender = () => {
-  ElMessage.info('正在强制重新渲染组件...');
-  // 使用nextTick强制更新组件
-  nextTick(() => {
-    // 临时更改categories触发视图更新
-    const tempCategories = [...categories.value];
-    categories.value = [];
-    setTimeout(() => {
-      categories.value = tempCategories;
-      ElMessage.success('组件已重新渲染');
-    }, 100);
-  });
-};
-
-// 刷新数据
+// 改进：刷新数据函数，确保每次请求发送
 const refreshData = async () => {
   ElMessage.info('正在刷新所有数据...');
   
@@ -2035,26 +2319,38 @@ watch(() => activeCategory.value, (newCategory) => {
 }, { immediate: true });
 
 // 新增函数：处理子菜单标题点击事件
-const handleSubMenuTitleClick = (categoryId: number | string) => {
-  console.log('子菜单标题点击，分类ID:', categoryId);
-  // 转换为字符串
-  const categoryIdStr = String(categoryId);
-  // 设置活动分类
-  activeCategory.value = categoryIdStr;
+const handleSubMenuTitleClick = (categoryId: string) => {
+  console.log('点击子菜单标题，分类ID:', categoryId);
+  activeCategory.value = String(categoryId);
   
-  // 确保El-Menu的活动项状态与我们的activeCategory一致
-  nextTick(() => {
-    // 使用DOM操作手动添加活动类标记
-    document.querySelectorAll('.el-sub-menu').forEach(el => {
-      if (el.getAttribute('index') === categoryIdStr) {
-        el.classList.add('is-active');
+  // 查找当前分类
+  let currentCategory = null;
+  
+  // 先在一级分类中查找
+  for (const cat of categories.value) {
+    if (cat.id === Number(categoryId)) {
+      currentCategory = cat;
+      break;
+    }
+    
+    // 在二级分类中查找
+    if (cat.subcategories) {
+      for (const subcat of cat.subcategories) {
+        if (subcat.id === Number(categoryId)) {
+          currentCategory = subcat;
+          break;
+        }
       }
-    });
-  });
+    }
+    
+    if (currentCategory) break;
+  }
   
-  // 获取分类职业数据
-  fetchCategoryCareers(categoryIdStr);
-}
+  console.log('找到的分类:', currentCategory);
+  
+  // 获取该分类下的职业数据
+  fetchCategoryCareers(categoryId);
+};
 
 // 处理职业选择
 const handleCareerSelect = (career: Career) => {

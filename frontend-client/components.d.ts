@@ -7,6 +7,7 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
+    AssessmentBanner: typeof import('./src/components/common/AssessmentBanner.vue')['default']
     AvatarUpload: typeof import('./src/components/AvatarUpload.vue')['default']
     CategoryGroupedList: typeof import('./src/components/career/CategoryGroupedList.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']

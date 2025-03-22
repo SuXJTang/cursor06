@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { InfoFilled, ArrowLeft, ArrowRight, Star, Cpu, User, DataLine, Timer, Loading, CircleCheckFilled } from '@element-plus/icons-vue'
+import AssessmentBanner from '../components/common/AssessmentBanner.vue'
 
 const router = useRouter()
 
@@ -24,6 +23,9 @@ const steps = [
 
 // 当前步骤
 const activeStep = ref(0)
+
+// 确保分析状态默认为false，显示问题界面
+const isAnalyzing = ref(false)
 
 // 测评问题
 const questions = reactive([
@@ -150,7 +152,6 @@ const questions = reactive([
 const answers = reactive<Record<string, number>>({})
 
 // 分析状态
-const isAnalyzing = ref(false)
 const currentStep = ref(0)
 const analyzeSteps = [
   { title: '数据整理', desc: '正在整理您的测评答案...' },
@@ -165,34 +166,42 @@ const startAnalysis = async () => {
   isAnalyzing.value = true
   currentStep.value = 0
   
-  // 模拟每个步骤的分析过程
-  for (let i = 0; i < analyzeSteps.length; i++) {
-    currentStep.value = i
-    await new Promise(resolve => setTimeout(resolve, 1500)) // 每步等待1.5秒
+  try {
+    // 模拟每个步骤的分析过程
+    for (let i = 0; i < analyzeSteps.length; i++) {
+      currentStep.value = i
+      await new Promise(resolve => setTimeout(resolve, 1500)) // 每步等待1.5秒
+    }
+    
+    // 计算测评结果
+    const result = {
+      summary: {
+        score: calculateOverallScore(),
+        careerDirection: determineCareerDirection(),
+        matchDegree: calculateMatchDegree(),
+        characteristics: analyzeCharacteristics()
+      },
+      dimensions: {
+        interest: analyzeInterest(),
+        ability: analyzeAbility(),
+        personality: analyzePersonality()
+      },
+      careerPath: determineCareerPath()
+    }
+    
+    // 分析完成后重置状态
+    isAnalyzing.value = false
+    
+    // 跳转到报告页面并携带数据
+    router.push({
+      path: '/result',
+      query: { timestamp: Date.now() }, // 防止缓存
+      state: { assessmentResult: result }
+    })
+  } catch (error) {
+    console.error('分析过程出错:', error)
+    isAnalyzing.value = false // 确保发生错误时也重置状态
   }
-  
-  // 计算测评结果
-  const result = {
-    summary: {
-      score: calculateOverallScore(),
-      careerDirection: determineCareerDirection(),
-      matchDegree: calculateMatchDegree(),
-      characteristics: analyzeCharacteristics()
-    },
-    dimensions: {
-      interest: analyzeInterest(),
-      ability: analyzeAbility(),
-      personality: analyzePersonality()
-    },
-    careerPath: determineCareerPath()
-  }
-  
-  // 分析完成，跳转到报告页面并携带数据
-  router.push({
-    path: '/result',
-    query: { timestamp: Date.now() }, // 防止缓存
-    state: { assessmentResult: result }
-  })
 }
 
 // 计算总分
@@ -334,11 +343,6 @@ const prevQuestion = () => {
   }
 }
 
-// 跳转到指定题目
-const goToQuestion = (index: number) => {
-  currentQuestionIndex.value = index
-}
-
 // 获取当前进度
 const getProgress = computed<number>(() => {
   const totalQuestions = questions.reduce((sum, section) => sum + section.items.length, 0)
@@ -414,9 +418,12 @@ const getCurrentTip = () => {
 </script>
 
 <template>
-  <!-- 测评内容 -->
-  <div v-if="!isAnalyzing" class="assessment-container">
-    <div class="assessment-layout">
+  <div class="assessment-container">
+    <!-- 使用Banner组件 -->
+    <AssessmentBanner />
+
+    <!-- 测评内容 -->
+    <div v-if="!isAnalyzing" class="assessment-layout">
       <!-- 左侧说明面板 -->
       <div class="side-panel left-panel">
         <el-card class="panel-card">
@@ -440,7 +447,7 @@ const getCurrentTip = () => {
                 </div>
               </li>
               <li>
-                <el-icon><Cpu /></el-icon>
+                <el-icon><Monitor /></el-icon>
                 <div>
                   <strong>能力测评</strong>
                   <p>评估您在各个领域的专业技能水平</p>
@@ -547,7 +554,7 @@ const getCurrentTip = () => {
         <el-card class="panel-card">
           <template #header>
             <div class="panel-header">
-              <el-icon><DataLine /></el-icon>
+              <el-icon><Histogram /></el-icon>
               <span>答题进度</span>
             </div>
           </template>
@@ -566,7 +573,7 @@ const getCurrentTip = () => {
                 :percentage="getSectionProgress(index)"
                 :color="getSectionColor(index)"
                 :stroke-width="10"
-                :format="(p: number) => `${p}%`"
+                :format="(p) => `${p}%`"
               />
             </div>
             <div class="time-estimate">
@@ -577,94 +584,94 @@ const getCurrentTip = () => {
         </el-card>
       </div>
     </div>
-  </div>
 
-  <!-- 分析动画 -->
-  <div v-else class="analysis-container">
-    <div class="cyber-grid" />
-    <div class="analysis-content">
-      <div class="tech-circle">
-        <div class="circle-outer" />
-        <div class="circle-inner">
-          <div class="progress-ring">
-            <svg class="progress-ring__circle" viewBox="0 0 100 100">
-              <defs>
-                <linearGradient
-                  id="gradient"
-                  x1="0%"
-                  y1="0%"
-                  x2="100%"
-                  y2="0%"
-                >
-                  <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
-                  <stop offset="100%" style="stop-color:#2196F3;stop-opacity:1" />
-                </linearGradient>
-              </defs>
-              <circle
-                class="progress-ring__background"
-                cx="50"
-                cy="50"
-                r="45"
-              />
-              <circle
-                class="progress-ring__progress"
-                cx="50"
-                cy="50"
-                r="45"
-              />
-            </svg>
-            <div class="progress-ring__icon">
-              <el-icon v-if="currentStep < analyzeSteps.length" class="rotating">
-                <Loading />
-              </el-icon>
-              <el-icon v-else class="success-icon">
-                <CircleCheckFilled />
-              </el-icon>
+    <!-- 分析动画 -->
+    <div v-else class="analysis-container">
+      <div class="cyber-grid" />
+      <div class="analysis-content">
+        <div class="tech-circle">
+          <div class="circle-outer" />
+          <div class="circle-inner">
+            <div class="progress-ring">
+              <svg class="progress-ring__circle" viewBox="0 0 100 100">
+                <defs>
+                  <linearGradient
+                    id="gradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="0%"
+                  >
+                    <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#2196F3;stop-opacity:1" />
+                  </linearGradient>
+                </defs>
+                <circle
+                  class="progress-ring__background"
+                  cx="50"
+                  cy="50"
+                  r="45"
+                />
+                <circle
+                  class="progress-ring__progress"
+                  cx="50"
+                  cy="50"
+                  r="45"
+                />
+              </svg>
+              <div class="progress-ring__icon">
+                <el-icon v-if="currentStep < analyzeSteps.length" class="rotating">
+                  <Loading />
+                </el-icon>
+                <el-icon v-else class="success-icon">
+                  <Check />
+                </el-icon>
+              </div>
+            </div>
+          </div>
+          <div class="tech-dots">
+            <span v-for="i in 8" :key="i" class="dot" />
+          </div>
+        </div>
+
+        <div class="analysis-steps-container">
+          <div class="step-line" />
+          <div class="steps-wrapper">
+            <div 
+              v-for="(step, index) in analyzeSteps" 
+              :key="index"
+              class="tech-step"
+              :class="{ 
+                'active': index === currentStep,
+                'completed': index < currentStep
+              }"
+            >
+              <div class="step-node">
+                <div class="node-inner" />
+              </div>
+              <div class="step-content">
+                <h4>{{ step.title }}</h4>
+                <p>{{ step.desc }}</p>
+              </div>
             </div>
           </div>
         </div>
-        <div class="tech-dots">
-          <span v-for="i in 8" :key="i" class="dot" />
-        </div>
-      </div>
 
-      <div class="analysis-steps-container">
-        <div class="step-line" />
-        <div class="steps-wrapper">
-          <div 
-            v-for="(step, index) in analyzeSteps" 
-            :key="index"
-            class="tech-step"
-            :class="{ 
-              'active': index === currentStep,
-              'completed': index < currentStep
-            }"
-          >
-            <div class="step-node">
-              <div class="node-inner" />
-            </div>
-            <div class="step-content">
-              <h4>{{ step.title }}</h4>
-              <p>{{ step.desc }}</p>
-            </div>
+        <div class="tech-card">
+          <div class="card-header">
+            <div class="header-line" />
+            <h3>职业小贴士</h3>
+            <div class="header-line" />
           </div>
-        </div>
-      </div>
-
-      <div class="tech-card">
-        <div class="card-header">
-          <div class="header-line" />
-          <h3>职业小贴士</h3>
-          <div class="header-line" />
-        </div>
-        <div class="card-content">
-          <p>{{ getCurrentTip() }}</p>
-        </div>
-        <div class="card-decoration">
-          <div class="corner top-left" />
-          <div class="corner top-right" />
-          <div class="corner bottom-left" />
-          <div class="corner bottom-right" />
+          <div class="card-content">
+            <p>{{ getCurrentTip() }}</p>
+          </div>
+          <div class="card-decoration">
+            <div class="corner top-left" />
+            <div class="corner top-right" />
+            <div class="corner bottom-left" />
+            <div class="corner bottom-right" />
+          </div>
         </div>
       </div>
     </div>
@@ -676,6 +683,162 @@ const getCurrentTip = () => {
   padding: 20px;
   background-color: #f5f7fa;
   min-height: calc(100vh - 60px);
+}
+
+/* 顶部Banner样式 */
+.assessment-banner {
+  position: relative;
+  background: linear-gradient(135deg, #409eff, #67c23a);
+  padding: 40px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.banner-decoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.decoration-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.circle-1 {
+  width: 200px;
+  height: 200px;
+  top: -100px;
+  right: -50px;
+}
+
+.circle-2 {
+  width: 150px;
+  height: 150px;
+  bottom: -50px;
+  left: 10%;
+}
+
+.circle-3 {
+  width: 100px;
+  height: 100px;
+  top: 20px;
+  left: 30%;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.banner-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 800px;
+}
+
+.banner-content h1 {
+  font-size: 36px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.banner-content p {
+  font-size: 18px;
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+/* 进度条样式 */
+.assessment-progress-bar {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  position: relative;
+  padding: 0 10px;
+}
+
+.progress-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  right: -50%;
+  width: 100%;
+  height: 2px;
+  background-color: #dcdfe6;
+  z-index: 0;
+}
+
+.progress-step.active:not(:last-child)::after,
+.progress-step.completed:not(:last-child)::after {
+  background-color: #67c23a;
+}
+
+.step-node {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #fff;
+  border: 2px solid #dcdfe6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: #909399;
+  z-index: 1;
+}
+
+.progress-step.active .step-node {
+  border-color: #409eff;
+  color: #409eff;
+  background-color: #ecf5ff;
+}
+
+.progress-step.completed .step-node {
+  border-color: #67c23a;
+  background-color: #67c23a;
+  color: white;
+}
+
+.step-info {
+  flex-grow: 1;
+}
+
+.step-title {
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.step-desc {
+  font-size: 12px;
+  color: #909399;
+}
+
+.total-progress {
+  margin-top: 10px;
 }
 
 .assessment-layout {
@@ -1407,4 +1570,4 @@ const getCurrentTip = () => {
     transform: translateY(0);
   }
 }
-</style> // Updated file
+</style>

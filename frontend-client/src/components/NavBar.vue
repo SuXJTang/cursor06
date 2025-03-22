@@ -32,7 +32,7 @@
               </el-avatar>
             </template>
             <template v-else>
-              <el-avatar :size="32" :src="authStore.userInfo?.avatar_url" />
+              <el-avatar :size="32" :src="processedAvatarUrl" />
             </template>
             <template #dropdown>
               <el-dropdown-menu>
@@ -116,6 +116,18 @@ const defaultAvatarStyle = computed(() => {
 // 是否显示默认头像
 const showDefaultAvatar = computed(() => {
   return !authStore.userInfo?.avatar_url || authStore.userInfo.avatar_url === ''
+})
+
+// 获取处理后的头像URL
+const processedAvatarUrl = computed(() => {
+  if (!authStore.userInfo?.avatar_url) return ''
+  
+  let avatarUrl = authStore.userInfo.avatar_url
+  // 如果URL不是以/api/开头，且不是完整的http URL，则添加/api前缀
+  if (!avatarUrl.startsWith('/api/') && !avatarUrl.startsWith('http')) {
+    avatarUrl = `/api${avatarUrl}`
+  }
+  return avatarUrl
 })
 
 // 处理下拉菜单命令

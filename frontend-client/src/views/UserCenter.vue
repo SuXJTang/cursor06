@@ -5,14 +5,17 @@
       <el-col :span="5">
         <el-card class="menu-card">
           <div class="user-info-brief">
-            <template v-if="authStore.userInfo?.avatar_url">
-              <el-avatar :size="64" :src="authStore.userInfo.avatar_url" />
-            </template>
-            <template v-else>
-              <el-avatar :size="64" :style="defaultAvatarStyle">
-                <el-icon><UserFilled /></el-icon>
-              </el-avatar>
-            </template>
+            <div class="user-info">
+              <!-- 头像部分 -->
+              <template v-if="authStore.userInfo?.avatar_url">
+                <el-avatar :size="64" :src="processedAvatarUrl" />
+              </template>
+              <template v-else>
+                <el-avatar :size="64" :style="defaultAvatarStyle">
+                  {{ authStore.userInfo?.username?.charAt(0).toUpperCase() }}
+                </el-avatar>
+              </template>
+            </div>
             <div class="username">
               {{ authStore.userInfo?.username || '用户' }}
             </div>
@@ -102,6 +105,18 @@ const defaultAvatarStyle = computed(() => {
     alignItems: 'center',
     justifyContent: 'center'
   }
+})
+
+// 获取处理后的头像URL
+const processedAvatarUrl = computed(() => {
+  if (!authStore.userInfo?.avatar_url) return ''
+  
+  let avatarUrl = authStore.userInfo.avatar_url
+  // 如果URL不是以/api/开头，且不是完整的http URL，则添加/api前缀
+  if (!avatarUrl.startsWith('/api/') && !avatarUrl.startsWith('http')) {
+    avatarUrl = `/api${avatarUrl}`
+  }
+  return avatarUrl
 })
 </script>
 

@@ -463,8 +463,80 @@ const fetchCategories = async () => {
     
     // 处理响应数据
     if (response && Array.isArray(response)) {
+      // 检查并处理分类数据
+      response.forEach(category => {
+        // 确保subcategories字段存在
+        if (!category.subcategories) {
+          category.subcategories = [];
+        }
+        
+        // 处理二级分类的subcategories
+        if (category.subcategories && Array.isArray(category.subcategories)) {
+          category.subcategories.forEach(subcategory => {
+            if (!subcategory.subcategories) {
+              subcategory.subcategories = [];
+            }
+          });
+        }
+      });
+      
+      console.log('处理后的分类数据:', response);
+      
+      // 如果根分类的subcategories为空，尝试单独获取子分类
+      let hasSubcategories = false;
+      for (const cat of response) {
+        if (cat.subcategories && cat.subcategories.length > 0) {
+          hasSubcategories = true;
+          break;
+        }
+      }
+      
+      if (!hasSubcategories) {
+        console.log('一级分类没有子分类数据，尝试单独请求子分类');
+        // 逐个获取根分类的子分类
+        for (const rootCategory of response) {
+          try {
+            const subcategoriesResponse = await request<CategoryResponse[]>({
+              url: `/api/v1/career-categories/${rootCategory.id}/subcategories`,
+              method: 'GET',
+              params: {
+                include_children: true
+              },
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            if (subcategoriesResponse && Array.isArray(subcategoriesResponse)) {
+              rootCategory.subcategories = subcategoriesResponse;
+              
+              // 获取三级分类
+              for (const subCategory of rootCategory.subcategories) {
+                try {
+                  const thirdLevelResponse = await request<CategoryResponse[]>({
+                    url: `/api/v1/career-categories/${subCategory.id}/subcategories`,
+                    method: 'GET',
+                    headers: {
+                      'Authorization': `Bearer ${token}`
+                    }
+                  });
+                  
+                  if (thirdLevelResponse && Array.isArray(thirdLevelResponse)) {
+                    subCategory.subcategories = thirdLevelResponse;
+                  }
+                } catch (err) {
+                  console.warn(`获取三级分类失败 (ID: ${subCategory.id}):`, err);
+                }
+              }
+            }
+          } catch (err) {
+            console.warn(`获取二级分类失败 (ID: ${rootCategory.id}):`, err);
+          }
+        }
+      }
+      
       categories.value = response;
-      console.log('分类数据:', response);
+      console.log('最终分类数据:', response);
       
       if (response.length > 0) {
         // 默认选择第一个分类
@@ -1874,143 +1946,58 @@ const handleGoToCategory = () => {
 
 // 新增：强制渲染函数，优化逻辑
 const debugForceRender = () => {
-  if (careers.value.length > 0 && !selectedCareer.value) {
-    selectedCareer.value = { ...careers.value[0] };
-    ElMessage.success('已强制选择第一个职业');
-    console.log('强制渲染: 已选择职业', selectedCareer.value.name);
-  } else if (careers.value.length > 0) {
-    // 强制刷新现有选择
-    const current = selectedCareer.value;
-    console.log('刷新前的职业ID:', current?.id);
-    selectedCareer.value = null;
-    nextTick(() => {
-      selectedCareer.value = { ...current };
-      console.log('刷新后的职业ID:', selectedCareer.value?.id);
-      ElMessage.success('已刷新当前选中职业');
-    });
-  } else if (careers.value.length === 0) {
-    // 如果没有职业数据但有活动分类，强制创建一些默认数据
-    if (activeCategory.value) {
-      console.log('未找到职业数据，为分类', activeCategory.value, '创建默认数据');
-      const categoryId = activeCategory.value;
-      const defaultCareers = [
-        createDefaultCareer(101, categoryId, '软件工程师', '稳定发展期'),
-        createDefaultCareer(102, categoryId, '数据分析师', '快速发展期'),
-        createDefaultCareer(103, categoryId, '产品经理', '稳定发展期')
-      ];
-      
-      // 确保careers.value被直接重新赋值
-      careers.value = defaultCareers;
-      
-      nextTick(() => {
-        selectedCareer.value = { ...careers.value[0] };
-        console.log('已选择默认职业:', selectedCareer.value.name);
-        ElMessage.success('已创建并选择默认职业数据');
-      });
-    } else {
-      ElMessage.warning('没有选中的分类');
-    }
-  } else {
-    ElMessage.warning('没有可用的职业数据');
-  }
-};
-
-// 改进：刷新数据函数，确保每次请求发送
-const refreshData = () => {
-  if (activeCategory.value) {
-    // 先清除该分类的缓存
-    const cacheKey = `careers_${activeCategory.value}`;
-    localStorage.removeItem(cacheKey);
-    
-    ElMessage.info('正在重新获取数据...');
-    // 先清空当前数据，确保状态正确更新
-    careers.value = [];
-    selectedCareer.value = null;
-    errorMessage.value = '';
-    
-    // 显示加载状态
-    isLoading.value = true;
-    
-    // 重新获取数据 - 设置短暂延迟确保UI更新
+  ElMessage.info('正在强制重新渲染组件...');
+  // 使用nextTick强制更新组件
+  nextTick(() => {
+    // 临时更改categories触发视图更新
+    const tempCategories = [...categories.value];
+    categories.value = [];
     setTimeout(() => {
-      fetchCareers(activeCategory.value);
+      categories.value = tempCategories;
+      ElMessage.success('组件已重新渲染');
     }, 100);
-  } else {
-    ElMessage.warning('未选择分类');
-  }
+  });
 };
 
-// 新增：检查并修复careers状态同步问题
-const checkAndFixCareersState = () => {
-  console.log('检查careers状态同步');
-  if (activeCategory.value && careers.value.length === 0) {
-    console.log('检测到careers数组为空，尝试重新获取数据');
-    fetchCareers(activeCategory.value);
-    return true;
+// 刷新数据
+const refreshData = async () => {
+  ElMessage.info('正在刷新所有数据...');
+  
+  // 清空缓存
+  clearCache();
+  
+  // 重新获取分类数据
+  await fetchCategories();
+  
+  ElMessage.success('数据已刷新');
+};
+
+// 清除缓存
+const clearCache = () => {
+  // 清除与职业相关的所有缓存
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('careers_')) {
+      keysToRemove.push(key);
+    }
   }
   
-  // 检查careers.value中是否有重复ID
-  const ids = new Set();
-  const duplicateIds = [];
-  careers.value.forEach(career => {
-    if (ids.has(career.id)) {
-      duplicateIds.push(career.id);
-    } else {
-      ids.add(career.id);
-    }
+  keysToRemove.forEach(key => {
+    localStorage.removeItem(key);
   });
   
-  if (duplicateIds.length > 0) {
-    console.warn('检测到重复的职业ID:', duplicateIds);
-    
-    // 尝试修复重复ID问题
-    const uniqueCareers = [];
-    const seenIds = new Set();
-    
-    careers.value.forEach(career => {
-      if (!seenIds.has(career.id)) {
-        seenIds.add(career.id);
-        uniqueCareers.push(career);
-      }
-    });
-    
-    console.log(`修复前职业数量: ${careers.value.length}, 修复后: ${uniqueCareers.length}`);
-    careers.value = uniqueCareers;
-    return true;
-  }
-  
-  return false;
+  ElMessage.success(`已清除${keysToRemove.length}项缓存数据`);
 };
 
-// 增强版本：清除缓存并重新获取
-const clearCache = () => {
-  try {
-    // 清除所有职业缓存
-    const keys = Object.keys(localStorage);
-    let clearedCount = 0;
-    
-    for (const key of keys) {
-      if (key.startsWith('careers_')) {
-        localStorage.removeItem(key);
-        clearedCount++;
-      }
-    }
-    ElMessage.success(`已清除${clearedCount}个职业数据缓存`);
-    
-    // 如果当前有选中的分类，立即重新加载数据
-    if (activeCategory.value) {
-      // 重置状态
-      careers.value = [];
-      selectedCareer.value = null;
-      // 进行状态检查
-      checkAndFixCareersState();
-      // 刷新数据
-      refreshData();
-    }
-  } catch (e) {
-    console.error('清除缓存失败:', e);
-    ElMessage.error('清除缓存失败');
+// 检查并修复职业数据状态
+const checkAndFixCareersState = () => {
+  if (careers.value.length === 0 && activeCategory.value) {
+    console.log('检测到空职业数据，尝试重新获取分类:', activeCategory.value);
+    fetchCategoryCareers(activeCategory.value);
+    return true;
   }
+  return false;
 };
 
 // 修复渲染问题：使用更强大的watch，监视多个可能影响渲染的值
@@ -2485,7 +2472,7 @@ const tryFallbackFavorite = async (careerId: number, action: 'add' | 'delete') =
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .career-library {
   padding: 20px;
   min-height: calc(100vh - 60px);
@@ -2503,65 +2490,76 @@ const tryFallbackFavorite = async (careerId: number, action: 'add' | 'delete') =
 }
 
 .category-menu {
+  width: 100%;
   border-right: none;
+  
+  .el-sub-menu {
+    // 确保子菜单能够显示完整
+    width: 100%;
+    
+    &.is-active {
+      .submenu-title {
+        color: var(--el-color-primary);
+        font-weight: bold;
+      }
+    }
+    
+    .el-sub-menu__title {
+      height: auto;
+      padding: 12px 20px;
+    }
+  }
+  
+  .el-menu-item {
+    height: auto;
+    padding: 10px 20px 10px 48px;
+    line-height: 1.5;
+    
+    &.is-active {
+      background-color: var(--el-color-primary-light-9);
+    }
+  }
+  
+  // 增加缩进效果
+  .el-sub-menu .el-sub-menu .el-menu-item {
+    padding-left: 65px;
+  }
+  
+  // 分类指示器样式
+  .category-indicator {
+    width: 3px;
+    height: 16px;
+    position: absolute;
+    left: 0;
+    border-radius: 0 2px 2px 0;
+    transition: all 0.3s;
+    
+    &.active-indicator {
+      background-color: var(--el-color-primary);
+    }
+  }
+  
+  // 提高子菜单标题的可点击性
+  .submenu-title {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    cursor: pointer;
+    
+    .el-icon {
+      margin-right: 5px;
+    }
+  }
 }
 
-/* 增强分类菜单中选中项的样式 */
-:deep(.el-menu-item.is-active) {
-  background-color: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  font-weight: bold;
-  border-left: 3px solid var(--el-color-primary);
-  transition: all 0.3s ease;
-}
-
-/* 添加hover效果 */
-:deep(.el-menu-item:hover) {
-  background-color: var(--el-color-primary-light-8);
-  transition: all 0.3s ease;
-}
-
-/* 当子菜单展开并且是活动状态时增加视觉效果 */
-:deep(.el-sub-menu.is-active > .el-sub-menu__title) {
-  color: var(--el-color-primary);
-  font-weight: bold;
-  transition: all 0.3s ease;
-}
-
-/* 为选中状态的子菜单添加左边框标识 */
-:deep(.el-sub-menu.is-opened.is-active > .el-sub-menu__title) {
-  border-left: 3px solid var(--el-color-primary);
-  background-color: var(--el-color-primary-light-9);
-  transition: all 0.3s ease;
-}
-
-/* 子菜单展开后增加一些间距和背景色区分 */
-:deep(.el-menu--inline) {
-  background-color: var(--el-color-info-light-9);
-  margin-left: 12px;
-  border-radius: 4px;
-  padding-left: 0;
-}
-
-:deep(.submenu-title) {
-  display: flex;
-  align-items: center;
-  height: 40px;
-  line-height: 40px;
-  padding-left: 20px !important;
-  transition: all 0.3s ease;
-  width: 100%; /* 恢复宽度样式 */
-  cursor: pointer; /* 恢复鼠标指针样式 */
-}
-
-:deep(.submenu-title:hover) {
-  color: var(--el-color-primary);
-}
-
-.career-count {
-  margin-left: 4px;
-  color: #909399;
-  font-size: 12px;
+// 响应式优化
+@media (max-width: 1200px) {
+  .category-menu {
+    .el-menu-item, .el-sub-menu__title {
+      padding: 8px 15px;
+      font-size: 13px;
+    }
+  }
 }
 
 .list-header {

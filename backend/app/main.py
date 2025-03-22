@@ -4,6 +4,11 @@ from contextlib import asynccontextmanager
 import time
 import logging
 import asyncio
+import json
+from datetime import datetime
+from enum import Enum
+from pydantic import BaseModel
+import traceback
 
 from app.api.v1.api import api_router
 from app.core.config import settings
@@ -19,6 +24,18 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("app")
+
+# 自定义JSON编码器，处理特殊类型
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        # 处理日期时间类型
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        # 处理枚举类型
+        if isinstance(obj, Enum):
+            return obj.value
+        # 其他默认处理
+        return super().default(obj)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -64,19 +81,45 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.PROJECT_NAME, 
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    lifespan=lifespan
+    lifespan=lifespan,
+    # 添加自定义JSON序列化器
+    json_encoder=CustomJSONEncoder
 )
 
 # 配置CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],  # 指定具体的前端地址，不使用通配符
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # 明确允许前端地址
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["Content-Type", "Authorization", "Access-Control-Allow-Origin"],
-    max_age=600,  # 预检请求缓存时间
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],  # 明确允许的HTTP方法
+    allow_headers=["*"],  # 允许所有头部
+    expose_headers=["Content-Type", "Authorization"],  # 暴露特定头部
 )
+
+# 添加调试路由
+@app.get("/debug-openapi")
+def debug_openapi():
+    """调试OpenAPI文档生成"""
+    try:
+        # 尝试获取OpenAPI schema
+        openapi_schema = app.openapi()
+        # 返回简化版，避免返回过大的响应
+        return {
+            "success": True,
+            "schema_keys": list(openapi_schema.keys()),
+            "paths_count": len(openapi_schema.get("paths", {})),
+            "components_count": len(openapi_schema.get("components", {}).get("schemas", {}))
+        }
+    except Exception as e:
+        # 捕获并返回详细错误信息
+        error_detail = traceback.format_exc()
+        logger.error(f"OpenAPI生成错误: {error_detail}")
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": str(type(e)),
+            "traceback": error_detail
+        }
 
 # 包含API路由
 app.include_router(api_router, prefix=settings.API_V1_STR)

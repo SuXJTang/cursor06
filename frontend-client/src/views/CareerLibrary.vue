@@ -348,19 +348,15 @@ import { useAuthStore } from '../stores/auth'
 import request from '../api/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Search,
-  FolderOpened,
-  Folder,
-  Document,
-  Money,
-  School,
-  Timer,
-  Share,
-  Star,
-  Delete,
-  WarningFilled,
+  Promotion,
+  Odometer, 
+  User,
+  Calendar,
+  Setting,
+  InfoFilled,
   Tools
 } from '@element-plus/icons-vue'
+import { useCareerStore } from '../stores/career'
 
 // 职业类型定义
 interface Career {
@@ -433,6 +429,21 @@ const authStore = useAuthStore();
 const showDebugPanel = ref(false);
 const showRawData = ref(false);
 const rawApiData = ref('暂无原始数据');
+
+// 在setup函数内
+const careerStore = useCareerStore()
+
+// 适配函数：将组件使用的Career类型适配为Pinia store使用的Career类型
+const adaptCareerForStore = (careers: Career[], categoryId: string): any[] => {
+  return careers.map(career => ({
+    id: career.id,
+    categoryId: categoryId,
+    careerName: career.name,
+    stage: career.level,
+    // 保留原始数据
+    ...career
+  }))
+}
 
 // 获取职业分类数据
 const fetchCategories = async () => {
@@ -838,21 +849,30 @@ const debugForceRender = () => {
 // 重命名为debugClearCache，避免命名冲突
 const debugClearCache = () => {
   // 清除分类和职业相关的本地缓存
-  const keys = Object.keys(localStorage);
-  let clearedCount = 0;
+  let clearedCount = 0
   
-  keys.forEach(key => {
-    if (key.startsWith('careers_') || key.startsWith('categories_')) {
-      localStorage.removeItem(key);
-      clearedCount++;
+  // 使用Pinia商店清除全部缓存
+  careerStore.clearCache()
+  clearedCount++
+  
+  // 保留原来的localStorage清理代码作为备份
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && (key.startsWith('careers_') || key.startsWith('categoryTree_'))) {
+        localStorage.removeItem(key)
+        clearedCount++
+      }
     }
-  });
+  } catch (e) {
+    console.error('清除缓存失败:', e)
+  }
   
-  ElMessage.success(`已清除${clearedCount}个缓存项`);
+  ElMessage.success(`已清除${clearedCount}个缓存项`)
   
   // 重新加载分类数据
-  fetchCategories();
-};
+  fetchCategories()
+}
 
 // 获取特定分类的职业数据
 const careers = ref<Career[]>([]);
@@ -898,64 +918,104 @@ const getFromCache = (categoryId: string, bypassCache = false): { data: Career[]
 // 保存数据到缓存
 const saveToCache = (categoryId: string, data: Career[]) => {
   try {
-    const cacheKey = `careers_${categoryId}`;
+    if (!data || data.length === 0) {
+      console.warn('试图缓存空数据，categoryId:', categoryId)
+      return
+    }
+    
+    // 同时保存到Pinia存储（使用适配函数）
+    careerStore.updateCareers(categoryId, adaptCareerForStore(data, categoryId))
+    
+    // 保存到本地存储作为备份
+    const cacheKey = `careers_${categoryId}`
     const cacheData = {
-      data,
-      timestamp: Date.now()
-    };
-    localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-    console.log('已缓存职业数据:', data.length, '条记录');
-  } catch (e) {
-    console.error('缓存数据失败:', e);
+      timestamp: Date.now(),
+      data: data
+    }
+    
+    // 将数据转为JSON字符串
+    const jsonData = JSON.stringify(cacheData)
+    
+    // 保存到localStorage
+    localStorage.setItem(cacheKey, jsonData)
+    console.log(`成功缓存职业数据 (categoryId: ${categoryId}), ${data.length} 条记录`)
+  } catch (error) {
+    console.error('缓存职业数据失败:', error)
   }
-};
+}
 
 const fetchCareers = async (categoryId: string) => {
   try {
     // 重置状态
-    errorMessage.value = '';
-    isLoading.value = true;
+    errorMessage.value = ''
+    isLoading.value = true
     
-    console.log('开始获取职业数据，分类ID:', categoryId);
+    console.log('开始获取职业数据，分类ID:', categoryId)
     
     // 检查网络连接
     if (!checkNetworkConnection()) {
-      console.error('网络连接已断开');
-      ElMessage.error('网络连接已断开，请检查网络设置');
-      errorMessage.value = '网络连接已断开';
-      isLoading.value = false;
-      return;
+      console.error('网络连接已断开')
+      ElMessage.error('网络连接已断开，请检查网络设置')
+      errorMessage.value = '网络连接已断开'
+      isLoading.value = false
+      return
     }
     
     // 检测特殊类别，对于ID 33强制绕过缓存
-    const isSpecialCategory = categoryId === '33';
-    const bypassCache = isSpecialCategory;
+    const isSpecialCategory = categoryId === '33'
+    const bypassCache = isSpecialCategory
     
     if (isSpecialCategory) {
-      console.log('检测到软件工程师分类ID 33，强制从服务器获取数据');
+      console.log('检测到软件工程师分类ID 33，强制从服务器获取数据')
+      // 为特殊分类清除Pinia缓存
+      careerStore.clearCategoryCache(categoryId)
     }
     
-    // 首先尝试从缓存获取数据（对特殊分类会绕过）
-    const cached = getFromCache(categoryId, bypassCache);
-    if (cached && cached.data.length > 0) {
-      console.log('从缓存加载职业数据:', cached.data.length, '条记录');
-      careers.value = cached.data;
+    // 首先尝试从Pinia商店获取数据
+    const storeData = careerStore.getCareers(categoryId)
+    if (storeData && !bypassCache) {
+      console.log('从Pinia状态获取职业数据:', storeData.length, '条记录')
+      careers.value = storeData
       
       // 延迟选择第一个职业，确保DOM更新
       setTimeout(() => {
         if (careers.value.length > 0 && !selectedCareer.value) {
-          console.log('从缓存数据中选择第一个职业');
-          selectedCareer.value = { ...careers.value[0] };
+          console.log('从Pinia状态选择第一个职业')
+          selectedCareer.value = { ...careers.value[0] }
         }
-      }, 100);
+      }, 100)
       
-      isLoading.value = false;
-      return;
+      isLoading.value = false
+      return
+    }
+    
+    // 如果Pinia没有数据，尝试从localStorage获取（兼容旧数据）
+    if (!bypassCache) {
+      // 首先尝试从缓存获取数据（对特殊分类会绕过）
+      const cached = getFromCache(categoryId, bypassCache)
+      if (cached && cached.data.length > 0) {
+        console.log('从localStorage缓存加载职业数据:', cached.data.length, '条记录')
+        careers.value = cached.data
+        
+        // 将数据也保存到Pinia商店中
+        careerStore.updateCareers(categoryId, adaptCareerForStore(cached.data, categoryId))
+        
+        // 延迟选择第一个职业，确保DOM更新
+        setTimeout(() => {
+          if (careers.value.length > 0 && !selectedCareer.value) {
+            console.log('从缓存数据中选择第一个职业')
+            selectedCareer.value = { ...careers.value[0] }
+          }
+        }, 100)
+        
+        isLoading.value = false
+        return
+      }
     }
     
     // 清空当前数据，确保状态干净
-    careers.value = [];
-    await nextTick();
+    careers.value = []
+    await nextTick()
     
     // 获取认证令牌
     const token = localStorage.getItem('auth_token')
@@ -1263,24 +1323,36 @@ const fetchCareers = async (categoryId: string) => {
       errorMessage.value = '服务器未响应，请检查网络连接';
       ElMessage.error('服务器未响应，请检查网络连接或稍后重试');
       
-      // 尝试从缓存加载数据
-      const cachedData = getFromCache(categoryId, false); // 允许使用缓存应对网络错误
-      if (cachedData) {
-        careers.value = cachedData.data;
-        ElMessage.info('已加载缓存数据');
-        console.log('已加载缓存数据:', cachedData.data.length, '条记录');
+      // 尝试从Pinia获取数据
+      const storeData = careerStore.getCareers(categoryId)
+      if (storeData) {
+        careers.value = storeData
+        ElMessage.info('已加载状态缓存数据')
+        console.log('已加载状态缓存数据:', storeData.length, '条记录')
       } else {
-        // 创建一些默认数据
-        careers.value = [
-          createDefaultCareer(1, categoryId, '软件工程师', '稳定发展期'),
-          createDefaultCareer(2, categoryId, '数据分析师', '快速发展期'),
-          createDefaultCareer(3, categoryId, '产品经理', '稳定发展期')
-        ];
-        console.log('已创建默认职业数据');
+        // 尝试从本地存储获取
+        const cachedData = getFromCache(categoryId, false) // 允许使用缓存应对网络错误
+        if (cachedData) {
+          careers.value = cachedData.data
+          // 同步到Pinia商店
+          careerStore.updateCareers(categoryId, adaptCareerForStore(cachedData.data, categoryId))
+          ElMessage.info('已加载缓存数据')
+          console.log('已加载缓存数据:', cachedData.data.length, '条记录')
+        } else {
+          // 创建一些默认数据
+          careers.value = [
+            createDefaultCareer(1, categoryId, '软件工程师', '稳定发展期'),
+            createDefaultCareer(2, categoryId, '数据分析师', '快速发展期'),
+            createDefaultCareer(3, categoryId, '产品经理', '稳定发展期')
+          ]
+          console.log('已创建默认职业数据')
+          // 保存默认数据到Pinia商店
+          careerStore.updateCareers(categoryId, adaptCareerForStore(careers.value, categoryId))
+        }
       }
       
       if (careers.value.length > 0) {
-        selectedCareer.value = { ...careers.value[0] };
+        selectedCareer.value = { ...careers.value[0] }
       }
     } else {
       errorMessage.value = `请求错误: ${error.message}`;

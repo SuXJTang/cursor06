@@ -1,0 +1,111 @@
+```json
+{
+  "basic_info": {
+    "name": "吴广林 Eric Wu",
+    "age": "22",
+    "gender": "",
+    "ethnicity": "",
+    "political_status": "",
+    "marital_status": "",
+    "identity": "",
+    "location": "湖南衢阳",
+    "email": "769835910@qq.com",
+    "phone": "13411989126",
+    "address": "",
+    "website": "https://github.com/il4gliu, https://www.cnblogs.com/uguanglin"
+  },
+  "job_intention": {
+    "position": "Java后台开发",
+    "industry": "",
+    "location": "",
+    "salary": ""
+  },
+  "education": [
+    {
+      "school": "汕头大学",
+      "major": "计算机科学与技术",
+      "degree": "",
+      "time": "2014.9-2018.7",
+      "description": "主要课程：面向对象程序设计、WEB应用技术、数据结构与算法、软件测试等"
+    }
+  ],
+  "experience": [
+    {
+      "company": "广州华软软件有限公司",
+      "position": "JAVA后台开发实习生",
+      "time": "2017.03-2017.11",
+      "description": "主要负责公安局方面的业务，参与了三个项目开发：广东政务综合管理系统、广东税务系统、深圳信息公开系统。开发使用的框架是由Spring + SpringMVC + Hibernate构建的，服务器与数据库为Weblogic-Oracle。在公司做过前端数据可视化的工作，也负责写了很多接口，还包括对该项目的产值80万元以上的交付。",
+      "achievements": ""
+    }
+  ],
+  "projects": [
+    {
+      "name": "软件工程期末项目 - 美食销售APP",
+      "role": "",
+      "time": "大三上学期",
+      "description": "项目主要是一款美食销售APP，有网页端的管理模块和用户端的美食模块。项目实现了登录、商品展示、购物车、购买、账户管理等功能。个人负责的是安卓端代码的编写与整个项目的统筹。不足之处是未能实现真正的购买功能（接入支付宝或微信）。",
+      "technologies": "Java, JSP",
+      "achievements": ""
+    },
+    {
+      "name": "外包项目 - Childhood",
+      "role": "",
+      "time": "大三下学期",
+      "description": "一个艺术设计师姐的毕设，她设计了关于儿童APP的UI设计，需要我帮她实现页面。我在一周内加班加点地帮她完成了这些前端页面，主要是JS和jQuery的运用，实现了很多动画效果以及数据方面的响应。成功完成了师姐的任务，获得了专业的第一桶金。",
+      "technologies": "Vue.js, Node.js",
+      "achievements": ""
+    },
+    {
+      "name": "WEB课程期末项目 - 汕大考通",
+      "role": "",
+      "time": "大三下学期",
+      "description": "WEB应用技术课程的小组期末项目，要求实现一个简单的在线考试系统。由于小组其他成员比较忙，而我正好要接手项目，独立完成了一个具有登录注册、刷题、录题、自动评分、分数排名等功能的考试系统。采用Java架构，使用的是比较底层的JSP + Servlet + SQL，前端用的是原生JS和Ajax技术。因为页面好看、功能完善，得到了老师的赞许。",
+      "technologies": "JSP, Servlet, SQL, JavaScript, Ajax",
+      "achievements": ""
+    },
+    {
+      "name": "算法设计课程小项目 - 多边形小游戏",
+      "role": "",
+      "time": "大三下学期",
+      "description": "老师要求实现算法课程上的多边形小游戏，要求有求最大面积、顶点等操作功能。我在项目中的职责主要是和另一位同学一起负责前端，主要负责处理其他同学负责的算法得出的结果（点的坐标、面积、最大值等）并通过页面Canvas显示出来。具体操作主要是通过栈来实现。",
+      "technologies": "Canvas, JavaScript",
+      "achievements": ""
+    },
+    {
+      "name": "智能系统期末项目",
+      "role": "",
+      "time": "大三下学期",
+      "description": "原本开始用神经网络和遗传算法，但失败了，于是换了思路，用K-means算法分类来做。通过对32支球队的游戏进行分类，分成不同的梯队，最终成功完成了项目。",
+      "technologies": "K-means算法",
+      "achievements": ""
+    }
+  ],
+  "skills": [
+    {
+      "name": "HTML5+CSS3",
+      "level": "精通"
+    },
+    {
+      "name": "Java",
+      "level": "熟练"
+    },
+    {
+      "name": "JSP",
+      "level": "一般"
+    },
+    {
+      "name": "Vue.js",
+      "level": "一般"
+    },
+    {
+      "name": "Node.js",
+      "level": "一般"
+    }
+  ],
+  "certificates": [],
+  "awards": [],
+  "languages": [],
+  "hobbies": [],
+  "summary": ""
+}
+```

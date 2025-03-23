@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import ElementPlus from 'element-plus'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import 'element-plus/dist/index.css'
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import App from './App.vue'
 import router from './router'
 
@@ -25,8 +26,9 @@ async function bootstrap() {
   // 创建Vue应用实例
   const app = createApp(App)
   
-  // 创建Pinia实例
+  // 创建Pinia实例并启用持久化插件
   const pinia = createPinia()
+  pinia.use(piniaPluginPersistedstate)
   app.use(pinia)
   
   // 导入认证存储

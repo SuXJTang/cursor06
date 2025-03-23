@@ -1,6 +1,6 @@
 <template>
   <div class="result-container">
-    <div class="report-header">
+      <div class="report-header">
       <h2>个人职业测评报告</h2>
       <p class="subtitle">根据您的回答，我们为您生成了详细的职业能力分析报告</p>
     </div>

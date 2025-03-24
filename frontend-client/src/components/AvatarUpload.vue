@@ -73,6 +73,7 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const previewUrl = ref<string>('')
 const uploading = ref<boolean>(false)
 const uploadProgress = ref<number>(0)
+const error = ref<boolean>(false)
 
 // 颜色生成
 const avatarColor = computed(() => {
@@ -142,46 +143,51 @@ const handleFileChange = (e: Event) => {
   uploadAvatar(file)
 }
 
+// 头像上传前验证
+const beforeUpload = (file: File): boolean => {
+  const isImage = /^image\//.test(file.type)
+  const isLt2M = file.size / 1024 / 1024 < 2
+
+  if (!isImage) {
+    ElMessage.error('头像必须是图片格式!')
+    return false
+  }
+  if (!isLt2M) {
+    ElMessage.error('头像大小不能超过2MB!')
+    return false
+  }
+  return true
+}
+
 // 上传头像
 const uploadAvatar = async (file: File) => {
+  if (!beforeUpload(file)) return
+
   uploading.value = true
-  uploadProgress.value = 0
-  
+  error.value = false
+
   try {
-    // 模拟上传进度
-    const progressInterval = setInterval(() => {
-      if (uploadProgress.value < 90) {
-        uploadProgress.value += 10
-      }
-    }, 300)
-    
-    // 调用API上传
+    // 调用store中的上传头像方法
     const avatarUrl = await authStore.uploadAvatar(file)
     
-    // 清除进度条定时器
-    clearInterval(progressInterval)
-    uploadProgress.value = 100
-    
-    // 更新头像URL
     if (avatarUrl) {
+      // 处理返回的头像URL
+      previewUrl.value = avatarUrl
+      error.value = false
+      
+      // 向父组件发送事件
       emit('update:avatar', avatarUrl)
       emit('upload-success', avatarUrl)
-      
-      // 等待进度条完成再关闭
-      setTimeout(() => {
-        uploading.value = false
-      }, 500)
-      
-      ElMessage.success('头像上传成功')
     } else {
-      throw new Error('头像上传失败')
+      error.value = true
+      emit('upload-error', new Error('上传失败，未获取到头像URL'))
     }
-  } catch (error: any) {
-    uploadProgress.value = 0
+  } catch (err) {
+    error.value = true
+    console.error('上传头像失败:', err)
+    emit('upload-error', err)
+  } finally {
     uploading.value = false
-    
-    emit('upload-error', error)
-    ElMessage.error(error.message || '头像上传失败')
   }
 }
 

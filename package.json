@@ -7,5 +7,8 @@
     "type-check": "cd frontend-client && pnpm vue-tsc --noEmit",
     "test:unit": "echo \"No tests configured\" && exit 0",
     "build": "cd frontend-client && pnpm build"
+  },
+  "dependencies": {
+    "pinia-plugin-persistedstate": "^4.2.0"
   }
 }

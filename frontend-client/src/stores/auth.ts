@@ -256,24 +256,46 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
       
-      const response = await request.post<ApiResponse<{avatar_url: string}>>('/api/v1/auth/me/avatar', formData, config)
+      console.log('开始上传头像...')
+      // 使用正确的API路径，注意不要使用/auth部分
+      const response = await request.post<ApiResponse<{avatar_url: string}>>('/api/v1/users/me/avatar', formData, config)
+      console.log('头像上传接口响应:', response.data)
       
       if (response.data.code === 200 && response.data.data.avatar_url) {
+        // 处理头像URL，确保包含正确的API前缀
+        let avatarUrl = response.data.data.avatar_url
+        console.log('原始头像URL:', avatarUrl)
+        
+        // 确保URL格式正确
+        if (avatarUrl.startsWith('/v1') || avatarUrl.startsWith('v1')) {
+          // 如果路径以/v1或v1开头，添加/api前缀
+          avatarUrl = `/api${avatarUrl.startsWith('/') ? '' : '/'}${avatarUrl}`
+        } else if (!avatarUrl.startsWith('/api') && !avatarUrl.startsWith('http')) {
+          // 对于其他不是以/api或http开头的URL，添加完整路径
+          avatarUrl = `/api/v1/users/avatars/${avatarUrl}`
+        }
+        
+        console.log('处理后的头像URL:', avatarUrl)
+        
         // 更新本地存储的用户信息
         if (userInfo.value) {
-          userInfo.value.avatar_url = response.data.data.avatar_url
+          userInfo.value.avatar_url = avatarUrl
           saveUserToStorage()
+          console.log('用户头像URL已更新并保存到存储')
         }
         
         ElMessage.success('头像上传成功')
-        return response.data.data.avatar_url
+        return avatarUrl
+      } else {
+        console.error('头像上传响应无效:', response.data)
+        ElMessage.error('头像上传失败：服务器响应无效')
+        return null
       }
-      
-      return null
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || '头像上传失败'
+      console.error('头像上传发生错误:', error)
+      console.error('错误详情:', error.response?.data || error.message)
       ElMessage.error(errorMessage)
-      console.error('头像上传失败:', error)
       return null
     }
   }

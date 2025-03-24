@@ -348,19 +348,15 @@ import { useAuthStore } from '../stores/auth'
 import request from '../api/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Search,
-  FolderOpened,
-  Folder,
-  Document,
-  Money,
-  School,
-  Timer,
-  Share,
-  Star,
-  Delete,
-  WarningFilled,
+  Promotion,
+  Odometer, 
+  User,
+  Calendar,
+  Setting,
+  InfoFilled,
   Tools
 } from '@element-plus/icons-vue'
+import { useCareerStore } from '../stores/career'
 
 // 职业类型定义
 interface Career {
@@ -434,6 +430,21 @@ const showDebugPanel = ref(false);
 const showRawData = ref(false);
 const rawApiData = ref('暂无原始数据');
 
+// 在setup函数内
+const careerStore = useCareerStore()
+
+// 适配函数：将组件使用的Career类型适配为Pinia store使用的Career类型
+const adaptCareerForStore = (careers: Career[], categoryId: string): any[] => {
+  return careers.map(career => ({
+    id: career.id,
+    categoryId: categoryId,
+    careerName: career.name,
+    stage: career.level,
+    // 保留原始数据
+    ...career
+  }))
+}
+
 // 获取职业分类数据
 const fetchCategories = async () => {
   try {
@@ -466,6 +477,78 @@ const fetchCategories = async () => {
     
     // 处理响应数据
     if (response && Array.isArray(response)) {
+      // 检查并处理分类数据
+      response.forEach(category => {
+        // 确保subcategories字段存在
+        if (!category.subcategories) {
+          category.subcategories = [];
+        }
+        
+        // 处理二级分类的subcategories
+        if (category.subcategories && Array.isArray(category.subcategories)) {
+          category.subcategories.forEach(subcategory => {
+            if (!subcategory.subcategories) {
+              subcategory.subcategories = [];
+            }
+          });
+        }
+      });
+      
+      console.log('处理后的分类数据:', response);
+      
+      // 如果根分类的subcategories为空，尝试单独获取子分类
+      let hasSubcategories = false;
+      for (const cat of response) {
+        if (cat.subcategories && cat.subcategories.length > 0) {
+          hasSubcategories = true;
+          break;
+        }
+      }
+      
+      if (!hasSubcategories) {
+        console.log('一级分类没有子分类数据，尝试单独请求子分类');
+        // 逐个获取根分类的子分类
+        for (const rootCategory of response) {
+          try {
+            const subcategoriesResponse = await request<CategoryResponse[]>({
+              url: `/api/v1/career-categories/${rootCategory.id}/subcategories`,
+              method: 'GET',
+              params: {
+                include_children: true
+              },
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            if (subcategoriesResponse && Array.isArray(subcategoriesResponse)) {
+              rootCategory.subcategories = subcategoriesResponse;
+              
+              // 获取三级分类
+              for (const subCategory of rootCategory.subcategories) {
+                try {
+                  const thirdLevelResponse = await request<CategoryResponse[]>({
+                    url: `/api/v1/career-categories/${subCategory.id}/subcategories`,
+                    method: 'GET',
+                    headers: {
+                      'Authorization': `Bearer ${token}`
+                    }
+                  });
+                  
+                  if (thirdLevelResponse && Array.isArray(thirdLevelResponse)) {
+                    subCategory.subcategories = thirdLevelResponse;
+                  }
+                } catch (err) {
+                  console.warn(`获取三级分类失败 (ID: ${subCategory.id}):`, err);
+                }
+              }
+            }
+          } catch (err) {
+            console.warn(`获取二级分类失败 (ID: ${rootCategory.id}):`, err);
+          }
+        }
+      }
+      
       console.log('API原始响应数据:', response);
       
       // 标准化分类数据结构，处理可能的字段不一致问题
@@ -766,21 +849,30 @@ const debugForceRender = () => {
 // 重命名为debugClearCache，避免命名冲突
 const debugClearCache = () => {
   // 清除分类和职业相关的本地缓存
-  const keys = Object.keys(localStorage);
-  let clearedCount = 0;
+  let clearedCount = 0
   
-  keys.forEach(key => {
-    if (key.startsWith('careers_') || key.startsWith('categories_')) {
-      localStorage.removeItem(key);
-      clearedCount++;
+  // 使用Pinia商店清除全部缓存
+  careerStore.clearCache()
+  clearedCount++
+  
+  // 保留原来的localStorage清理代码作为备份
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && (key.startsWith('careers_') || key.startsWith('categoryTree_'))) {
+        localStorage.removeItem(key)
+        clearedCount++
+      }
     }
-  });
+  } catch (e) {
+    console.error('清除缓存失败:', e)
+  }
   
-  ElMessage.success(`已清除${clearedCount}个缓存项`);
+  ElMessage.success(`已清除${clearedCount}个缓存项`)
   
   // 重新加载分类数据
-  fetchCategories();
-};
+  fetchCategories()
+}
 
 // 获取特定分类的职业数据
 const careers = ref<Career[]>([]);
@@ -826,64 +918,104 @@ const getFromCache = (categoryId: string, bypassCache = false): { data: Career[]
 // 保存数据到缓存
 const saveToCache = (categoryId: string, data: Career[]) => {
   try {
-    const cacheKey = `careers_${categoryId}`;
+    if (!data || data.length === 0) {
+      console.warn('试图缓存空数据，categoryId:', categoryId)
+      return
+    }
+    
+    // 同时保存到Pinia存储（使用适配函数）
+    careerStore.updateCareers(categoryId, adaptCareerForStore(data, categoryId))
+    
+    // 保存到本地存储作为备份
+    const cacheKey = `careers_${categoryId}`
     const cacheData = {
-      data,
-      timestamp: Date.now()
-    };
-    localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-    console.log('已缓存职业数据:', data.length, '条记录');
-  } catch (e) {
-    console.error('缓存数据失败:', e);
+      timestamp: Date.now(),
+      data: data
+    }
+    
+    // 将数据转为JSON字符串
+    const jsonData = JSON.stringify(cacheData)
+    
+    // 保存到localStorage
+    localStorage.setItem(cacheKey, jsonData)
+    console.log(`成功缓存职业数据 (categoryId: ${categoryId}), ${data.length} 条记录`)
+  } catch (error) {
+    console.error('缓存职业数据失败:', error)
   }
-};
+}
 
 const fetchCareers = async (categoryId: string) => {
   try {
     // 重置状态
-    errorMessage.value = '';
-    isLoading.value = true;
+    errorMessage.value = ''
+    isLoading.value = true
     
-    console.log('开始获取职业数据，分类ID:', categoryId);
+    console.log('开始获取职业数据，分类ID:', categoryId)
     
     // 检查网络连接
     if (!checkNetworkConnection()) {
-      console.error('网络连接已断开');
-      ElMessage.error('网络连接已断开，请检查网络设置');
-      errorMessage.value = '网络连接已断开';
-      isLoading.value = false;
-      return;
+      console.error('网络连接已断开')
+      ElMessage.error('网络连接已断开，请检查网络设置')
+      errorMessage.value = '网络连接已断开'
+      isLoading.value = false
+      return
     }
     
     // 检测特殊类别，对于ID 33强制绕过缓存
-    const isSpecialCategory = categoryId === '33';
-    const bypassCache = isSpecialCategory;
+    const isSpecialCategory = categoryId === '33'
+    const bypassCache = isSpecialCategory
     
     if (isSpecialCategory) {
-      console.log('检测到软件工程师分类ID 33，强制从服务器获取数据');
+      console.log('检测到软件工程师分类ID 33，强制从服务器获取数据')
+      // 为特殊分类清除Pinia缓存
+      careerStore.clearCategoryCache(categoryId)
     }
     
-    // 首先尝试从缓存获取数据（对特殊分类会绕过）
-    const cached = getFromCache(categoryId, bypassCache);
-    if (cached && cached.data.length > 0) {
-      console.log('从缓存加载职业数据:', cached.data.length, '条记录');
-      careers.value = cached.data;
+    // 首先尝试从Pinia商店获取数据
+    const storeData = careerStore.getCareers(categoryId)
+    if (storeData && !bypassCache) {
+      console.log('从Pinia状态获取职业数据:', storeData.length, '条记录')
+      careers.value = storeData
       
       // 延迟选择第一个职业，确保DOM更新
       setTimeout(() => {
         if (careers.value.length > 0 && !selectedCareer.value) {
-          console.log('从缓存数据中选择第一个职业');
-          selectedCareer.value = { ...careers.value[0] };
+          console.log('从Pinia状态选择第一个职业')
+          selectedCareer.value = { ...careers.value[0] }
         }
-      }, 100);
+      }, 100)
       
-      isLoading.value = false;
-      return;
+      isLoading.value = false
+      return
+    }
+    
+    // 如果Pinia没有数据，尝试从localStorage获取（兼容旧数据）
+    if (!bypassCache) {
+      // 首先尝试从缓存获取数据（对特殊分类会绕过）
+      const cached = getFromCache(categoryId, bypassCache)
+      if (cached && cached.data.length > 0) {
+        console.log('从localStorage缓存加载职业数据:', cached.data.length, '条记录')
+        careers.value = cached.data
+        
+        // 将数据也保存到Pinia商店中
+        careerStore.updateCareers(categoryId, adaptCareerForStore(cached.data, categoryId))
+        
+        // 延迟选择第一个职业，确保DOM更新
+        setTimeout(() => {
+          if (careers.value.length > 0 && !selectedCareer.value) {
+            console.log('从缓存数据中选择第一个职业')
+            selectedCareer.value = { ...careers.value[0] }
+          }
+        }, 100)
+        
+        isLoading.value = false
+        return
+      }
     }
     
     // 清空当前数据，确保状态干净
-    careers.value = [];
-    await nextTick();
+    careers.value = []
+    await nextTick()
     
     // 获取认证令牌
     const token = localStorage.getItem('auth_token')
@@ -1191,24 +1323,36 @@ const fetchCareers = async (categoryId: string) => {
       errorMessage.value = '服务器未响应，请检查网络连接';
       ElMessage.error('服务器未响应，请检查网络连接或稍后重试');
       
-      // 尝试从缓存加载数据
-      const cachedData = getFromCache(categoryId, false); // 允许使用缓存应对网络错误
-      if (cachedData) {
-        careers.value = cachedData.data;
-        ElMessage.info('已加载缓存数据');
-        console.log('已加载缓存数据:', cachedData.data.length, '条记录');
+      // 尝试从Pinia获取数据
+      const storeData = careerStore.getCareers(categoryId)
+      if (storeData) {
+        careers.value = storeData
+        ElMessage.info('已加载状态缓存数据')
+        console.log('已加载状态缓存数据:', storeData.length, '条记录')
       } else {
-        // 创建一些默认数据
-        careers.value = [
-          createDefaultCareer(1, categoryId, '软件工程师', '稳定发展期'),
-          createDefaultCareer(2, categoryId, '数据分析师', '快速发展期'),
-          createDefaultCareer(3, categoryId, '产品经理', '稳定发展期')
-        ];
-        console.log('已创建默认职业数据');
+        // 尝试从本地存储获取
+        const cachedData = getFromCache(categoryId, false) // 允许使用缓存应对网络错误
+        if (cachedData) {
+          careers.value = cachedData.data
+          // 同步到Pinia商店
+          careerStore.updateCareers(categoryId, adaptCareerForStore(cachedData.data, categoryId))
+          ElMessage.info('已加载缓存数据')
+          console.log('已加载缓存数据:', cachedData.data.length, '条记录')
+        } else {
+          // 创建一些默认数据
+          careers.value = [
+            createDefaultCareer(1, categoryId, '软件工程师', '稳定发展期'),
+            createDefaultCareer(2, categoryId, '数据分析师', '快速发展期'),
+            createDefaultCareer(3, categoryId, '产品经理', '稳定发展期')
+          ]
+          console.log('已创建默认职业数据')
+          // 保存默认数据到Pinia商店
+          careerStore.updateCareers(categoryId, adaptCareerForStore(careers.value, categoryId))
+        }
       }
       
       if (careers.value.length > 0) {
-        selectedCareer.value = { ...careers.value[0] };
+        selectedCareer.value = { ...careers.value[0] }
       }
     } else {
       errorMessage.value = `请求错误: ${error.message}`;
@@ -2172,89 +2316,44 @@ const handleGoToCategory = () => {
 }
 
 // 改进：刷新数据函数，确保每次请求发送
-const refreshData = () => {
-  if (activeCategory.value) {
-    // 先清除该分类的缓存
-    const cacheKey = `careers_${activeCategory.value}`;
-    localStorage.removeItem(cacheKey);
-    
-    ElMessage.info('正在重新获取数据...');
-    // 先清空当前数据，确保状态正确更新
-    careers.value = [];
-    selectedCareer.value = null;
-    errorMessage.value = '';
-    
-    // 显示加载状态
-    isLoading.value = true;
-    
-    // 重新获取数据 - 设置短暂延迟确保UI更新
-    setTimeout(() => {
-      fetchCareers(activeCategory.value);
-    }, 100);
-  } else {
-    ElMessage.warning('未选择分类');
-  }
+const refreshData = async () => {
+  ElMessage.info('正在刷新所有数据...');
+  
+  // 清空缓存
+  clearCache();
+  
+  // 重新获取分类数据
+  await fetchCategories();
+  
+  ElMessage.success('数据已刷新');
 };
 
-// 新增：检查并修复careers状态同步问题
-const checkAndFixCareersState = () => {
-  console.log('检查careers状态同步');
-  if (activeCategory.value && careers.value.length === 0) {
-    console.log('检测到careers数组为空，尝试重新获取数据');
-    fetchCareers(activeCategory.value);
-    return true;
-  }
-  
-  // 检查careers.value中是否有重复ID
-  const ids = new Set();
-  const duplicateIds = [];
-  careers.value.forEach(career => {
-    if (ids.has(career.id)) {
-      duplicateIds.push(career.id);
-    } else {
-      ids.add(career.id);
-    }
-  });
-  
-  if (duplicateIds.length > 0) {
-    console.warn('检测到重复的职业ID:', duplicateIds);
-    
-    // 尝试修复重复ID问题
-    const uniqueCareers = [];
-    const seenIds = new Set();
-    
-    careers.value.forEach(career => {
-      if (!seenIds.has(career.id)) {
-        seenIds.add(career.id);
-        uniqueCareers.push(career);
-      }
-    });
-    
-    console.log(`修复前职业数量: ${careers.value.length}, 修复后: ${uniqueCareers.length}`);
-    careers.value = uniqueCareers;
-    return true;
-  }
-  
-  return false;
-};
-
-// 增强版本：清除缓存并重新获取
+// 清除缓存
 const clearCache = () => {
-  // 清除分类和职业相关的本地缓存
-  const keys = Object.keys(localStorage);
-  let clearedCount = 0;
-  
-  keys.forEach(key => {
-    if (key.startsWith('careers_') || key.startsWith('categories_')) {
-      localStorage.removeItem(key);
-      clearedCount++;
+  // 清除与职业相关的所有缓存
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('careers_')) {
+      keysToRemove.push(key);
     }
+  }
+  
+  keysToRemove.forEach(key => {
+    localStorage.removeItem(key);
   });
   
-  ElMessage.success(`已清除${clearedCount}个缓存项`);
-  
-  // 重新加载分类数据
-  fetchCategories();
+  ElMessage.success(`已清除${keysToRemove.length}项缓存数据`);
+};
+
+// 检查并修复职业数据状态
+const checkAndFixCareersState = () => {
+  if (careers.value.length === 0 && activeCategory.value) {
+    console.log('检测到空职业数据，尝试重新获取分类:', activeCategory.value);
+    fetchCategoryCareers(activeCategory.value);
+    return true;
+  }
+  return false;
 };
 
 // 修复渲染问题：使用更强大的watch，监视多个可能影响渲染的值
@@ -2741,7 +2840,7 @@ const tryFallbackFavorite = async (careerId: number, action: 'add' | 'delete') =
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .career-library {
   padding: 20px;
   min-height: calc(100vh - 60px);
@@ -2759,65 +2858,76 @@ const tryFallbackFavorite = async (careerId: number, action: 'add' | 'delete') =
 }
 
 .category-menu {
+  width: 100%;
   border-right: none;
+  
+  .el-sub-menu {
+    // 确保子菜单能够显示完整
+    width: 100%;
+    
+    &.is-active {
+      .submenu-title {
+        color: var(--el-color-primary);
+        font-weight: bold;
+      }
+    }
+    
+    .el-sub-menu__title {
+      height: auto;
+      padding: 12px 20px;
+    }
+  }
+  
+  .el-menu-item {
+    height: auto;
+    padding: 10px 20px 10px 48px;
+    line-height: 1.5;
+    
+    &.is-active {
+      background-color: var(--el-color-primary-light-9);
+    }
+  }
+  
+  // 增加缩进效果
+  .el-sub-menu .el-sub-menu .el-menu-item {
+    padding-left: 65px;
+  }
+  
+  // 分类指示器样式
+  .category-indicator {
+    width: 3px;
+    height: 16px;
+    position: absolute;
+    left: 0;
+    border-radius: 0 2px 2px 0;
+    transition: all 0.3s;
+    
+    &.active-indicator {
+      background-color: var(--el-color-primary);
+    }
+  }
+  
+  // 提高子菜单标题的可点击性
+  .submenu-title {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    cursor: pointer;
+    
+    .el-icon {
+      margin-right: 5px;
+    }
+  }
 }
 
-/* 增强分类菜单中选中项的样式 */
-:deep(.el-menu-item.is-active) {
-  background-color: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  font-weight: bold;
-  border-left: 3px solid var(--el-color-primary);
-  transition: all 0.3s ease;
-}
-
-/* 添加hover效果 */
-:deep(.el-menu-item:hover) {
-  background-color: var(--el-color-primary-light-8);
-  transition: all 0.3s ease;
-}
-
-/* 当子菜单展开并且是活动状态时增加视觉效果 */
-:deep(.el-sub-menu.is-active > .el-sub-menu__title) {
-  color: var(--el-color-primary);
-  font-weight: bold;
-  transition: all 0.3s ease;
-}
-
-/* 为选中状态的子菜单添加左边框标识 */
-:deep(.el-sub-menu.is-opened.is-active > .el-sub-menu__title) {
-  border-left: 3px solid var(--el-color-primary);
-  background-color: var(--el-color-primary-light-9);
-  transition: all 0.3s ease;
-}
-
-/* 子菜单展开后增加一些间距和背景色区分 */
-:deep(.el-menu--inline) {
-  background-color: var(--el-color-info-light-9);
-  margin-left: 12px;
-  border-radius: 4px;
-  padding-left: 0;
-}
-
-:deep(.submenu-title) {
-  display: flex;
-  align-items: center;
-  height: 40px;
-  line-height: 40px;
-  padding-left: 20px !important;
-  transition: all 0.3s ease;
-  width: 100%; /* 恢复宽度样式 */
-  cursor: pointer; /* 恢复鼠标指针样式 */
-}
-
-:deep(.submenu-title:hover) {
-  color: var(--el-color-primary);
-}
-
-.career-count {
-  margin-left: 4px;
-  color: #909399;
-  font-size: 12px;
+// 响应式优化
+@media (max-width: 1200px) {
+  .category-menu {
+    .el-menu-item, .el-sub-menu__title {
+      padding: 8px 15px;
+      font-size: 13px;
+    }
+  }
 }
 
 .list-header {

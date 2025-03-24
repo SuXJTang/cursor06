@@ -295,7 +295,13 @@ const handleAvatarUpload = async (options: any) => {
     
     // 更新头像URL
     if (responseData && responseData.avatar_url) {
-      userForm.avatar_url = responseData.avatar_url
+      // 处理头像URL，确保包含正确的API前缀
+      let avatarUrl = responseData.avatar_url
+      // 如果URL不是以/api/开头，且不是完整的http URL，则添加/api前缀
+      if (!avatarUrl.startsWith('/api/') && !avatarUrl.startsWith('http')) {
+        avatarUrl = `/api${avatarUrl}`
+      }
+      userForm.avatar_url = avatarUrl
       
       ElMessage.success('头像上传成功')
     }

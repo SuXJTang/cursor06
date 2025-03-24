@@ -1,5 +1,5 @@
-import type { LoginParams, LoginResult, RegisterParams, RegisterResult, UserInfo } from '@/types/user'
-import { http } from '@/utils/http'
+import type { LoginParams, LoginResult, RegisterParams, RegisterResult, UserInfo, FeedbackData, FeedbackResult } from '../types/user'
+import { http } from '../utils/http'
 
 /**
  * 用户登录
@@ -45,4 +45,12 @@ export function changePassword(data: { oldPassword: string; newPassword: string 
  */
 export function logout() {
   return http.post('/auth/logout')
+}
+
+/**
+ * 提交用户反馈
+ * @param data 反馈信息
+ */
+export function submitFeedback(data: FeedbackData) {
+  return http.post<FeedbackResult>('/user/feedback', data)
 } 

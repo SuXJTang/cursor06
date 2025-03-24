@@ -402,19 +402,25 @@ const selectAnswer = (value: number) => {
   }, 300)
 }
 
-// 职业小贴士
-const tips = [
-  '选择职业时，要考虑自己的兴趣爱好，这样能让工作更有动力。',
-  '了解行业发展趋势，可以帮助你做出更明智的职业选择。',
-  '除了专业技能，沟通能力和团队协作也是职场中的重要能力。',
-  '持续学习和自我提升是职业发展的关键。',
-  '工作与生活的平衡也是选择职业时需要考虑的重要因素。'
-]
-
+// 获取提示信息
 const getCurrentTip = () => {
-  const index = Math.floor(Math.random() * tips.length)
-  return tips[index]
+  const tips = [
+    "测评结果会根据您的回答生成个性化的职业推荐",
+    "职业匹配度越高，表示您与该职业的适配性越好",
+    "您的测评结果将被保存，随时可以重新查看",
+    "测评结果会从兴趣、能力和价值观多维度分析",
+    "我们的算法基于职业心理学理论，为您提供科学的职业指导"
+  ];
+      
+  return tips[Math.floor(Math.random() * tips.length)];
 }
+
+const analysisProgress = computed(() => {
+  if (currentStep.value >= analyzeSteps.length) {
+    return 100;
+  }
+  return Math.round((currentStep.value / analyzeSteps.length) * 100);
+})
 </script>
 
 <template>
@@ -587,92 +593,51 @@ const getCurrentTip = () => {
 
     <!-- 分析动画 -->
     <div v-else class="analysis-container">
-      <div class="cyber-grid" />
       <div class="analysis-content">
-        <div class="tech-circle">
-          <div class="circle-outer" />
-          <div class="circle-inner">
-            <div class="progress-ring">
-              <svg class="progress-ring__circle" viewBox="0 0 100 100">
-                <defs>
-                  <linearGradient
-                    id="gradient"
-                    x1="0%"
-                    y1="0%"
-                    x2="100%"
-                    y2="0%"
-                  >
-                    <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#2196F3;stop-opacity:1" />
-                  </linearGradient>
-                </defs>
-                <circle
-                  class="progress-ring__background"
-                  cx="50"
-                  cy="50"
-                  r="45"
-                />
-                <circle
-                  class="progress-ring__progress"
-                  cx="50"
-                  cy="50"
-                  r="45"
-                />
-              </svg>
-              <div class="progress-ring__icon">
-                <el-icon v-if="currentStep < analyzeSteps.length" class="rotating">
-                  <Loading />
-                </el-icon>
-                <el-icon v-else class="success-icon">
-                  <Check />
-                </el-icon>
-              </div>
-            </div>
+        <el-card class="result-card">
+          <div class="result-header">
+            <h2>数据分析中</h2>
+            <p>正在为您生成职业测评报告，请稍候...</p>
           </div>
-          <div class="tech-dots">
-            <span v-for="i in 8" :key="i" class="dot" />
+          
+          <div class="analysis-progress">
+            <el-progress 
+              type="circle" 
+              :percentage="analysisProgress" 
+              :stroke-width="8"
+              :status="currentStep >= analyzeSteps.length ? 'success' : ''"
+              :color="currentStep >= analyzeSteps.length ? '#67C23A' : '#409EFF'"
+            />
           </div>
-        </div>
-
-        <div class="analysis-steps-container">
-          <div class="step-line" />
-          <div class="steps-wrapper">
-            <div 
-              v-for="(step, index) in analyzeSteps" 
-              :key="index"
-              class="tech-step"
-              :class="{ 
-                'active': index === currentStep,
-                'completed': index < currentStep
-              }"
+          
+          <div class="analysis-steps">
+            <el-steps 
+              :active="currentStep" 
+              finish-status="success"
+              align-center
             >
-              <div class="step-node">
-                <div class="node-inner" />
-              </div>
-              <div class="step-content">
-                <h4>{{ step.title }}</h4>
-                <p>{{ step.desc }}</p>
-              </div>
-            </div>
+              <el-step 
+                v-for="(step, index) in analyzeSteps" 
+                :key="index" 
+                :title="step.title"
+                :description="step.desc"
+              />
+            </el-steps>
           </div>
-        </div>
-
-        <div class="tech-card">
-          <div class="card-header">
-            <div class="header-line" />
-            <h3>职业小贴士</h3>
-            <div class="header-line" />
+          
+          <div class="result-footer">
+            <el-alert
+              type="info"
+              :closable="false"
+              show-icon
+            >
+              <template #title>
+                <span class="tip-title">职业小贴士</span>
+              </template>
+              <div class="tip-content">{{ getCurrentTip() }}</div>
+            </el-alert>
           </div>
-          <div class="card-content">
-            <p>{{ getCurrentTip() }}</p>
-          </div>
-          <div class="card-decoration">
-            <div class="corner top-left" />
-            <div class="corner top-right" />
-            <div class="corner bottom-left" />
-            <div class="corner bottom-right" />
-          </div>
-        </div>
+        </el-card>
       </div>
     </div>
   </div>
@@ -1145,7 +1110,7 @@ const getCurrentTip = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #1a1f25 0%, #2c3e50 100%);
+  background-color: #f5f7fa;
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -1154,347 +1119,57 @@ const getCurrentTip = () => {
   animation: fadeIn 0.5s ease-out;
 }
 
-.cyber-grid {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    linear-gradient(rgba(33, 150, 243, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(33, 150, 243, 0.1) 1px, transparent 1px);
-  background-size: 50px 50px;
-  animation: gridMove 20s linear infinite;
-  opacity: 0.3;
-}
-
 .analysis-content {
   max-width: 800px;
   width: 90%;
-  padding: 40px;
   position: relative;
   z-index: 1;
   animation: contentFadeIn 0.8s ease-out;
 }
 
-.tech-circle {
-  position: relative;
-  width: 200px;
-  height: 200px;
-  margin: 0 auto 60px;
-  animation: circleAppear 1s ease-out;
-}
-
-.circle-outer {
-  position: absolute;
-  top: -10px;
-  left: -10px;
-  right: -10px;
-  bottom: -10px;
-  border: 2px solid rgba(33, 150, 243, 0.3);
-  border-radius: 50%;
-  animation: rotate 10s linear infinite;
-}
-
-.circle-outer::before {
-  content: '';
-  position: absolute;
-  top: -5px;
-  left: 50%;
-  width: 15px;
-  height: 15px;
-  background: #2196F3;
-  border-radius: 50%;
-  box-shadow: 0 0 30px #2196F3;
-  transform: translateX(-50%);
-  animation: glow 2s ease-in-out infinite;
-}
-
-.circle-outer::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    transparent,
-    rgba(33, 150, 243, 0.3) 45deg,
-    rgba(33, 150, 243, 0.6) 90deg,
-    transparent 180deg
-  );
-  animation: rotate 3s linear infinite;
-}
-
-.progress-ring__circle {
-  transform: rotate(-90deg);
-  filter: drop-shadow(0 0 8px rgba(33, 150, 243, 0.5));
-}
-
-.progress-ring__background {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.05);
-  stroke-width: 4;
-}
-
-.progress-ring__progress {
-  fill: none;
-  stroke: url(#gradient);
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-dasharray: 283;
-  stroke-dashoffset: 283;
-  animation: progress 1.5s ease-out forwards;
-  filter: drop-shadow(0 0 8px rgba(33, 150, 243, 0.8));
-}
-
-.tech-dots {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  animation: rotate 20s linear infinite;
-}
-
-.dot {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  background: #2196F3;
-  border-radius: 50%;
-  animation: pulse 2s ease-in-out infinite;
-  box-shadow: 0 0 15px #2196F3;
-}
-
-.dot:nth-child(1) { transform: rotate(0deg) translateX(100px); animation-delay: 0s; }
-.dot:nth-child(2) { transform: rotate(45deg) translateX(100px); animation-delay: 0.25s; }
-.dot:nth-child(3) { transform: rotate(90deg) translateX(100px); animation-delay: 0.5s; }
-.dot:nth-child(4) { transform: rotate(135deg) translateX(100px); animation-delay: 0.75s; }
-.dot:nth-child(5) { transform: rotate(180deg) translateX(100px); animation-delay: 1s; }
-.dot:nth-child(6) { transform: rotate(225deg) translateX(100px); animation-delay: 1.25s; }
-.dot:nth-child(7) { transform: rotate(270deg) translateX(100px); animation-delay: 1.5s; }
-.dot:nth-child(8) { transform: rotate(315deg) translateX(100px); animation-delay: 1.75s; }
-
-.step-line {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: linear-gradient(to bottom, 
-    transparent,
-    rgba(33, 150, 243, 0.2) 20%,
-    rgba(33, 150, 243, 0.4) 50%,
-    rgba(33, 150, 243, 0.2) 80%,
-    transparent
-  );
-  transform: translateX(-50%);
-}
-
-.tech-step {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 30px;
-  opacity: 0.3;
-  transition: all 0.5s ease;
-  transform: translateX(-20px);
-}
-
-.tech-step.active {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.tech-step.completed {
-  opacity: 0.8;
-  transform: translateX(0);
-}
-
-.step-node {
-  position: relative;
-  width: 24px;
-  height: 24px;
-  background: rgba(33, 150, 243, 0.1);
-  border-radius: 50%;
-  margin-right: 20px;
-  flex-shrink: 0;
-  transition: all 0.3s ease;
-}
-
-.step-node::before {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  background: rgba(33, 150, 243, 0.1);
-  animation: ripple 2s linear infinite;
-  opacity: 0;
-}
-
-.tech-step.active .step-node::before {
-  opacity: 1;
-}
-
-.node-inner {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 12px;
-  height: 12px;
-  background: #2196F3;
-  border-radius: 50%;
-  transform: translate(-50%, -50%) scale(0.8);
-  box-shadow: 0 0 20px #2196F3;
-  transition: all 0.3s ease;
-}
-
-.tech-step.active .node-inner {
-  transform: translate(-50%, -50%) scale(1);
-  box-shadow: 0 0 30px #2196F3;
-}
-
-.tech-card {
-  position: relative;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 12px;
-  padding: 30px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(33, 150, 243, 0.2);
-  animation: cardAppear 0.8s ease-out;
+.result-card {
+  border-radius: 8px;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.tech-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  );
-  animation: shimmer 3s infinite;
+.result-header {
+  text-align: center;
+  margin-bottom: 30px;
 }
 
-.card-header {
+.result-header h2 {
+  font-size: 24px;
+  color: #303133;
+  margin-bottom: 8px;
+}
+
+.result-header p {
+  font-size: 16px;
+  color: #606266;
+}
+
+.analysis-progress {
   display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 20px;
+  justify-content: center;
+  margin: 30px 0;
 }
 
-.header-line {
-  flex-grow: 1;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #2196F3, transparent);
+.analysis-steps {
+  margin: 40px 0;
 }
 
-.card-header h3 {
-  margin: 0;
-  color: #fff;
-  font-size: 20px;
-  white-space: nowrap;
+.result-footer {
+  margin-top: 30px;
 }
 
-.card-content {
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.8;
+.tip-title {
+  font-weight: 600;
 }
 
-.card-decoration .corner {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border: 2px solid #2196F3;
-}
-
-.corner.top-left {
-  top: -2px;
-  left: -2px;
-  border-right: none;
-  border-bottom: none;
-}
-
-.corner.top-right {
-  top: -2px;
-  right: -2px;
-  border-left: none;
-  border-bottom: none;
-}
-
-.corner.bottom-left {
-  bottom: -2px;
-  left: -2px;
-  border-right: none;
-  border-top: none;
-}
-
-.corner.bottom-right {
-  bottom: -2px;
-  right: -2px;
-  border-left: none;
-  border-top: none;
-}
-
-@keyframes gridMove {
-  0% {
-    transform: translateY(0);
-  }
-  100% {
-    transform: translateY(50px);
-  }
-}
-
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1) rotate(var(--rotation)) translateX(100px);
-    opacity: 0.5;
-  }
-  50% {
-    transform: scale(1.5) rotate(var(--rotation)) translateX(100px);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1) rotate(var(--rotation)) translateX(100px);
-    opacity: 0.5;
-  }
-}
-
-@keyframes progress {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-.rotating {
-  animation: rotate 2s linear infinite;
-}
-
-.success-icon {
-  color: #67C23A;
-  animation: scaleIn 0.3s ease-out;
-}
-
-@keyframes scaleIn {
-  from {
-    transform: scale(0);
-  }
-  to {
-    transform: scale(1);
-  }
+.tip-content {
+  padding: 8px 0;
+  line-height: 1.6;
 }
 
 @keyframes fadeIn {
@@ -1510,60 +1185,6 @@ const getCurrentTip = () => {
   from {
     opacity: 0;
     transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes circleAppear {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes glow {
-  0% {
-    box-shadow: 0 0 20px #2196F3;
-  }
-  50% {
-    box-shadow: 0 0 40px #2196F3;
-  }
-  100% {
-    box-shadow: 0 0 20px #2196F3;
-  }
-}
-
-@keyframes ripple {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(2);
-    opacity: 0;
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
-  }
-}
-
-@keyframes cardAppear {
-  from {
-    opacity: 0;
-    transform: translateY(40px);
   }
   to {
     opacity: 1;

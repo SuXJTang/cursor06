@@ -208,11 +208,19 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { Briefcase, Reading, DataLine, Opportunity, Pointer, Suitcase, Trophy, Monitor } from '@element-plus/icons-vue'
+import { useRecommendationStore } from '@/stores/recommendation'
 
 const router = useRouter()
 const route = useRoute()
 const score = ref(0)
+const recommendationStore = useRecommendationStore() // 使用推荐store
+
+// 根据路由参数获取测评结果
+const assessmentId = computed(() => {
+  return route.query.assessmentId || ''
+})
 
 // 根据分数计算进度条颜色
 const progressColor = computed(() => {
@@ -222,8 +230,51 @@ const progressColor = computed(() => {
   return '#f56c6c'
 })
 
+// 从store获取测评结果
 onMounted(() => {
-  // 添加动画效果，让分数从0增长到88
+  if (assessmentId.value) {
+    // 从store中查找对应ID的测评结果
+    const assessment = recommendationStore.assessmentResults.find(
+      result => result.id === assessmentId.value
+    )
+    
+    if (assessment) {
+      // 设置当前测评结果
+      recommendationStore.currentAssessmentResult = assessment
+      
+      // 设置分数
+      score.value = assessment.summary?.score || 88
+      
+      // 从assessment中获取推荐职业
+      if (assessment.recommendedCareers && assessment.recommendedCareers.length > 0) {
+        bestCareer.value = {
+          title: assessment.recommendedCareers[0].title,
+          matchRate: assessment.recommendedCareers[0].matchDegree,
+          skills: assessment.recommendedCareers[0].skills || ['问题分析', '技术支持', '沟通能力', 'IT基础设施']
+        }
+        
+        // 设置其他推荐职业
+        if (assessment.recommendedCareers.length > 1) {
+          otherCareers.value = assessment.recommendedCareers.slice(1).map(career => ({
+            title: career.title,
+            matchRate: career.matchDegree,
+            description: career.description || `${career.title}负责相关工作，需要掌握多种技能。`,
+            skills: career.skills || []
+          }))
+        }
+      }
+    } else {
+      // 未找到对应测评结果，使用动画效果
+      animateScore()
+    }
+  } else {
+    // 没有提供测评ID，使用动画效果
+    animateScore()
+  }
+})
+
+// 分数动画效果
+const animateScore = () => {
   let currentScore = 0
   const targetScore = 88
   const duration = 1500 // 1.5秒
@@ -240,7 +291,7 @@ onMounted(() => {
       score.value = Math.round(currentScore)
     }
   }, interval)
-})
+}
 
 // 最佳职业
 const bestCareer = ref({
@@ -307,11 +358,13 @@ const backToHome = () => {
 // 跳转到反馈页面
 const goToFeedback = () => {
   // 传递当前测评ID和推荐的职业ID作为参数
+  const careerId = recommendationStore.currentAssessmentResult?.recommendedCareers?.[0]?.id || 'tech-support-engineer'
+  
   router.push({
     path: '/feedback',
     query: {
-      assessmentId: route.query.assessmentId || '',
-      careerId: 'tech-support-engineer' // 使用固定值或从数据中获取
+      assessmentId: assessmentId.value,
+      careerId: careerId
     }
   })
 }

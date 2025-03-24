@@ -2,6 +2,8 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AssessmentBanner from '../components/common/AssessmentBanner.vue'
+import { ElMessage } from 'element-plus'
+import { useRecommendationStore } from '@/stores/recommendation'
 
 const router = useRouter()
 
@@ -161,6 +163,9 @@ const analyzeSteps = [
   { title: '报告生成', desc: '生成个性化测评报告...' }
 ]
 
+// 获取推荐store
+const recommendationStore = useRecommendationStore()
+
 // 模拟分析过程
 const startAnalysis = async () => {
   isAnalyzing.value = true
@@ -175,6 +180,8 @@ const startAnalysis = async () => {
     
     // 计算测评结果
     const result = {
+      id: `assessment-${Date.now()}`,
+      timestamp: new Date().toISOString(),
       summary: {
         score: calculateOverallScore(),
         careerDirection: determineCareerDirection(),
@@ -186,8 +193,30 @@ const startAnalysis = async () => {
         ability: analyzeAbility(),
         personality: analyzePersonality()
       },
-      careerPath: determineCareerPath()
+      recommendedCareers: [
+        {
+          id: 1,
+          title: determineCareerDirection(),
+          matchDegree: parseInt(calculateMatchDegree()),
+          skills: ['问题分析', '技术支持', '沟通能力', 'IT基础设施']
+        },
+        {
+          id: 2,
+          title: '系统运维工程师',
+          matchDegree: 85,
+          skills: ['系统运维', '网络管理', '故障排查']
+        },
+        {
+          id: 3,
+          title: '技术文档工程师',
+          matchDegree: 78,
+          skills: ['技术写作', '文档管理', '需求分析']
+        }
+      ]
     }
+    
+    // 保存结果到推荐store
+    recommendationStore.saveAssessmentResult(result)
     
     // 分析完成后重置状态
     isAnalyzing.value = false
@@ -195,8 +224,7 @@ const startAnalysis = async () => {
     // 跳转到报告页面并携带数据
     router.push({
       path: '/result',
-      query: { timestamp: Date.now() }, // 防止缓存
-      state: { assessmentResult: result }
+      query: { assessmentId: result.id }
     })
   } catch (error) {
     console.error('分析过程出错:', error)
@@ -232,7 +260,7 @@ const calculateMatchDegree = () => {
   const values = Object.values(answers)
   const total = values.reduce((sum, value) => sum + value, 0)
   const matchPercentage = Math.round((total / (values.length * 5)) * 100)
-  return `${matchPercentage}%`
+  return matchPercentage
 }
 
 // 分析特征

@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router'
 import AssessmentBanner from '../components/common/AssessmentBanner.vue'
 import { ElMessage } from 'element-plus'
 import { useRecommendationStore } from '@/stores/recommendation'
+import request from '@/api/request'
+import { Check, Setting, Back } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -25,6 +27,248 @@ const steps = [
 
 // 当前步骤
 const activeStep = ref(0)
+
+// 修改测评选择界面状态
+const showQuestionSelector = ref(true)
+const selectedQuestionMode = ref('standard')
+const isLoading = ref(false) // 添加加载状态
+const isCustomizing = ref(false) // 添加自定义设置状态
+
+// 问题数量选项
+const questionModes = reactive([
+  {
+    value: 'simple',
+    label: '简洁测评',
+    description: '约9个问题，3-5分钟完成',
+    icon: 'Timer',
+    questions: 9
+  },
+  {
+    value: 'standard',
+    label: '标准测评',
+    description: '约21个问题，10-15分钟完成',
+    icon: 'List',
+    questions: 21
+  },
+  {
+    value: 'detailed',
+    label: '详细测评',
+    description: '约27个问题，15-20分钟完成',
+    icon: 'DocumentChecked',
+    questions: 27
+  }
+])
+
+// 定义问题模式类型
+interface QuestionMode {
+  value: string
+  label: string
+  description: string
+  icon: string
+  questions: number
+}
+
+// 更新问题描述
+const updateQuestionDescription = (mode: QuestionMode) => {
+  const questions = mode.questions;
+  let time = '3-5';
+  if (questions > 15) {
+    time = '10-15';
+  } else if (questions > 9) {
+    time = '5-10';
+  }
+  mode.description = `约${questions}个问题，${time}分钟完成`;
+}
+
+// 根据用户选择的模式筛选问题
+const filteredQuestions = computed(() => {
+  const mode = questionModes.find(mode => mode.value === selectedQuestionMode.value)
+  const questionsPerSection = Math.ceil(mode?.questions || 9) // 默认为9个问题
+  
+  return questions.map(section => {
+    const filteredItems = [...section.items].slice(0, questionsPerSection)
+    return { ...section, items: filteredItems }
+  })
+})
+
+// 定义问题类型接口
+interface Question {
+  id: number | string;
+  question: string;
+  type: string;
+  options?: Array<{
+    label: string;
+    value: number;
+  }>;
+}
+
+// 定义转换后的问题类型
+interface ProcessedQuestion {
+  id: number | string;
+  content: string;
+  options: Array<{
+    label: string;
+    value: number;
+  }>;
+}
+
+// 定义问题组类型
+interface QuestionGroup {
+  type: string;
+  title: string;
+  items: ProcessedQuestion[];
+}
+
+// 修改开始测评函数，加入API调用
+const startAssessment = async () => {
+  isLoading.value = true
+  
+  try {
+    console.log(`开始请求测评问题，模式: ${selectedQuestionMode.value}`);
+    
+    // 准备三个问题类型的API请求
+    const questionTypes = ['interest', 'ability', 'personality'] as const;
+    const questionsData: QuestionGroup[] = [];
+    
+    // 确定每种类型选取的问题数量
+    const questionsPerType = questionModes.find((mode: QuestionMode) => mode.value === selectedQuestionMode.value)?.questions || 9;
+    // 每个维度的问题数为总数的三分之一
+    const questionsPerDimension = Math.floor(questionsPerType / 3);
+    
+    console.log(`当前测评模式: ${selectedQuestionMode.value}, 每个维度选取: ${questionsPerDimension}个问题`);
+    
+    try {
+      // 并行请求三种类型的问题
+      const requests = questionTypes.map(type => 
+        request.get<Question[]>(`/api/v1/assessments/questions/${type}`)
+          .then((response: Question[]) => {
+            // 确保response是数组
+            const questions = Array.isArray(response) ? response : [];
+            return {
+              type,
+              data: questions.map(q => ({
+                id: q.id,
+                content: q.question,
+                options: [
+                  { label: '非常同意', value: 5 },
+                  { label: '比较同意', value: 4 },
+                  { label: '一般', value: 3 },
+                  { label: '比较不同意', value: 2 },
+                  { label: '非常不同意', value: 1 }
+                ]
+              }))
+            };
+          })
+          .catch((error: Error) => {
+            console.error(`获取${type}类型问题失败:`, error);
+            return { type, data: [] };
+          })
+      );
+      
+      const results = await Promise.all(requests);
+      
+      // 处理请求结果
+      for (const result of results) {
+        const { type, data } = result;
+        
+        if (data.length > 0) {
+          console.log(`成功获取${type}类型问题，数量: ${data.length}`);
+          
+          // 随机选择指定数量的问题
+          const selectedItems = data.length > questionsPerDimension 
+            ? getRandomItems(data, questionsPerDimension)
+            : data;
+          
+          questionsData.push({
+            type,
+            title: type === 'interest' ? '兴趣测评' : 
+                  type === 'ability' ? '能力测评' : '性格测评',
+            items: selectedItems
+          });
+        } else {
+          console.warn(`${type}类型问题数据为空，使用本地问题`);
+          // 使用本地问题数据
+          const localItems = getLocalQuestions(type as 'interest' | 'ability' | 'personality').slice(0, questionsPerDimension);
+          questionsData.push({
+            type,
+            title: type === 'interest' ? '兴趣测评' : 
+                  type === 'ability' ? '能力测评' : '性格测评',
+            items: localItems
+          });
+        }
+      }
+      
+      // 如果获取到了问题数据，则替换本地数据
+      if (questionsData.length > 0) {
+        questions.splice(0, questions.length, ...questionsData);
+      } else {
+        // 所有API请求都失败，使用本地模拟数据
+        ElMessage.warning('无法从服务器获取问题数据，将使用本地问题');
+        useLocalQuestions();
+      }
+    } catch (apiError: any) {
+      console.error('API请求失败:', apiError);
+      
+      if (apiError.response && apiError.response.status === 401) {
+        ElMessage.warning('当前未登录或会话已过期，将使用本地测评问题');
+      } else {
+        ElMessage.warning(`无法连接到服务器，将使用本地测评问题`);
+      }
+      
+      // 使用本地模拟数据
+      useLocalQuestions();
+    }
+    
+    // 隐藏问题选择器，显示测评界面
+    showQuestionSelector.value = false;
+  } catch (error: any) {
+    console.error('测评启动失败:', error);
+    ElMessage.error(`测评启动失败: ${error.message || '未知错误'}`);
+    
+    // 无论如何，仍然允许用户继续测试
+    showQuestionSelector.value = false;
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+// 从数组中随机选择指定数量的元素
+const getRandomItems = <T>(array: T[], count: number): T[] => {
+  const shuffled = [...array].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+}
+
+// 获取本地问题数据
+const getLocalQuestions = (type: 'interest' | 'ability' | 'personality'): ProcessedQuestion[] => {
+  const index = type === 'interest' ? 0 : type === 'ability' ? 1 : 2;
+  return questions[index]?.items || [];
+}
+
+// 使用本地问题数据，根据测评模式筛选数量
+const useLocalQuestions = () => {
+  const mode = questionModes.find(mode => mode.value === selectedQuestionMode.value);
+  const questionsPerDimension = Math.floor((mode?.questions || 9) / 3);
+  
+  const mockQuestions = [
+    {
+      type: 'interest',
+      title: '兴趣测评',
+      items: getLocalQuestions('interest').slice(0, questionsPerDimension)
+    },
+    {
+      type: 'ability',
+      title: '能力测评',
+      items: getLocalQuestions('ability').slice(0, questionsPerDimension)
+    },
+    {
+      type: 'personality',
+      title: '性格测评',
+      items: getLocalQuestions('personality').slice(0, questionsPerDimension)
+    }
+  ];
+  
+  questions.splice(0, questions.length, ...mockQuestions);
+}
 
 // 确保分析状态默认为false，显示问题界面
 const isAnalyzing = ref(false)
@@ -150,8 +394,13 @@ const questions = reactive([
   }
 ])
 
+// 定义答案类型
+interface AnswersMap {
+  [key: string]: number;
+}
+
 // 答案
-const answers = reactive<Record<string, number>>({})
+const answers = reactive<AnswersMap>({})
 
 // 分析状态
 const currentStep = ref(0)
@@ -168,14 +417,96 @@ const recommendationStore = useRecommendationStore()
 
 // 模拟分析过程
 const startAnalysis = async () => {
-  isAnalyzing.value = true
-  currentStep.value = 0
+  isAnalyzing.value = true;
+  currentStep.value = 0;
+  let submissionSuccessful = false;
   
   try {
-    // 模拟每个步骤的分析过程
+    // 获取当前用户ID，如果没有则使用默认值
+    const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
+    const userId = userInfo.id || 1;
+    
+    // 获取当前日期时间（格式化为YYYY-MM-DD HH:MM:SS格式）
+    const now = new Date();
+    const currentDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    
+    // 按类型分类答案
+    interface AnswerItem {
+      question_id: string;
+      question: string;
+      selected_option: string;
+    }
+    
+    const answersByType: Record<string, AnswerItem[]> = {
+      interest: [],
+      ability: [],
+      personality: []
+    };
+    
+    // 遍历所有问题和答案，按类型组织
+    questions.forEach((section: any) => {
+      const type = section.type; // 获取类型：interest, ability, personality
+      
+      // 遍历该类型下的所有问题
+      section.items.forEach((question: any) => {
+        // 如果该问题已回答，则添加到对应类型中
+        if (answers[question.id] !== undefined) {
+          // 获取选项文本而不是数值
+          const selectedValue = answers[question.id];
+          const selectedOption = question.options.find((opt: any) => opt.value === selectedValue)?.label || "未知选项";
+          
+          // 生成8位数字的随机ID
+          const randomId = Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
+          
+          answersByType[type].push({
+            "question_id": `${type}_${randomId}`,
+            "question": question.content,
+            "selected_option": selectedOption
+          });
+        }
+      });
+    });
+    
+    // 构建完整的测评数据数组
+    interface AssessmentItem {
+      type: string;
+      completion_date: string;
+      answers: AnswerItem[];
+    }
+    
+    const assessments: AssessmentItem[] = [];
+    
+    // 添加三种测评类型，即使没有回答也添加空数组
+    ['interest', 'ability', 'personality'].forEach((type) => {
+      assessments.push({
+        "type": type,
+        "completion_date": currentDate,
+        "answers": answersByType[type]
+      });
+    });
+    
+    // 构建最终提交数据格式
+    const submitData = {
+      "user_id": userId,
+      "assessments": assessments
+    };
+    
+    console.log('准备提交测评数据:', JSON.stringify(submitData, null, 2));
+    
+    // 提交测评数据到后端
+    try {
+      const response = await request.post('/api/v1/assessments/submit', submitData);
+      console.log('测评数据提交成功:', response);
+      submissionSuccessful = true;
+    } catch (error) {
+      console.error('提交测评数据失败:', error);
+      ElMessage.warning('提交测评数据失败，将使用本地分析结果');
+    }
+    
+    // 模拟分析过程（仅用于前端展示）
     for (let i = 0; i < analyzeSteps.length; i++) {
-      currentStep.value = i
-      await new Promise(resolve => setTimeout(resolve, 1500)) // 每步等待1.5秒
+      currentStep.value = i;
+      await new Promise(resolve => setTimeout(resolve, 1500)); // 每步等待1.5秒
     }
     
     // 计算测评结果
@@ -212,23 +543,25 @@ const startAnalysis = async () => {
           matchDegree: 78,
           skills: ['技术写作', '文档管理', '需求分析']
         }
-      ]
-    }
+      ],
+      submissionStatus: submissionSuccessful ? 'success' : 'local'
+    };
     
     // 保存结果到推荐store
-    recommendationStore.saveAssessmentResult(result)
+    recommendationStore.saveAssessmentResult(result);
     
     // 分析完成后重置状态
-    isAnalyzing.value = false
+    isAnalyzing.value = false;
     
     // 跳转到报告页面并携带数据
     router.push({
       path: '/result',
       query: { assessmentId: result.id }
-    })
+    });
   } catch (error) {
-    console.error('分析过程出错:', error)
-    isAnalyzing.value = false // 确保发生错误时也重置状态
+    console.error('分析过程出错:', error);
+    isAnalyzing.value = false; // 确保发生错误时也重置状态
+    ElMessage.error('生成测评报告失败，请重试');
   }
 }
 
@@ -449,6 +782,30 @@ const analysisProgress = computed(() => {
   }
   return Math.round((currentStep.value / analyzeSteps.length) * 100);
 })
+
+// 获取当前阶段的问题
+const currentQuestions = computed(() => {
+  return filteredQuestions.value[activeStep.value].items
+})
+
+// 在解答完成后前进到下一步，如果都完成了则开始分析
+const next = () => {
+  // 确认当前阶段的所有问题已回答
+  const currentItems = filteredQuestions.value[activeStep.value].items
+  for (const item of currentItems) {
+    if (!answers[item.id]) {
+      ElMessage.warning('请回答所有问题后再继续')
+      return
+    }
+  }
+
+  // 前进到下一步或完成测评
+  if (activeStep.value < filteredQuestions.value.length - 1) {
+    activeStep.value++
+  } else {
+    startAnalysis()
+  }
+}
 </script>
 
 <template>
@@ -457,7 +814,93 @@ const analysisProgress = computed(() => {
     <AssessmentBanner />
 
     <!-- 测评内容 -->
-    <div v-if="!isAnalyzing" class="assessment-layout">
+    <div v-if="showQuestionSelector" class="question-selector">
+      <el-card class="panel-card">
+        <template #header>
+          <div class="panel-header">
+            <el-icon><InfoFilled /></el-icon>
+            <span>选择测评模式</span>
+            <div class="customize-button">
+              <el-button 
+                type="text" 
+                @click="isCustomizing = !isCustomizing"
+                size="small"
+              >
+                {{ isCustomizing ? '返回' : '自定义问题数量' }}
+              </el-button>
+            </div>
+          </div>
+        </template>
+        <div v-if="!isCustomizing" class="question-modes">
+          <el-radio-group v-model="selectedQuestionMode">
+            <el-radio-button
+              v-for="mode in questionModes"
+              :key="mode.value"
+              :label="mode.value"
+            >
+              <el-icon :size="20" :color="mode.icon">
+                <component :is="mode.icon" />
+              </el-icon>
+              <span>{{ mode.label }}</span>
+              <p>{{ mode.description }}</p>
+            </el-radio-button>
+          </el-radio-group>
+        </div>
+        <div v-else class="customize-panel">
+          <h3>自定义问题数量</h3>
+          <p class="customize-tip">调整各测评模式的问题数量，建议为3的倍数</p>
+          
+          <div v-for="mode in questionModes" :key="mode.value" class="customize-item">
+            <div class="customize-header">
+              <span>{{ mode.label }}</span>
+              <el-tag size="small" effect="plain">{{ mode.questions }}题</el-tag>
+            </div>
+            <el-slider
+              v-model="mode.questions"
+              :min="3"
+              :max="30"
+              :step="3"
+              show-stops
+              @change="updateQuestionDescription(mode)"
+            />
+          </div>
+          
+          <div class="customize-actions">
+            <el-button 
+              type="success" 
+              size="small" 
+              @click="isCustomizing = false"
+            >
+              应用设置
+            </el-button>
+          </div>
+        </div>
+        <div v-if="!isCustomizing" class="start-button">
+          <el-button
+            type="primary"
+            @click="startAssessment"
+            :loading="isLoading"
+            :disabled="isLoading"
+          >
+            {{ isLoading ? '获取问题中...' : '开始测评' }}
+          </el-button>
+        </div>
+        <div v-if="isLoading" class="loading-tip">
+          <el-alert
+            type="info"
+            :closable="false"
+            show-icon
+          >
+            正在从服务器获取{{ 
+              selectedQuestionMode === 'simple' ? '简洁' : 
+              selectedQuestionMode === 'standard' ? '标准' : '详细' 
+            }}测评题目，请稍候...
+          </el-alert>
+        </div>
+      </el-card>
+    </div>
+
+    <div v-else-if="!isAnalyzing" class="assessment-layout">
       <!-- 左侧说明面板 -->
       <div class="side-panel left-panel">
         <el-card class="panel-card">
@@ -501,7 +944,7 @@ const analysisProgress = computed(() => {
               <li>请在安静的环境下完成测评</li>
               <li>每个问题建议思考10-15秒</li>
               <li>请根据第一印象作答</li>
-              <li>测评预计需要15-20分钟</li>
+              <li>测评预计需要{{ selectedQuestionMode === 'simple' ? '3-5' : selectedQuestionMode === 'standard' ? '10-15' : '15-20' }}分钟</li>
             </ul>
           </div>
         </el-card>
@@ -511,7 +954,7 @@ const analysisProgress = computed(() => {
       <div class="assessment-content">
         <div class="assessment-header">
           <div class="header-left">
-            <h2>{{ questions[activeStep].title }}</h2>
+            <h2>{{ filteredQuestions[activeStep].title }}</h2>
             <div class="step-progress">
               <span class="step-count">第 {{ currentQuestionIndex + 1 }}/{{ getCurrentSectionQuestions.length }} 题</span>
               <el-progress 
@@ -1218,5 +1661,111 @@ const analysisProgress = computed(() => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* 问题选择器界面样式 */
+.question-selector {
+  max-width: 800px;
+  margin: 40px auto;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.question-modes {
+  margin: 30px 0;
+}
+
+.el-radio-button {
+  width: 100%;
+  height: 120px;
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+  transition: all 0.3s;
+  cursor: pointer;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+}
+
+.el-radio-button:hover {
+  border-color: #409eff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.el-radio-button:deep(.el-radio-button__inner) {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.el-radio-button span {
+  margin: 10px 0 5px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.el-radio-button p {
+  font-size: 14px;
+  color: #606266;
+  margin: 5px 0 0;
+}
+
+.start-button {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.start-button button {
+  width: 200px;
+  height: 50px;
+  font-size: 16px;
+}
+
+.loading-tip {
+  margin-top: 10px;
+}
+
+.customize-button {
+  float: right;
+}
+
+.customize-panel {
+  padding: 20px;
+}
+
+.customize-item {
+  margin-bottom: 20px;
+}
+
+.customize-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.customize-tip {
+  font-size: 12px;
+  color: #909399;
+}
+
+.customize-actions {
+  text-align: right;
+  margin-top: 20px;
 }
 </style>

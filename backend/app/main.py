@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import os
@@ -6,10 +6,12 @@ from contextlib import asynccontextmanager
 import json
 from typing import Any, Dict
 from datetime import datetime
+import time
 
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.logging_config import app_logger
+from app.utils.logger import logger as utils_logger
 
 # 确保日志目录和模板目录存在
 os.makedirs("app/logs", exist_ok=True)
@@ -103,4 +105,28 @@ def root() -> Dict[str, str]:
 @app.get("/health")
 async def health_check():
     """健康检查接口"""
-    return {"status": "healthy"} 
+    return {"status": "healthy"}
+
+# 确保必要的数据目录存在
+def ensure_dirs_exist():
+    """确保必要的数据目录存在"""
+    dirs = [
+        "data",
+        "data/ai_responses",
+        "data/assessments",
+        "data/resume_results",
+        "data/resume_processing",
+        "data/ocr_texts",
+        "data/resources",
+        "templates"
+    ]
+    for dir_path in dirs:
+        os.makedirs(dir_path, exist_ok=True)
+        app_logger.info(f"确保目录存在: {dir_path}")
+
+@app.on_event("startup")
+async def startup_event():
+    """应用启动时执行的初始化操作"""
+    # 确保必要目录存在
+    ensure_dirs_exist()
+    app_logger.info("Application startup complete.") 

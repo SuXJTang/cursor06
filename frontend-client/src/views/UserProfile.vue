@@ -7,14 +7,6 @@
           <template #header>
             <div class="card-header">
               <h2>个人简历</h2>
-              <div class="upload-actions">
-                <el-button type="primary" @click="startOnlineEdit">
-                  在线编辑
-                </el-button>
-                <el-button type="success" @click="importFromLinkedIn">
-                  从LinkedIn导入
-                </el-button>
-              </div>
             </div>
           </template>
 
@@ -114,14 +106,6 @@
                 <el-table-column label="操作" width="200" fixed="right">
                   <template #default="scope">
                     <div class="resume-actions">
-                      <el-button 
-                        type="primary" 
-                        size="large" 
-                        class="resume-action-btn"
-                        @click="previewResume(scope.row)"
-                      >
-                        预览
-                      </el-button>
                       <el-button 
                         type="danger" 
                         size="large" 
@@ -323,16 +307,6 @@ const importFromUrl = async () => {
   } finally {
     uploadLoading.value = false
   }
-}
-
-// 从LinkedIn导入简历
-const importFromLinkedIn = () => {
-  ElMessage.info('LinkedIn导入功能即将上线，敬请期待')
-}
-
-// 启动在线编辑
-const startOnlineEdit = () => {
-  router.push('/resume-editor')
 }
 
 // 格式化日期

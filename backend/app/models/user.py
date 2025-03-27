@@ -30,7 +30,7 @@ class User(Base):
     skill_assessments = relationship("SkillAssessment", foreign_keys="SkillAssessment.user_id", back_populates="user")
     verified_assessments = relationship("SkillAssessment", foreign_keys="SkillAssessment.verifier_id", back_populates="verifier")
     favorite_careers = relationship("UserFavoriteCareer", back_populates="user")
-    recommendations = relationship("CareerRecommendation", back_populates="user")
+    career_recommendations = relationship("CareerRecommendation", back_populates="user")
     recommendation_sessions = relationship("RecommendationSession", back_populates="user")
     resumes = relationship("Resume", back_populates="user")
     

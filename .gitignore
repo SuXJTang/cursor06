@@ -1,37 +1,8 @@
-# Python字节码文件
-__pycache__/
-*.py[cod]
-*$py.class
-**/__pycache__/
-**/*.pyc
-**/*.pyo
-**/*.pyd
-
-# 虚拟环境
-venv/
-venv_new/
-env/
-ENV/
-
-# 日志文件
-*.log
-logs/
-
-# 上传的文件目录
-static/avatars/
-static/resumes/
-static/uploads/
-
-# IDE配置
-.idea/
-.vscode/
-
-# 数据库文件
-*.db
-*.sqlite3
-
-# 前端依赖
-node_modules/
-npm-debug.log
-yarn-debug.log
-yarn-error.log
+# Python  
+__pycache__/  
+*.py[cod]  
+venv/  
+venv_new/  
+node_modules/  
+*.log  
+.env 

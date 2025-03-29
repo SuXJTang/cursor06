@@ -60,8 +60,11 @@ declare module 'vue' {
     ElUpload: typeof import('element-plus/es')['ElUpload']
     Footer: typeof import('./src/components/Footer.vue')['default']
     HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
+    InterestAnalysisResult: typeof import('./src/components/InterestAnalysisResult.vue')['default']
     NavBar: typeof import('./src/components/NavBar.vue')['default']
     NavMenu: typeof import('./src/components/NavMenu.vue')['default']
+    RecommendationDebugTool: typeof import('./src/components/RecommendationDebugTool.vue')['default']
+    RecommendationStatus: typeof import('./src/components/RecommendationStatus.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }

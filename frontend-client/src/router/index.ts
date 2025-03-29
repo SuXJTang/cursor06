@@ -26,12 +26,14 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/login',
     name: 'login',
-    component: Login
+    component: Login,
+    meta: { guest: true }
   },
   {
     path: '/register',
     name: 'register',
-    component: Register
+    component: Register,
+    meta: { guest: true }
   },
   {
     path: '/user-info',
@@ -161,10 +163,12 @@ router.beforeEach(async (to, from, next) => {
     try {
       await authStore.getUserInfo()
       // 验证成功后，继续当前导航
+      console.log('令牌验证结果:', authStore.isAuthenticated)
       if (authStore.isAuthenticated) {
         console.log('令牌验证成功，继续导航')
         // 如果是游客页面且已登录，重定向到首页
         if (to.meta.guest && authStore.isAuthenticated) {
+          console.log('已登录用户访问游客页面，重定向到首页')
           return next('/')
         }
         return next()

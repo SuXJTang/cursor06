@@ -17,10 +17,14 @@ interface UserInfo {
   id: string | number
   username: string
   email: string
-  role: string
+  role?: string  // 变为可选，因为后端可能不返回此字段
+  is_superuser?: boolean  // 添加后端返回的字段
+  is_active?: boolean  // 添加后端返回的字段
+  phone?: string
   avatar_url?: string
   created_at?: string
   updated_at?: string
+  [key: string]: any  // 添加索引签名以允许任何其他后端可能返回的字段
 }
 
 // 登录参数
@@ -127,9 +131,24 @@ export const useAuthStore = defineStore('auth', () => {
         setToken(response.access_token)
         
         // 获取用户信息
-        await getUserInfo()
+        try {
+          const user = await getUserInfo()
+          if (!user) {
+            console.error('获取用户信息失败')
+            error.value = '登录成功但获取用户信息失败'
+            ElMessage.warning('获取用户信息失败，请重新登录')
+            return false
+          }
+          console.log('获取用户信息成功:', user)
+        } catch (userError) {
+          console.error('获取用户信息异常:', userError)
+          error.value = '登录成功但获取用户信息失败'
+          ElMessage.warning('获取用户信息失败，请重新登录')
+          return false
+        }
         
         ElMessage.success('登录成功')
+        console.log('登录成功，认证状态:', isAuthenticated.value)
         return true
       } else {
         console.error('未找到有效token，响应数据:', response)
@@ -233,10 +252,13 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       // 使用正确的用户信息API路径
       const response = await request.get('/api/v1/auth/me')
+      console.log('获取到的用户信息响应:', response)
       
-      // 用户信息直接返回在响应中
-      if (response && response.data) {
-        userInfo.value = response.data
+      // 由于request拦截器已直接返回data，response就是用户数据本身
+      if (response && typeof response === 'object') {
+        // 转换为UserInfo类型
+        const userData = response as unknown as UserInfo
+        userInfo.value = userData
         saveUserToStorage()
         return userInfo.value
       } else {

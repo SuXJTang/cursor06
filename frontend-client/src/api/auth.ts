@@ -94,8 +94,12 @@ export const authApi = {
       })
       console.log('登录响应原始数据:', response)
       
-      // 直接返回响应数据，登录响应格式是OAuth2标准格式，不需要额外处理
-      return response
+      // 由于已经修改了response拦截器直接返回data，这里不需要再访问response.data
+      const tokenData = response || {}
+      console.log('处理后的token数据:', tokenData)
+      
+      // 返回处理后的响应数据，确保包含access_token
+      return tokenData
     } catch (error: any) {
       console.error('登录请求错误详情:', error)
       if (error.response) {

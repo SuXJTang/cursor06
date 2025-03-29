@@ -182,6 +182,8 @@ async def get_current_user_info(
             "is_active": current_user.is_active,
             "is_superuser": current_user.is_superuser,
             "avatar_url": current_user.avatar_url,
+            "created_at": current_user.created_at,
+            "updated_at": current_user.updated_at,
             # 添加用户详细资料，如果有的话
             "full_name": getattr(profile, "full_name", None) if profile else None,
             "education_level": getattr(profile, "education_level", None) if profile else None,

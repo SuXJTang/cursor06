@@ -119,7 +119,31 @@ const submitForm = async () => {
             })
             
             if (success) {
-              router.push(redirectUrl.value)
+              console.log('登录成功，准备跳转到:', redirectUrl.value)
+              
+              // 添加延迟，以确保登录成功信息在用户看到之前显示
+              ElMessage.success('登录成功，正在跳转...')
+              
+              // 支持使用多种导航方法尝试跳转
+              setTimeout(() => {
+                try {
+                  const targetUrl = redirectUrl.value || '/'
+                  console.log('尝试使用router.push跳转到:', targetUrl)
+                  router.push(targetUrl)
+                  
+                  // 再次使用1秒延迟尝试原生导航
+                  setTimeout(() => {
+                    console.log('Router可能失败，使用window.location跳转')
+                    if (window.location.pathname !== targetUrl) {
+                      window.location.href = targetUrl.startsWith('/') ? targetUrl : `/${targetUrl}`
+                    }
+                  }, 1000)
+                } catch (navError) {
+                  console.error('导航失败:', navError)
+                  // 导航失败时使用window.location作为后备方案
+                  window.location.href = redirectUrl.value || '/'
+                }
+              }, 500)
             } else {
               console.error('登录失败，但没有捕获到异常')
               ElMessage.error('登录失败，请检查用户名和密码')

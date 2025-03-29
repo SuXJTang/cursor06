@@ -88,10 +88,27 @@ app = FastAPI(
 # 配置CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # 替换为具体前端域名
+    allow_origins=[
+        "http://localhost:5173",  # Vue Vite 开发服务器
+        "http://localhost:8080",  # Vue CLI 开发服务器
+        "http://localhost:3000",  # 其他可能的前端服务
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:8080",
+        "http://127.0.0.1:3000",
+        "http://localhost",
+        "http://localhost:5174",   # Vue Vite 的备用端口
+        "http://localhost:8000",   # 后端API服务自身
+        "http://127.0.0.1:8000",   # 后端API在本地IP
+        "http://192.168.77.1:5173",  # 添加的局域网IP
+        "http://192.168.77.1:8080",
+        "http://192.168.77.1:3000",
+        "http://192.168.77.1",
+        "*",  # 允许所有来源(生产环境不推荐)
+    ],  # 替换为具体前端域名
     allow_credentials=True,
     allow_methods=["*"],  # 允许所有方法
     allow_headers=["*"],  # 允许所有头
+    expose_headers=["Content-Type", "X-CSRFToken", "Authorization"],  # 暴露这些响应头
 )
 
 # 包含API路由

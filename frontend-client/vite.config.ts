@@ -28,7 +28,7 @@ export default defineConfig({
     cors: true,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: 'http://192.168.77.1:8000',
         changeOrigin: true,
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {

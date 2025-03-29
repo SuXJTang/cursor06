@@ -40,10 +40,10 @@ from app.services.resume import perform_resume_parsing
 router = APIRouter()
 
 @router.get("/", response_model=List[schemas.ResumeFile])
-def list_resume_files(
+async def list_resume_files(
     *,
-    db: Session = Depends(deps.get_db),
-    current_user: models.User = Depends(deps.get_current_user),
+    db: Session = Depends(deps.get_async_db),
+    current_user: models.User = Depends(deps.get_current_active_user_async),
     skip: int = 0,
     limit: int = 100
 ) -> Any:
@@ -57,7 +57,14 @@ def list_resume_files(
         return []
     
     # 获取数据库中用户的简历记录
-    resume = db.query(models.Resume).filter(models.Resume.user_id == current_user.id).first()
+    # 使用异步查询
+    from sqlalchemy.future import select
+    from sqlalchemy.orm import selectinload
+    
+    stmt = select(models.Resume).where(models.Resume.user_id == current_user.id)
+    result = await db.execute(stmt)
+    resume = result.scalars().first()
+    
     if not resume or not resume.file_url:
         return []
     
@@ -103,11 +110,11 @@ def list_resume_files(
         return []
 
 @router.post("/upload", response_model=ResumeFile)
-def upload_resume_file(
+async def upload_resume_file(
     *,
-    db: Session = Depends(deps.get_db),
+    db: Session = Depends(deps.get_async_db),
     file: UploadFile = File(...),
-    current_user: models.User = Depends(deps.get_current_user),
+    current_user: models.User = Depends(deps.get_current_active_user_async),
     background_tasks: BackgroundTasks,
 ) -> Any:
     """上传简历文件
@@ -186,7 +193,11 @@ def upload_resume_file(
         db_start_time = time.time()
         
         # 查找用户的简历
-        resume = db.query(models.Resume).filter(models.Resume.user_id == current_user.id).first()
+        from sqlalchemy.future import select
+        
+        stmt = select(models.Resume).where(models.Resume.user_id == current_user.id)
+        result = await db.execute(stmt)
+        resume = result.scalars().first()
         
         # 如果用户已有简历文件，则删除旧文件
         if resume and resume.file_url:
@@ -200,26 +211,57 @@ def upload_resume_file(
                     app_logger.info(f"删除用户 {current_user.id} 的旧简历文件: {old_filename}")
                     os.remove(old_file_path)
             except Exception as e:
-                app_logger.warning(f"删除旧简历文件失败: {str(e)}")
+                app_logger.error(f"删除旧简历文件时出错: {str(e)}")
         
-        # 如果用户没有简历，创建一个新的简历
+        # 如果没有简历记录，则创建一个新的
         if not resume:
-            app_logger.info(f"用户 {current_user.id} 没有简历记录，自动创建一个")
-            # 创建简历对象
-            resume_in = ResumeCreate(
-                title=f"个人简历_{timestamp}",
-                content=f"从文件 {filename} 自动创建的简历",
-                is_active=True
-            )
-            # 保存到数据库
-            resume = crud.resume.create_with_owner(db=db, obj_in=resume_in, user_id=current_user.id)
-            app_logger.info(f"已为用户 {current_user.id} 创建新简历，ID: {resume.id}")
-            
-        # 更新简历的文件URL
-        resume.file_url = file_url
-        db.add(resume)
-        db.commit()
-        db.refresh(resume)
+            try:
+                resume_in = ResumeCreate(
+                    title=os.path.splitext(filename)[0][:50],  # 使用前50个字符作为标题
+                    description="",  # 初始描述为空
+                    file_url=file_url,
+                    status="pending"  # 初始状态为待处理
+                )
+                # 使用异步创建
+                from app.models.resume import Resume
+                
+                # 创建新简历对象
+                db_obj = Resume(
+                    user_id=current_user.id,
+                    title=resume_in.title,
+                    description=resume_in.description,
+                    file_url=resume_in.file_url,
+                    status=resume_in.status
+                )
+                db.add(db_obj)
+                await db.commit()
+                await db.refresh(db_obj)
+                resume = db_obj
+                
+                app_logger.info(f"已为用户 {current_user.id} 创建新简历，ID: {resume.id}")
+            except Exception as e:
+                app_logger.error(f"创建简历记录时出错: {str(e)}")
+                app_logger.error(traceback.format_exc())
+                # 尝试回滚事务
+                await db.rollback()
+                
+                # 应该删除已上传的文件
+                if os.path.exists(file_path):
+                    try:
+                        os.remove(file_path)
+                        app_logger.info(f"上传文件处理失败，已删除文件: {file_path}")
+                    except Exception as remove_err:
+                        app_logger.error(f"删除上传文件时出错: {str(remove_err)}")
+                
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"创建简历记录时出错: {str(e)}"
+                )
+        else:
+            # 更新简历的文件URL
+            resume.file_url = file_url
+            await db.commit()
+            await db.refresh(resume)
         
         db_end_time = time.time()
         app_logger.info(f"数据库操作完成，耗时: {db_end_time - db_start_time:.2f}秒")
@@ -263,8 +305,8 @@ def upload_resume_file(
 @router.delete("/{filename}", response_model=schemas.DeleteFileResponse)
 async def delete_resume_file(
     filename: str,
-    db: Session = Depends(deps.get_db),
-    current_user: models.User = Depends(deps.get_current_user),
+    db: Session = Depends(deps.get_async_db),
+    current_user: models.User = Depends(deps.get_current_active_user_async),
 ) -> Any:
     """
     删除简历文件
@@ -297,12 +339,12 @@ async def delete_resume_file(
         ai_analysis_files = []
         
         # 方法1: 通过文件名直接查找
-        resumes = find_resume_by_filename(db, decoded_filename, current_user)
+        resumes = await find_resume_by_filename(db, decoded_filename, current_user)
         if resumes:
             resumes_to_check.extend(resumes)
         
         # 方法2: 通过构造URL查找
-        url_resumes = find_resume_by_constructed_url(db, decoded_filename, current_user)
+        url_resumes = await find_resume_by_constructed_url(db, decoded_filename, current_user)
         if url_resumes:
             # 确保不会重复添加
             for resume in url_resumes:
@@ -312,7 +354,7 @@ async def delete_resume_file(
         # 方法3: 如果前两种方法都没找到，考虑检查用户的所有简历
         if not resumes_to_check:
             app_logger.info("无法通过文件名或URL找到简历记录，正在检查用户所有简历")
-            all_resumes = find_all_user_resumes(db, current_user)
+            all_resumes = await find_all_user_resumes(db, current_user)
             resumes_to_check = all_resumes  # 考虑用户所有简历
             
             # 如果文件名包含时间戳，尝试匹配
@@ -345,7 +387,7 @@ async def delete_resume_file(
             # 从这里开始添加 - 立即标记简历为已删除，防止后台任务继续处理
             try:
                 from app.services.resume import mark_resume_deleted
-                mark_resume_deleted(resume.id)
+                await mark_resume_deleted(resume.id)
                 app_logger.info(f"已标记简历ID {resume.id} 为已删除状态")
             except Exception as e:
                 app_logger.warning(f"标记简历为已删除失败: {str(e)}")
@@ -668,13 +710,13 @@ async def delete_resume_file(
         
         # 最后删除数据库记录
         for resume in resumes_to_check:
-            db.delete(resume)
+            await db.delete(resume)
             deleted_records += 1
             app_logger.info(f"删除数据库记录: 简历ID {resume.id}")
         
         # 提交数据库更改
         if deleted_records > 0:
-            db.commit()
+            await db.commit()
             app_logger.info(f"已删除 {deleted_records} 条简历记录")
         
         return {
@@ -695,10 +737,10 @@ async def delete_resume_file(
         )
 
 @router.get("/download/{filename}", response_class=FileResponse)
-def download_resume_file(
+async def download_resume_file(
     filename: str,
-    db: Session = Depends(deps.get_db),
-    current_user: models.User = Depends(deps.get_current_user),
+    db: Session = Depends(deps.get_async_db),
+    current_user: models.User = Depends(deps.get_current_active_user_async),
 ) -> Any:
     """
     下载简历文件
@@ -747,7 +789,7 @@ def download_resume_file(
         )
 
 # 辅助函数：通过文件名查找简历
-def find_resume_by_filename(db: Session, filename: str, current_user: models.User) -> List[models.Resume]:
+async def find_resume_by_filename(db: Session, filename: str, current_user: models.User) -> List[models.Resume]:
     app_logger.info(f"尝试通过文件名 {filename} 查找简历记录")
     
     # 尝试从文件名中提取用户ID
@@ -761,22 +803,23 @@ def find_resume_by_filename(db: Session, filename: str, current_user: models.Use
         app_logger.warning(f"无法从文件名提取用户ID: {str(e)}")
     
     # 构建查询
-    query = db.query(models.Resume)
+    from sqlalchemy.future import select
     
     # 如果提取出用户ID，使用它作为筛选条件
     if user_id is not None:
-        query = query.filter(models.Resume.user_id == user_id)
+        stmt = select(models.Resume).where(models.Resume.user_id == user_id, models.Resume.file_url.like(f"%{filename}%"))
     else:
         # 否则默认使用当前用户的ID
-        query = query.filter(models.Resume.user_id == current_user.id)
+        stmt = select(models.Resume).where(models.Resume.user_id == current_user.id, models.Resume.file_url.like(f"%{filename}%"))
     
     # 查找含有文件名的URL
-    resumes = query.filter(models.Resume.file_url.like(f"%{filename}%")).all()
+    result = await db.execute(stmt)
+    resumes = result.scalars().all()
     app_logger.info(f"通过文件名找到 {len(resumes)} 个简历记录")
     return resumes
 
 # 辅助函数：通过构造的URL查找简历
-def find_resume_by_constructed_url(db: Session, filename: str, current_user: models.User) -> List[models.Resume]:
+async def find_resume_by_constructed_url(db: Session, filename: str, current_user: models.User) -> List[models.Resume]:
     app_logger.info(f"尝试通过构造URL查找简历记录")
     
     # 构造可能的URL形式
@@ -791,12 +834,14 @@ def find_resume_by_constructed_url(db: Session, filename: str, current_user: mod
     ]
     
     # 查询符合任一URL的简历
+    from sqlalchemy.future import select
+    
     resumes = []
     for url in possible_urls:
         app_logger.info(f"检查URL: {url}")
-        found = db.query(models.Resume).filter(
-            models.Resume.file_url == url
-        ).all()
+        stmt = select(models.Resume).where(models.Resume.file_url == url)
+        result = await db.execute(stmt)
+        found = result.scalars().all()
         if found:
             app_logger.info(f"通过URL {url} 找到 {len(found)} 个简历记录")
             resumes.extend(found)
@@ -804,17 +849,21 @@ def find_resume_by_constructed_url(db: Session, filename: str, current_user: mod
     return resumes
 
 # 辅助函数：查找用户的所有简历
-def find_all_user_resumes(db: Session, current_user: models.User) -> List[models.Resume]:
-    app_logger.info(f"获取用户 {current_user.id} 的所有简历记录")
-    resumes = db.query(models.Resume).filter(
-        models.Resume.user_id == current_user.id
-    ).all()
-    app_logger.info(f"找到用户 {current_user.id} 的 {len(resumes)} 个简历记录")
+async def find_all_user_resumes(db: Session, current_user: models.User) -> List[models.Resume]:
+    app_logger.info(f"查找用户 {current_user.id} 的所有简历")
+    
+    from sqlalchemy.future import select
+    
+    stmt = select(models.Resume).where(models.Resume.user_id == current_user.id)
+    result = await db.execute(stmt)
+    resumes = result.scalars().all()
+    
+    app_logger.info(f"找到 {len(resumes)} 个简历记录")
     return resumes
 
 @router.post("/cleanup", response_model=schemas.CleanupResponse)
 async def cleanup_resume_files(
-    db: Session = Depends(deps.get_db),
+    db: Session = Depends(deps.get_async_db),
     current_user: models.User = Depends(deps.get_current_active_superuser),
 ) -> Any:
     """
@@ -881,7 +930,7 @@ async def cleanup_resume_files(
 
 @router.get("/check-file-permissions", response_model=dict)
 async def check_file_permissions(
-    current_user: models.User = Depends(deps.get_current_active_user),
+    current_user: models.User = Depends(deps.get_current_active_user_async),
 ) -> Any:
     """
     检查文件权限
@@ -994,7 +1043,7 @@ async def check_file_permissions(
 @router.delete("/force-delete/{filename}", response_model=dict)
 async def force_delete_file(
     filename: str,
-    current_user: models.User = Depends(deps.get_current_active_user),
+    current_user: models.User = Depends(deps.get_current_active_user_async),
 ) -> Any:
     """
     强制删除文件
@@ -1108,3 +1157,99 @@ def is_admin():
             return os.geteuid() == 0  # Unix系统检查是否为root
     except:
         return False
+
+@router.get("/templates", response_model=List[schemas.TemplateFile])
+async def list_templates(
+    *,
+    current_user: models.User = Depends(deps.get_current_active_user_async)
+) -> Any:
+    """
+    获取系统提供的简历模板文件列表
+    """
+    # 获取模板目录
+    template_dir = os.path.join(settings.STATIC_DIR, "templates")
+    if not os.path.exists(template_dir):
+        return []
+    
+    templates = []
+    try:
+        # 遍历模板目录
+        for filename in os.listdir(template_dir):
+            # 只显示Word和PDF文件
+            _, ext = os.path.splitext(filename)
+            if ext.lower() not in [".pdf", ".doc", ".docx"]:
+                continue
+            
+            file_path = os.path.join(template_dir, filename)
+            file_stats = os.stat(file_path)
+            
+            # 确定文件类型
+            file_type = "application/octet-stream"
+            if ext.lower() == ".pdf":
+                file_type = "application/pdf"
+            elif ext.lower() in [".doc", ".docx"]:
+                file_type = "application/msword"
+            
+            # 构建完整的URL
+            base_url = settings.SERVER_HOST if settings.SERVER_HOST.startswith(('http://', 'https://')) else f"http://{settings.SERVER_HOST}"
+            file_url = f"{base_url}{settings.API_V1_STR}/resume-files/templates/{filename}"
+            
+            # 添加到模板列表
+            templates.append({
+                "filename": filename,
+                "file_size": file_stats.st_size,
+                "file_type": file_type,
+                "file_url": file_url
+            })
+        
+        # 按文件名排序
+        templates.sort(key=lambda x: x["filename"])
+        
+    except Exception as e:
+        app_logger.error(f"获取模板列表失败: {str(e)}")
+    
+    return templates
+
+@router.get("/templates/{filename}", response_class=FileResponse)
+async def download_template_file(
+    filename: str,
+    current_user: models.User = Depends(deps.get_current_active_user_async),
+) -> Any:
+    """
+    下载简历模板文件
+    """
+    try:
+        # URL解码文件名
+        decoded_filename = unquote(filename)
+        
+        # 构建文件路径
+        template_dir = os.path.join(settings.STATIC_DIR, "templates")
+        file_path = os.path.join(template_dir, decoded_filename)
+        
+        # 检查文件是否存在
+        if not os.path.exists(file_path):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="模板文件不存在"
+            )
+        
+        # 获取文件MIME类型
+        mime_type, _ = mimetypes.guess_type(file_path)
+        if not mime_type:
+            mime_type = "application/octet-stream"
+        
+        # 返回文件响应
+        return FileResponse(
+            path=file_path,
+            filename=decoded_filename,
+            media_type=mime_type
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        app_logger.error(f"下载模板文件失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"下载模板文件失败: {str(e)}"
+        )

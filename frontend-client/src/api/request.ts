@@ -19,7 +19,7 @@ const TOKEN_KEY = 'auth_token'
 // 使用全局axios实例，这样可以被mock拦截
 // 创建axios实例
 export const request = axios.create({
-  baseURL: 'http://localhost:8000',  // 直接指定后端API基础地址，不包含/api/v1
+  baseURL: '',  // 清空基础URL，在各API方法中已经包含了完整路径
   timeout: 10000,
   withCredentials: true  // 允许跨域携带cookie
 })
@@ -77,6 +77,14 @@ request.interceptors.response.use(
     console.log('响应头:', response.headers)
     console.log('响应数据类型:', typeof response.data)
     
+    if (response.config.url?.includes('/login')) {
+      console.log('登录接口完整响应数据:', {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data
+      })
+    }
+    
     if (response.config.url?.includes('/register')) {
       console.log('注册接口响应完整数据:', {
         status: response.status,
@@ -95,9 +103,9 @@ request.interceptors.response.use(
       console.log('响应对象的键:', Object.keys(response.data))
     }
     
-    // 请求成功，直接返回整个响应对象，而不仅仅是data部分
-    // 这允许调用方访问状态码和其他响应信息
-    return response
+    // 请求成功，直接返回response.data，简化后续处理
+    // 注意：之前返回整个response导致在某些地方需要访问response.data
+    return response.data
   },
   error => {
     console.error('API请求错误:', error)

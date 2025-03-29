@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .panel {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+        }
+        button {
+            padding: 8px 12px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        .input-group {
+            margin-bottom: 10px;
+        }
+        input {
+            padding: 6px;
+            width: 300px;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            min-height: 200px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <h1>API 测试工具</h1>
+    
+    <div class="panel">
+        <h2>调试API测试</h2>
+        <div class="input-group">
+            <label for="userId">用户ID:</label>
+            <input type="text" id="userId" value="1">
+        </div>
+        
+        <button onclick="testUserProfile()">测试用户资料API</button>
+        <button onclick="testResumeData()">测试简历数据API</button>
+        <button onclick="injectUserProfile()">注入用户资料</button>
+        <button onclick="injectResumeData()">注入简历数据</button>
+        <button onclick="getDatabaseInfo()">数据库信息</button>
+    </div>
+    
+    <div id="result">结果将显示在这里...</div>
+    
+    <script>
+        // 辅助函数，用于显示结果
+        function showResult(data) {
+            const resultElement = document.getElementById('result');
+            if (typeof data === 'object') {
+                resultElement.textContent = JSON.stringify(data, null, 2);
+            } else {
+                resultElement.textContent = data;
+            }
+        }
+        
+        // 辅助函数，用于显示错误
+        async function showError(error) {
+            console.error('API错误:', error);
+            let message = '';
+            
+            if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                message = `网络错误: 无法连接到后端服务器。请确保后端服务正在运行于 http://localhost:8000\n\n具体错误: ${error.message}
+                
+解决方法:
+1. 确保后端服务已启动 (cd backend && python app.py)
+2. 检查后端服务是否正确配置了CORS
+3. 检查控制台获取更多错误信息`;
+            } else if (error.response) {
+                message = `错误状态: ${error.response.status}\n错误数据: ${JSON.stringify(error.response.data)}`;
+            } else {
+                message = `错误: ${error.message}`;
+            }
+            
+            showResult(message);
+        }
+        
+        // 获取当前用户令牌
+        function getAuthToken() {
+            // 尝试从localStorage获取令牌
+            return localStorage.getItem('token') || '';
+        }
+        
+        // 测试用户资料API
+        async function testUserProfile() {
+            const userId = document.getElementById('userId').value;
+            try {
+                showResult(`正在获取用户资料 (ID: ${userId})...`);
+                const response = await fetch(`http://localhost:8000/api/v1/debug/user-profile/${userId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                showResult(data);
+            } catch (error) {
+                showError(error);
+            }
+        }
+        
+        // 测试简历数据API
+        async function testResumeData() {
+            const userId = document.getElementById('userId').value;
+            try {
+                showResult(`正在获取简历数据 (ID: ${userId})...`);
+                const response = await fetch(`http://localhost:8000/api/v1/debug/resume-data/${userId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                showResult(data);
+            } catch (error) {
+                showError(error);
+            }
+        }
+        
+        // 注入用户资料
+        async function injectUserProfile() {
+            const userId = document.getElementById('userId').value;
+            try {
+                showResult(`正在注入用户资料 (ID: ${userId})...`);
+                const response = await fetch(`http://localhost:8000/api/v1/debug/inject-user-profile`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                showResult(data);
+            } catch (error) {
+                showError(error);
+            }
+        }
+        
+        // 注入简历数据
+        async function injectResumeData() {
+            const userId = document.getElementById('userId').value;
+            try {
+                showResult(`正在注入简历数据 (ID: ${userId})...`);
+                const response = await fetch(`http://localhost:8000/api/v1/debug/inject-resume`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                showResult(data);
+            } catch (error) {
+                showError(error);
+            }
+        }
+        
+        // 获取数据库信息
+        async function getDatabaseInfo() {
+            try {
+                showResult('正在获取数据库信息...');
+                const response = await fetch(`http://localhost:8000/api/v1/debug/database-info`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                showResult(data);
+            } catch (error) {
+                showError(error);
+            }
+        }
+        
+        // 添加检查后端状态按钮
+        document.addEventListener('DOMContentLoaded', function() {
+            const panel = document.querySelector('.panel');
+            const checkButton = document.createElement('button');
+            checkButton.textContent = '检查后端状态';
+            checkButton.onclick = checkBackendStatus;
+            panel.appendChild(checkButton);
+            
+            // 添加检查认证状态按钮
+            const checkAuthButton = document.createElement('button');
+            checkAuthButton.textContent = '检查登录状态';
+            checkAuthButton.onclick = checkAuthStatus;
+            panel.appendChild(checkAuthButton);
+        });
+        
+        // 检查后端状态
+        async function checkBackendStatus() {
+            try {
+                showResult('正在检查后端API状态...');
+                const response = await fetch('http://localhost:8000/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult({
+                        message: '后端API服务正常运行',
+                        status: data.status,
+                        details: '现在可以尝试调用其他API'
+                    });
+                } else {
+                    throw new Error(`后端API服务异常: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                showResult({
+                    message: '后端API服务连接失败',
+                    error: error.message,
+                    suggestions: [
+                        '确保后端服务已启动 (cd backend && python app.py 或 uvicorn app.main:app --reload)',
+                        '检查后端服务器的CORS配置是否允许跨域请求',
+                        '检查API路由是否正确注册'
+                    ]
+                });
+            }
+        }
+        
+        // 检查认证状态
+        async function checkAuthStatus() {
+            try {
+                showResult('正在检查登录状态...');
+                const response = await fetch('http://localhost:8000/api/v1/auth/me', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult({
+                        message: '已登录',
+                        user: data,
+                        token: localStorage.getItem('token') || '未设置'
+                    });
+                } else if (response.status === 401) {
+                    showResult({
+                        message: '未登录或令牌无效',
+                        status: response.status,
+                        details: '需要登录后才能访问某些API'
+                    });
+                } else {
+                    throw new Error(`登录状态检查失败: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                showResult({
+                    message: '登录状态检查失败',
+                    error: error.message,
+                    suggestions: [
+                        '尝试在前端页面登录后再访问需要认证的API',
+                        '调试接口已配置为无需认证即可访问'
+                    ]
+                });
+            }
+        }
+    </script>
+</body>
+</html> 

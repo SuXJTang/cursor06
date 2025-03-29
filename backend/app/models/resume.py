@@ -10,6 +10,7 @@ class Resume(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(255), nullable=False, comment='简历标题')
     content = Column(Text, nullable=False, comment='简历内容')
+    description = Column(Text, nullable=True, comment='简历描述')
     file_url = Column(String(255), comment='简历文件URL')
     status = Column(String(20), default='draft', comment='简历状态：draft-草稿，submitted-已提交，approved-已通过，rejected-已拒绝')
     is_active = Column(Boolean, default=True, comment='是否激活')

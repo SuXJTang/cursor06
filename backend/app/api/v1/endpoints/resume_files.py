@@ -219,8 +219,9 @@ async def upload_resume_file(
                 resume_in = ResumeCreate(
                     title=os.path.splitext(filename)[0][:50],  # 使用前50个字符作为标题
                     description="",  # 初始描述为空
+                    content="",  # 初始内容为空
                     file_url=file_url,
-                    status="pending"  # 初始状态为待处理
+                    status=schemas.ResumeStatus.DRAFT  # 使用枚举值
                 )
                 # 使用异步创建
                 from app.models.resume import Resume
@@ -230,6 +231,7 @@ async def upload_resume_file(
                     user_id=current_user.id,
                     title=resume_in.title,
                     description=resume_in.description,
+                    content=resume_in.content,
                     file_url=resume_in.file_url,
                     status=resume_in.status
                 )

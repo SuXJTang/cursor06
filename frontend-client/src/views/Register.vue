@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/user'
+import { useAuthStore } from '../stores/auth'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
-const userStore = useUserStore()
+const authStore = useAuthStore()
 
 // 表单数据
 const registerForm = reactive({
@@ -25,7 +25,7 @@ const rules = reactive<FormRules>({
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '长度在 6 到 20 个字符', trigger: 'blur' }
+    { min: 8, max: 20, message: '长度在 8 到 20 个字符', trigger: 'blur' }
   ],
   confirmPassword: [
     { required: true, message: '请确认密码', trigger: 'blur' },
@@ -45,8 +45,7 @@ const rules = reactive<FormRules>({
     { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
   ],
   code: [
-    { required: true, message: '请输入验证码', trigger: 'blur' },
-    { len: 6, message: '验证码长度为 6 位', trigger: 'blur' }
+    { required: false, message: '请输入验证码', trigger: 'blur' }
   ]
 })
 
@@ -86,14 +85,60 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
   
   await formEl.validate(async (valid) => {
     if (valid) {
-      const { confirmPassword, ...params } = registerForm
-      const success = await userStore.register(params)
-      if (success) {
-        ElMessage.success('注册成功，请登录')
-        router.push('/login')
+      try {
+        // 验证邮箱格式
+        if (!isValidEmail(registerForm.email)) {
+          ElMessage.error('邮箱格式不正确')
+          return
+        }
+        
+        console.log('开始提交注册信息:', {
+          username: registerForm.username,
+          email: registerForm.email
+        })
+        
+        // 禁用按钮，避免重复提交
+        const submitButton = document.querySelector('.register-button') as HTMLButtonElement;
+        if (submitButton) submitButton.disabled = true;
+        
+        // 仅提交必要字段
+        const success = await authStore.register({
+          username: registerForm.username,
+          password: registerForm.password,
+          email: registerForm.email
+        })
+        
+        console.log('注册结果:', success)
+        
+        if (success) {
+          // 注册成功后显示成功消息
+          ElMessage.success('注册成功，即将跳转到登录页面')
+          // 延迟跳转到登录页
+          setTimeout(() => {
+            router.push('/login')
+          }, 1500)
+        } else {
+          // 注册失败，重新启用按钮
+          if (submitButton) submitButton.disabled = false;
+        }
+      } catch (error) {
+        console.error('注册过程中出错:', error)
+        ElMessage.error('注册失败，请稍后重试')
+        
+        // 发生错误，重新启用按钮
+        const submitButton = document.querySelector('.register-button') as HTMLButtonElement;
+        if (submitButton) submitButton.disabled = false;
       }
+    } else {
+      console.warn('表单验证未通过')
     }
   })
+}
+
+// 验证邮箱格式函数
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
 }
 
 // 跳转到登录页
@@ -133,6 +178,7 @@ const goToLogin = () => {
             prefix-icon="Lock"
             show-password
           />
+          <div class="password-hint">密码至少8位，需包含字母和数字</div>
         </el-form-item>
         
         <el-form-item label="确认密码" prop="confirmPassword">
@@ -219,16 +265,23 @@ const goToLogin = () => {
   margin-top: 1rem;
 }
 
+.password-hint {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 5px;
+}
+
 :deep(.el-form-item__label) {
   font-weight: 500;
 }
 
 :deep(.el-input-group__append) {
   padding: 0;
-  .el-button {
-    margin: 0;
-    border: none;
-    height: 100%;
-  }
+}
+
+:deep(.el-input-group__append) .el-button {
+  margin: 0;
+  border: none;
+  height: 100%;
 }
 </style> 

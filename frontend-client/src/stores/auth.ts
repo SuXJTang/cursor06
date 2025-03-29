@@ -45,6 +45,14 @@ interface ApiResponse<T> {
   data: T
 }
 
+// 类型定义
+interface StoreState {
+  token: string | null;
+  userInfo: UserInfo | null;
+  loading: boolean;
+  error: string | null;
+}
+
 export const useAuthStore = defineStore('auth', () => {
   // 状态
   const token = ref<string | null>(localStorage.getItem(TOKEN_KEY))
@@ -170,21 +178,45 @@ export const useAuthStore = defineStore('auth', () => {
     
     try {
       // 使用正确的注册API路径
-      const response = await request.post('/api/v1/auth/register', params)
+      console.log('发送注册请求:', params)
       
-      // 检查响应，注册成功返回用户信息
-      if (response) {
-        ElMessage.success('注册成功，请登录')
-        return true
-      } else {
-        error.value = '注册失败：响应格式不正确'
+      // 验证邮箱格式
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(params.email)) {
+        error.value = '邮箱格式不正确'
         ElMessage.error(error.value)
         return false
       }
+      
+      // 发送请求，现在会返回完整的axios响应
+      const response = await request.post('/api/v1/auth/register', params)
+      
+      // 增加详细日志
+      console.log('注册响应完整对象:', response)
+      console.log('注册响应状态码:', response.status)
+      console.log('注册响应数据:', response.data)
+      
+      // 检查响应状态码
+      if (response.status >= 200 && response.status < 300) {
+        ElMessage.success('注册成功，请登录')
+        return true
+      } else {
+        const errorMsg = response.data?.detail || '注册失败，请稍后重试'
+        error.value = errorMsg
+        ElMessage.error(errorMsg)
+        return false
+      }
     } catch (err: any) {
-      error.value = err.response?.data?.detail || err.response?.data?.message || '注册请求失败'
-      console.error('注册失败:', err)
-      ElMessage.error(error.value || '注册失败')
+      // 详细记录错误
+      console.error('注册请求错误:', err)
+      if (err.response) {
+        console.error('错误响应状态:', err.response.status)
+        console.error('错误响应数据:', err.response.data)
+      }
+      
+      const errorMsg = err.response?.data?.detail || err.response?.data?.message || '注册请求失败'
+      error.value = errorMsg
+      ElMessage.error(errorMsg)
       return false
     } finally {
       loading.value = false
@@ -203,8 +235,8 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await request.get('/api/v1/auth/me')
       
       // 用户信息直接返回在响应中
-      if (response) {
-        userInfo.value = response
+      if (response && response.data) {
+        userInfo.value = response.data
         saveUserToStorage()
         return userInfo.value
       } else {

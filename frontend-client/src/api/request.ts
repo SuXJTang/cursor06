@@ -71,9 +71,20 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   response => {
+    // 增加更多详细日志
     console.log('API请求成功:', response.config.url)
     console.log('响应状态码:', response.status)
-    console.log('响应类型:', typeof response.data)
+    console.log('响应头:', response.headers)
+    console.log('响应数据类型:', typeof response.data)
+    
+    if (response.config.url?.includes('/register')) {
+      console.log('注册接口响应完整数据:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data
+      })
+    }
     
     if (Array.isArray(response.data)) {
       console.log('响应是数组，长度:', response.data.length)
@@ -84,10 +95,9 @@ request.interceptors.response.use(
       console.log('响应对象的键:', Object.keys(response.data))
     }
     
-    // 直接返回响应数据，不做额外处理
-    // 如果响应直接包含数据（例如后端直接返回的内容），则返回response.data
-    // 否则返回整个response
-    return response.data
+    // 请求成功，直接返回整个响应对象，而不仅仅是data部分
+    // 这允许调用方访问状态码和其他响应信息
+    return response
   },
   error => {
     console.error('API请求错误:', error)

@@ -1,13 +1,76 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import AssessmentBanner from '../components/common/AssessmentBanner.vue'
 import { ElMessage } from 'element-plus'
 import { useRecommendationStore } from '@/stores/recommendation'
 import request from '@/api/request'
-import { Check, Setting, Back } from '@element-plus/icons-vue'
+import { Check, Setting, Back, Loading, Connection } from '@element-plus/icons-vue'
+import ProgressBar from '@/components/ProgressBar.vue'
 
 const router = useRouter()
+const recommendationStore = useRecommendationStore()
+
+// 定义计时器引用
+const analyzeTimer = ref<number | null>(null)
+const pollingTimer = ref<number | null>(null)
+const timeoutTimer = ref<number | null>(null)
+
+// 处理状态
+const isAnalyzing = ref(false)
+const currentStep = ref(0)
+const analysisProgress = ref(0)
+const currentQuestionIndex = ref(0)
+
+// 处理统计
+const processStats = reactive({
+  startTime: 0,
+  elapsedTime: 0,
+  retryCount: 0,
+  processedCareers: 0,
+  candidateCareers: 0,
+  finalCareers: 0,
+  currentBatch: 0,
+  stageInfo: '',
+  message: '',
+  stageTimeout: 60
+})
+
+// 测评问题和答案
+const questions = reactive<Array<{
+  type: string;
+  title: string;
+  items: Array<{
+    id: number | string;
+    content: string;
+    options: Array<{
+      label: string;
+      value: number;
+    }>;
+  }>;
+}>>([])
+
+// 答案存储
+const answers = reactive<Record<string | number, number>>({})
+
+// 定义分析步骤
+const detailSteps = reactive([
+  { id: 'user_data', title: '用户资料收集', status: '处理中', icon: 'User', group: 0 },
+  { id: 'resume_data', title: '简历数据收集', status: '等待中', icon: 'Document', group: 0 },
+  { id: 'assessment_data', title: '测评数据收集', status: '等待中', icon: 'DataLine', group: 0 },
+  { id: 'basic_match', title: '基础职业匹配', status: '等待中', icon: 'Connection', group: 1 },
+  { id: 'ai_analysis', title: 'AI语义分析', status: '等待中', icon: 'CPU', group: 2 },
+  { id: 'final_filter', title: '候选职业筛选', status: '等待中', icon: 'Filter', group: 3 },
+  { id: 'report', title: '推荐报告生成', status: '等待中', icon: 'Document', group: 3 }
+])
+
+// 更新步骤状态的函数
+const updateStepStatus = (stepId: string, status: string) => {
+  const step = detailSteps.find(s => s.id === stepId)
+  if (step) {
+    step.status = status
+  }
+}
 
 // 测评步骤
 const steps = [
@@ -270,165 +333,50 @@ const useLocalQuestions = () => {
   questions.splice(0, questions.length, ...mockQuestions);
 }
 
-// 确保分析状态默认为false，显示问题界面
-const isAnalyzing = ref(false)
-
-// 测评问题
-const questions = reactive([
-  {
-    type: 'interest',
-    title: '兴趣测评',
-    items: [
-      {
-        id: 1,
-        content: '我喜欢解决复杂的问题',
-        options: [
-          { label: '非常同意', value: 5 },
-          { label: '比较同意', value: 4 },
-          { label: '一般', value: 3 },
-          { label: '比较不同意', value: 2 },
-          { label: '非常不同意', value: 1 }
-        ]
-      },
-      {
-        id: 2,
-        content: '我对创新和发明感兴趣',
-        options: [
-          { label: '非常同意', value: 5 },
-          { label: '比较同意', value: 4 },
-          { label: '一般', value: 3 },
-          { label: '比较不同意', value: 2 },
-          { label: '非常不同意', value: 1 }
-        ]
-      },
-      {
-        id: 3,
-        content: '我喜欢与人交流和合作',
-        options: [
-          { label: '非常同意', value: 5 },
-          { label: '比较同意', value: 4 },
-          { label: '一般', value: 3 },
-          { label: '比较不同意', value: 2 },
-          { label: '非常不同意', value: 1 }
-        ]
-      }
-    ]
-  },
-  {
-    type: 'ability',
-    title: '能力测评',
-    items: [
-      {
-        id: 4,
-        content: '我能够快速学习新技术',
-        options: [
-          { label: '非常擅长', value: 5 },
-          { label: '比较擅长', value: 4 },
-          { label: '一般', value: 3 },
-          { label: '不太擅长', value: 2 },
-          { label: '非常不擅长', value: 1 }
-        ]
-      },
-      {
-        id: 5,
-        content: '我善于分析和解决问题',
-        options: [
-          { label: '非常擅长', value: 5 },
-          { label: '比较擅长', value: 4 },
-          { label: '一般', value: 3 },
-          { label: '不太擅长', value: 2 },
-          { label: '非常不擅长', value: 1 }
-        ]
-      },
-      {
-        id: 6,
-        content: '我具备良好的沟通表达能力',
-        options: [
-          { label: '非常擅长', value: 5 },
-          { label: '比较擅长', value: 4 },
-          { label: '一般', value: 3 },
-          { label: '不太擅长', value: 2 },
-          { label: '非常不擅长', value: 1 }
-        ]
-      }
-    ]
-  },
-  {
-    type: 'personality',
-    title: '性格测评',
-    items: [
-      {
-        id: 7,
-        content: '我倾向于在团队中担任领导角色',
-        options: [
-          { label: '完全符合', value: 5 },
-          { label: '比较符合', value: 4 },
-          { label: '一般', value: 3 },
-          { label: '不太符合', value: 2 },
-          { label: '完全不符合', value: 1 }
-        ]
-      },
-      {
-        id: 8,
-        content: '我喜欢尝试新事物和接受挑战',
-        options: [
-          { label: '完全符合', value: 5 },
-          { label: '比较符合', value: 4 },
-          { label: '一般', value: 3 },
-          { label: '不太符合', value: 2 },
-          { label: '完全不符合', value: 1 }
-        ]
-      },
-      {
-        id: 9,
-        content: '我做事情喜欢追求完美',
-        options: [
-          { label: '完全符合', value: 5 },
-          { label: '比较符合', value: 4 },
-          { label: '一般', value: 3 },
-          { label: '不太符合', value: 2 },
-          { label: '完全不符合', value: 1 }
-        ]
-      }
-    ]
-  }
-])
-
-// 定义答案类型
-interface AnswersMap {
-  [key: string]: number;
-}
-
-// 答案
-const answers = reactive<AnswersMap>({})
-
-// 分析状态
-const currentStep = ref(0)
-const analyzeSteps = [
-  { title: '数据整理', desc: '正在整理您的测评答案...' },
-  { title: '兴趣分析', desc: '分析您的职业兴趣倾向...' },
-  { title: '能力评估', desc: '评估您的专业技能水平...' },
-  { title: '职业匹配', desc: '寻找最适合您的职业方向...' },
-  { title: '报告生成', desc: '生成个性化测评报告...' }
-]
-
-// 获取推荐store
-const recommendationStore = useRecommendationStore()
-
-// 模拟分析过程
+// 启动分析流程
 const startAnalysis = async () => {
-  isAnalyzing.value = true;
-  currentStep.value = 0;
-  let submissionSuccessful = false;
-  
   try {
-    // 获取当前用户ID，如果没有则使用默认值
-    const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
-    const userId = userInfo.id || 1;
+    console.log("开始启动分析流程...");
+    isAnalyzing.value = true
+    currentStep.value = 0
+    analysisProgress.value = 0
+    processStats.startTime = Date.now()
+    processStats.elapsedTime = 0
+    processStats.retryCount = 0
     
-    // 获取当前日期时间（格式化为YYYY-MM-DD HH:MM:SS格式）
-    const now = new Date();
-    const currentDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    // 重置所有步骤状态
+    detailSteps.forEach(step => {
+      step.status = step.id === 'user_data' ? '处理中' : '等待中'
+    })
+    
+    // 清除可能存在的旧计时器
+    if (analyzeTimer.value) {
+      clearInterval(analyzeTimer.value)
+    }
+    
+    // 更新计时器
+    analyzeTimer.value = window.setInterval(() => {
+      processStats.elapsedTime = Math.floor((Date.now() - processStats.startTime) / 1000)
+    }, 1000)
+    
+    // 获取当前用户ID
+    const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
+    const userId = userInfo.id || 1
+    console.log("使用用户ID:", userId, "localStorage中的用户信息:", localStorage.getItem('user_info'));
+    
+    // 当前日期时间（格式化为YYYY-MM-DD HH:MM:SS格式）
+    const now = new Date()
+    const currentDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
+    
+    // 检查是否有答案数据
+    const answersCount = Object.keys(answers).length;
+    if (answersCount === 0) {
+      ElMessage.error('没有测评数据，请至少回答一个问题');
+      isAnalyzing.value = false;
+      clearInterval(analyzeTimer.value);
+      return;
+    }
+    console.log(`已回答${answersCount}个问题，准备提交测评数据`);
     
     // 按类型分类答案
     interface AnswerItem {
@@ -441,31 +389,31 @@ const startAnalysis = async () => {
       interest: [],
       ability: [],
       personality: []
-    };
+    }
     
     // 遍历所有问题和答案，按类型组织
     questions.forEach((section: any) => {
-      const type = section.type; // 获取类型：interest, ability, personality
+      const type = section.type // 获取类型：interest, ability, personality
       
       // 遍历该类型下的所有问题
       section.items.forEach((question: any) => {
         // 如果该问题已回答，则添加到对应类型中
         if (answers[question.id] !== undefined) {
           // 获取选项文本而不是数值
-          const selectedValue = answers[question.id];
-          const selectedOption = question.options.find((opt: any) => opt.value === selectedValue)?.label || "未知选项";
+          const selectedValue = answers[question.id]
+          const selectedOption = question.options.find((opt: any) => opt.value === selectedValue)?.label || "未知选项"
           
           // 生成8位数字的随机ID
-          const randomId = Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
+          const randomId = Math.floor(Math.random() * 100000000).toString().padStart(8, '0')
           
           answersByType[type].push({
             "question_id": `${type}_${randomId}`,
             "question": question.content,
             "selected_option": selectedOption
-          });
+          })
         }
-      });
-    });
+      })
+    })
     
     // 构建完整的测评数据数组
     interface AssessmentItem {
@@ -474,94 +422,365 @@ const startAnalysis = async () => {
       answers: AnswerItem[];
     }
     
-    const assessments: AssessmentItem[] = [];
+    const assessments: AssessmentItem[] = []
     
     // 添加三种测评类型，即使没有回答也添加空数组
-    ['interest', 'ability', 'personality'].forEach((type) => {
+    Object.entries({
+      interest: '兴趣测评',
+      ability: '能力测评',
+      personality: '性格测评'
+    }).forEach(([type, title]) => {
       assessments.push({
-        "type": type,
-        "completion_date": currentDate,
-        "answers": answersByType[type]
-      });
-    });
+        type,
+        completion_date: currentDate,
+        answers: answersByType[type]
+      })
+    })
     
     // 构建最终提交数据格式
     const submitData = {
       "user_id": userId,
       "assessments": assessments
-    };
+    }
     
-    console.log('准备提交测评数据:', JSON.stringify(submitData, null, 2));
+    console.log('准备提交测评数据:', JSON.stringify(submitData, null, 2))
     
-    // 提交测评数据到后端
+    // 第1步：提交测评数据到后端
+    let submissionSuccessful = false
     try {
-      const response = await request.post('/api/v1/assessments/submit', submitData);
-      console.log('测评数据提交成功:', response);
-      submissionSuccessful = true;
+      console.log('步骤1: 正在提交测评数据...')
+      console.log('POST请求URL:', '/api/v1/assessments/submit')
+      
+      // 使用直接的XMLHttpRequest发送请求，确保可以查看详细的网络错误
+      const submitResponse = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/v1/assessments/submit');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (e) {
+              resolve(xhr.responseText);
+            }
+          } else {
+            reject({
+              status: xhr.status,
+              statusText: xhr.statusText,
+              response: xhr.responseText
+            });
+          }
+        };
+        xhr.onerror = function() {
+          reject({
+            status: xhr.status,
+            statusText: 'XMLHttpRequest Error',
+            response: null
+          });
+        };
+        xhr.send(JSON.stringify(submitData));
+      });
+      
+      console.log('测评数据提交成功:', submitResponse)
+      submissionSuccessful = true
+      updateStepStatus('user_data', '已完成')
+      updateStepStatus('assessment_data', '处理中')
     } catch (error) {
-      console.error('提交测评数据失败:', error);
-      ElMessage.warning('提交测评数据失败，将使用本地分析结果');
+      console.error('提交测评数据失败:', error)
+      ElMessage.warning('提交测评数据失败，将使用本地分析结果')
+      // 继续处理，不中断流程
     }
     
-    // 模拟分析过程（仅用于前端展示）
-    for (let i = 0; i < analyzeSteps.length; i++) {
-      currentStep.value = i;
-      await new Promise(resolve => setTimeout(resolve, 1500)); // 每步等待1.5秒
+    // 更新进度
+    analysisProgress.value = 15
+    updateStepStatus('assessment_data', '已完成')
+    
+    // 第2步：调用推荐生成API
+    console.log('步骤2: 正在启动职业推荐生成...')
+    try {
+      console.log('POST请求URL:', '/api/v1/career-recommendations/generate', {user_id: userId})
+      
+      // 使用直接的XMLHttpRequest发送生成请求
+      const genResponseData = await new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/v1/career-recommendations/generate');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (e) {
+              resolve({data: {success: true}});
+            }
+          } else {
+            reject({
+              status: xhr.status,
+              statusText: xhr.statusText,
+              response: xhr.responseText
+            });
+          }
+        };
+        xhr.onerror = function() {
+          reject({
+            status: xhr.status,
+            statusText: 'XMLHttpRequest Error',
+            response: null
+          });
+        };
+        xhr.send(JSON.stringify({user_id: userId}));
+      });
+      
+      console.log('推荐生成任务已启动:', genResponseData)
+      
+      if (genResponseData?.data?.success) {
+        console.log('职业推荐任务启动成功，开始轮询进度')
+        // 第3步：启动进度轮询
+        startProgressPolling(userId)
+      } else {
+        console.log('职业推荐启动返回成功但数据无效, 仍尝试开始轮询:', genResponseData)
+        startProgressPolling(userId)
+      }
+    } catch (error) {
+      console.error('启动推荐生成API失败:', error);
+      ElMessage.error('启动推荐生成失败，但仍将尝试获取进度');
+      // 仍然尝试启动轮询
+      startProgressPolling(userId);
     }
     
-    // 计算测评结果
-    const result = {
-      id: `assessment-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      summary: {
-        score: calculateOverallScore(),
-        careerDirection: determineCareerDirection(),
-        matchDegree: calculateMatchDegree(),
-        characteristics: analyzeCharacteristics()
-      },
-      dimensions: {
-        interest: analyzeInterest(),
-        ability: analyzeAbility(),
-        personality: analyzePersonality()
-      },
-      recommendedCareers: [
-        {
-          id: 1,
-          title: determineCareerDirection(),
-          matchDegree: parseInt(calculateMatchDegree()),
-          skills: ['问题分析', '技术支持', '沟通能力', 'IT基础设施']
-        },
-        {
-          id: 2,
-          title: '系统运维工程师',
-          matchDegree: 85,
-          skills: ['系统运维', '网络管理', '故障排查']
-        },
-        {
-          id: 3,
-          title: '技术文档工程师',
-          matchDegree: 78,
-          skills: ['技术写作', '文档管理', '需求分析']
-        }
-      ],
-      submissionStatus: submissionSuccessful ? 'success' : 'local'
-    };
+    // 设置总体超时保护
+    timeoutTimer.value = window.setTimeout(() => {
+      ElMessage.warning('分析时间过长，请刷新页面重试')
+      cleanupTimers()
+      isAnalyzing.value = false
+      clearInterval(analyzeTimer.value)
+    }, 300000) // 5分钟总超时
     
-    // 保存结果到推荐store
-    recommendationStore.saveAssessmentResult(result);
-    
-    // 分析完成后重置状态
-    isAnalyzing.value = false;
-    
-    // 跳转到报告页面并携带数据
-    router.push({
-      path: '/result',
-      query: { assessmentId: result.id }
-    });
   } catch (error) {
-    console.error('分析过程出错:', error);
-    isAnalyzing.value = false; // 确保发生错误时也重置状态
-    ElMessage.error('生成测评报告失败，请重试');
+    console.error('启动分析过程失败:', error)
+    isAnalyzing.value = false
+    clearInterval(analyzeTimer.value)
+    ElMessage.error('启动推荐分析失败，请重试')
+  }
+}
+
+// 进度轮询函数
+const startProgressPolling = (userId: number | string) => {
+  console.log('开始轮询推荐生成进度...');
+  updateStepStatus('recommendation_gen', '处理中');
+  analysisProgress.value = 30;
+  
+  // 清除可能存在的旧轮询计时器
+  if (pollingTimer.value) {
+    clearInterval(pollingTimer.value);
+  }
+  
+  // 初始化计数器
+  let pollingCount = 0;
+  const maxPollingCount = 60; // 最多轮询60次，即5分钟
+  
+  // 设置轮询计时器
+  pollingTimer.value = window.setInterval(async () => {
+    try {
+      pollingCount++;
+      console.log(`轮询进度 (${pollingCount}/${maxPollingCount})...`);
+      
+      // 使用XMLHttpRequest发送请求以获取详细错误信息
+      const progressResponseData = await new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', `/api/v1/career-recommendations/progress?user_id=${userId}`);
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (e) {
+              resolve({ data: { progress: 0, status: 'unknown' } });
+            }
+          } else {
+            reject({
+              status: xhr.status,
+              statusText: xhr.statusText,
+              response: xhr.responseText
+            });
+          }
+        };
+        xhr.onerror = function() {
+          reject({
+            status: xhr.status,
+            statusText: 'XMLHttpRequest Error',
+            response: null
+          });
+        };
+        xhr.send();
+      });
+      
+      console.log('进度查询结果:', progressResponseData);
+      
+      // 从响应中提取进度数据
+      const progress = progressResponseData?.data?.progress || 0;
+      const status = progressResponseData?.data?.status || 'processing';
+      
+      // 更新显示的进度
+      if (progress > 0) {
+        analysisProgress.value = 30 + Math.min(65, Math.floor(progress * 0.65));
+      }
+      
+      // 如果进度完成
+      if (status === 'completed' || progress >= 100) {
+        console.log('推荐生成已完成!');
+        if (pollingTimer.value) clearInterval(pollingTimer.value);
+        updateStepStatus('recommendation_gen', '已完成');
+        analysisProgress.value = 95;
+        
+        // 转到结果处理
+        setTimeout(() => {
+          finalizeAnalysis(userId);
+        }, 1000);
+        return;
+      }
+      
+      // 如果超过最大轮询次数
+      if (pollingCount >= maxPollingCount) {
+        console.log('达到最大轮询次数，停止轮询');
+        if (pollingTimer.value) clearInterval(pollingTimer.value);
+        ElMessage.warning('推荐生成时间过长，请稍后在"职业推荐"页面查看结果');
+        
+        // 直接完成流程以避免用户等待
+        finalizeAnalysis(userId);
+        return;
+      }
+      
+    } catch (error) {
+      console.error('轮询进度失败:', error);
+      processStats.retryCount++;
+      
+      // 如果连续失败次数过多，停止轮询
+      if (processStats.retryCount >= 3) {
+        console.log('连续失败次数过多，停止轮询');
+        if (pollingTimer.value) clearInterval(pollingTimer.value);
+        ElMessage.warning('无法获取推荐生成进度，请稍后在"职业推荐"页面查看结果');
+        
+        // 仍然尝试完成流程
+        finalizeAnalysis(userId);
+      }
+    }
+  }, 5000); // 每5秒轮询一次
+};
+
+// 完成分析并清理
+const finalizeAnalysis = async (userId: number | string) => {
+  try {
+    updateStepStatus('finalizing', '处理中');
+    analysisProgress.value = 95;
+    
+    console.log('最终化分析结果...');
+    
+    // 尝试获取最终推荐结果
+    try {
+      console.log('获取推荐结果:', `/api/v1/career-recommendations?user_id=${userId}`);
+      
+      const resultResponseData = await new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', `/api/v1/career-recommendations?user_id=${userId}`);
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (e) {
+              reject(new Error('无效的响应数据'));
+            }
+          } else {
+            reject({
+              status: xhr.status,
+              statusText: xhr.statusText,
+              response: xhr.responseText
+            });
+          }
+        };
+        xhr.onerror = function() {
+          reject({
+            status: xhr.status,
+            statusText: 'XMLHttpRequest Error',
+            response: null
+          });
+        };
+        xhr.send();
+      });
+      
+      console.log('获取到推荐结果:', resultResponseData);
+      
+      // 检查数据有效性
+      const recommendationData = resultResponseData?.data;
+      if (recommendationData && Array.isArray(recommendationData.recommendations)) {
+        console.log('推荐数据有效，将跳转到推荐页面');
+        // 保存最近的推荐ID，以便在推荐页面中显示
+        localStorage.setItem('latestRecommendationId', recommendationData.id || '');
+      } else {
+        console.warn('推荐数据无效或为空:', recommendationData);
+      }
+    } catch (error) {
+      console.error('获取最终推荐结果失败:', error);
+      ElMessage.warning('获取推荐结果失败，请稍后在"职业推荐"页面查看');
+    }
+    
+    // 完成分析
+    updateStepStatus('finalizing', '已完成');
+    analysisProgress.value = 100;
+    
+    // 显示成功消息
+    ElMessage.success('职业测评分析完成！');
+    
+    // 清理所有计时器
+    cleanupTimers();
+    
+    // 短暂延迟后跳转到推荐页面
+    setTimeout(() => {
+      isAnalyzing.value = false;
+      router.push('/career-recommend');
+    }, 1500);
+    
+  } catch (finalError) {
+    console.error('完成分析过程失败:', finalError);
+    ElMessage.error('完成分析时出错，请重试');
+    cleanupTimers();
+    isAnalyzing.value = false;
+  }
+};
+
+// 清理所有计时器
+const cleanupTimers = () => {
+  // 清理分析计时器
+  if (analyzeTimer.value) {
+    clearInterval(analyzeTimer.value);
+    analyzeTimer.value = null;
+  }
+  
+  // 清理轮询计时器
+  if (pollingTimer.value) {
+    clearInterval(pollingTimer.value);
+    pollingTimer.value = null;
+  }
+  
+  // 清理超时计时器
+  if (timeoutTimer.value) {
+    clearTimeout(timeoutTimer.value);
+    timeoutTimer.value = null;
+  }
+};
+
+// 格式化时间函数（秒转为分:秒格式）
+const formatTime = (seconds: number): string => {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+}
+
+// 上一题
+const prevQuestion = () => {
+  if (currentQuestionIndex.value > 0) {
+    currentQuestionIndex.value--
+  } else if (activeStep.value > 0) {
+    activeStep.value--
+    currentQuestionIndex.value = questions[activeStep.value].items.length - 1
   }
 }
 
@@ -665,145 +884,22 @@ const determineCareerPath = () => {
 }
 
 // 修改提交函数
-const handleSubmit = async () => {
-  await startAnalysis()
-}
-
-// 当前问题索引
-const currentQuestionIndex = ref(0)
-
-// 获取当前部分的所有问题
-const getCurrentSectionQuestions = computed(() => {
-  return questions[activeStep.value].items
-})
-
-// 获取当前问题
-const currentQuestion = computed(() => {
-  return getCurrentSectionQuestions.value[currentQuestionIndex.value]
-})
-
-// 下一题
-const nextQuestion = () => {
-  if (currentQuestionIndex.value < getCurrentSectionQuestions.value.length - 1) {
-    currentQuestionIndex.value++
-  } else if (activeStep.value < steps.length - 1) {
-    activeStep.value++
-    currentQuestionIndex.value = 0
-  } else {
-    handleSubmit()
-  }
-}
-
-// 上一题
-const prevQuestion = () => {
-  if (currentQuestionIndex.value > 0) {
-    currentQuestionIndex.value--
-  } else if (activeStep.value > 0) {
-    activeStep.value--
-    currentQuestionIndex.value = questions[activeStep.value].items.length - 1
-  }
-}
-
-// 获取当前进度
-const getProgress = computed<number>(() => {
-  const totalQuestions = questions.reduce((sum, section) => sum + section.items.length, 0)
-  const answeredQuestions = Object.keys(answers).length
-  return Math.round((answeredQuestions / totalQuestions) * 100)
-})
-
-// 获取某个部分的完成进度
-const getSectionProgress = (sectionIndex: number) => {
-  const sectionQuestions = questions[sectionIndex].items
-  const answeredCount = sectionQuestions.filter(q => answers[q.id] !== undefined).length
-  return Math.round((answeredCount / sectionQuestions.length) * 100)
-}
-
-// 获取部分进度条颜色
-const getSectionColor = (sectionIndex: number) => {
-  const progress = getSectionProgress(sectionIndex)
-  if (progress === 100) return '#67C23A'
-  if (progress > 50) return '#409EFF'
-  if (progress > 0) return '#E6A23C'
-  return '#909399'
-}
-
-// 获取预计剩余时间
-const getEstimatedTime = () => {
-  const totalQuestions = questions.reduce((sum, section) => sum + section.items.length, 0)
-  const answeredQuestions = Object.keys(answers).length
-  const remainingQuestions = totalQuestions - answeredQuestions
-  const minutesPerQuestion = 1 // 假设每题平均1分钟
-  const remainingMinutes = remainingQuestions * minutesPerQuestion
-  return remainingMinutes > 0 ? `${remainingMinutes} 分钟` : '即将完成'
-}
-
-// 判断是否为最后一题
-const isLastQuestion = computed(() => {
-  return activeStep.value === steps.length - 1 && 
-         currentQuestionIndex.value === getCurrentSectionQuestions.value.length - 1
-})
-
-// 选择答案并自动跳转
-const selectAnswer = (value: number) => {
-  const questionId = currentQuestion.value.id
-  // 如果已经选择了这个答案，不做任何操作
-  if (answers[questionId] === value) {
-    return
-  }
-  
-  // 保存答案
-  answers[questionId] = value
-  
-  // 延迟300ms后跳转，给用户一个视觉反馈的时间
-  setTimeout(() => {
-    // 如果不是最后一题，自动跳转到下一题
-    if (!isLastQuestion.value) {
-      nextQuestion()
-    }
-  }, 300)
-}
-
-// 获取提示信息
-const getCurrentTip = () => {
-  const tips = [
-    "测评结果会根据您的回答生成个性化的职业推荐",
-    "职业匹配度越高，表示您与该职业的适配性越好",
-    "您的测评结果将被保存，随时可以重新查看",
-    "测评结果会从兴趣、能力和价值观多维度分析",
-    "我们的算法基于职业心理学理论，为您提供科学的职业指导"
-  ];
-      
-  return tips[Math.floor(Math.random() * tips.length)];
-}
-
-const analysisProgress = computed(() => {
-  if (currentStep.value >= analyzeSteps.length) {
-    return 100;
-  }
-  return Math.round((currentStep.value / analyzeSteps.length) * 100);
-})
-
-// 获取当前阶段的问题
-const currentQuestions = computed(() => {
-  return filteredQuestions.value[activeStep.value].items
-})
-
-// 在解答完成后前进到下一步，如果都完成了则开始分析
-const next = () => {
-  // 确认当前阶段的所有问题已回答
-  const currentItems = filteredQuestions.value[activeStep.value].items
-  for (const item of currentItems) {
-    if (!answers[item.id]) {
-      ElMessage.warning('请回答所有问题后再继续')
+const handleSubmit = () => {
+  try {
+    console.log('开始提交测评...')
+    
+    // 检查是否有足够的问题被回答
+    const answeredCount = Object.keys(answers).length
+    if (answeredCount < 5) {
+      ElMessage.warning('至少需要回答5个问题才能获得准确的职业推荐')
       return
     }
-  }
-
-  // 前进到下一步或完成测评
-  if (activeStep.value < filteredQuestions.value.length - 1) {
-    activeStep.value++
-  } else {
+    
+    // 开始分析流程
     startAnalysis()
+  } catch (error) {
+    console.error('提交测评失败:', error)
+    ElMessage.error('提交测评时出错，请重试')
   }
 }
 </script>
@@ -1016,7 +1112,7 @@ const next = () => {
             type="primary"
             :disabled="!answers[currentQuestion.id]"
             class="nav-button"
-            @click="nextQuestion"
+            @click="isLastQuestion ? handleSubmit() : nextQuestion()"
           >
             {{ isLastQuestion ? '提交测评' : '下一题' }}
             <el-icon v-if="!isLastQuestion">
@@ -1067,45 +1163,90 @@ const next = () => {
       <div class="analysis-content">
         <el-card class="result-card">
           <div class="result-header">
-            <h2>数据分析中</h2>
-            <p>正在为您生成职业测评报告，请稍候...</p>
+            <h2>职业推荐生成中</h2>
+            <p>我们正在为您分析数据并生成个性化职业推荐，整个过程预计需要1-2分钟</p>
           </div>
           
-          <div class="analysis-progress">
+          <div class="analysis-progress-container">
+            <div class="main-progress">
             <el-progress 
-              type="circle" 
-              :percentage="analysisProgress" 
-              :stroke-width="8"
-              :status="currentStep >= analyzeSteps.length ? 'success' : ''"
-              :color="currentStep >= analyzeSteps.length ? '#67C23A' : '#409EFF'"
-            />
+                type="dashboard" 
+                :percentage="Math.round(analysisProgress)" 
+                :stroke-width="10"
+                :status="analysisProgress >= 100 ? 'success' : ''"
+              />
+              <div class="progress-stats">
+                <div class="time-stat">
+                  <span class="stat-label">已处理时间</span>
+                  <span class="stat-value">{{ formatTime(processStats.elapsedTime) }}</span>
+                </div>
+                <div class="progress-divider"></div>
+                <div class="time-stat">
+                  <span class="stat-label">预计剩余</span>
+                  <span class="stat-value">{{ analysisProgress >= 100 ? '0:00' : '~1:00' }}</span>
+                </div>
+              </div>
           </div>
           
-          <div class="analysis-steps">
-            <el-steps 
-              :active="currentStep" 
-              finish-status="success"
-              align-center
-            >
-              <el-step 
-                v-for="(step, index) in analyzeSteps" 
+            <div class="processing-info">
+              <div class="processing-stage">
+                <span class="stage-label">当前阶段：</span>
+                <span class="stage-value">{{ detailSteps[currentStep].title }}</span>
+              </div>
+              <div class="processing-details" v-if="processStats.stageInfo">
+                {{ processStats.stageInfo }}
+              </div>
+            </div>
+          </div>
+          
+          <div class="analysis-flow">
+            <div class="flow-stages">
+              <div 
+                v-for="(step, index) in detailSteps" 
                 :key="index" 
-                :title="step.title"
-                :description="step.desc"
-              />
-            </el-steps>
+                class="flow-stage" 
+                :class="{ 
+                  'active': currentStep === index,
+                  'completed': currentStep > index
+                }"
+              >
+                <div class="stage-icon">
+                  <el-icon v-if="currentStep > index"><Check /></el-icon>
+                  <span v-else>{{ index + 1 }}</span>
+                </div>
+                <div class="stage-content">
+                  <div class="stage-header">
+                    <div class="stage-title">{{ step.title }}</div>
+                    <div class="stage-progress">{{ step.status === '已完成' ? '已完成' : '进行中' }}</div>
+                  </div>
+                  <div class="stage-description">{{ step.status === '已完成' ? '已完成' : '进行中' }}</div>
+                </div>
+              </div>
+            </div>
           </div>
           
           <div class="result-footer">
+            <div class="processing-filter">
+              <div class="filter-title">分析进度</div>
+              <div class="filter-visual">
+                <div class="filter-stage">
+                  <div class="filter-count">{{ analysisProgress }}%</div>
+                  <div class="filter-label">已完成</div>
+                </div>
+              </div>
+            </div>
+            
             <el-alert
               type="info"
               :closable="false"
               show-icon
             >
               <template #title>
-                <span class="tip-title">职业小贴士</span>
+                <span class="tip-title">处理说明</span>
               </template>
-              <div class="tip-content">{{ getCurrentTip() }}</div>
+              <div class="tip-content">
+                {{ processStats.message }}
+              </div>
             </el-alert>
           </div>
         </el-card>
@@ -1586,13 +1727,14 @@ const next = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: auto;
   animation: fadeIn 0.5s ease-out;
+  padding: 20px;
 }
 
 .analysis-content {
-  max-width: 800px;
-  width: 90%;
+  max-width: 900px;
+  width: 95%;
   position: relative;
   z-index: 1;
   animation: contentFadeIn 0.8s ease-out;
@@ -1607,6 +1749,7 @@ const next = () => {
 .result-header {
   text-align: center;
   margin-bottom: 30px;
+  padding-top: 10px;
 }
 
 .result-header h2 {
@@ -1620,18 +1763,269 @@ const next = () => {
   color: #606266;
 }
 
-.analysis-progress {
+.analysis-progress-container {
   display: flex;
-  justify-content: center;
-  margin: 30px 0;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 0 20px;
 }
 
-.analysis-steps {
-  margin: 40px 0;
+.main-progress {
+  flex: 0 0 auto;
+  margin-right: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.progress-stats {
+  display: flex;
+  margin-top: 15px;
+  background: #f8f9fa;
+  border-radius: 20px;
+  padding: 8px 15px;
+  width: 100%;
+}
+
+.time-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #909399;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.progress-divider {
+  width: 1px;
+  background: #dcdfe6;
+  margin: 0 10px;
+}
+
+.processing-info {
+  flex: 1;
+  background: #f0f9ff;
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.processing-stage {
+  margin-bottom: 8px;
+}
+
+.stage-label {
+  color: #909399;
+}
+
+.stage-value {
+  font-weight: 500;
+  color: #409EFF;
+}
+
+.processing-details {
+  color: #606266;
+  font-size: 14px;
+}
+
+.analysis-flow {
+  margin: 30px 0;
+  padding: 0 20px;
+}
+
+.flow-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.flow-stage {
+  display: flex;
+  background: #f5f7fa;
+  border-radius: 8px;
+  padding: 15px;
+  transition: all 0.3s ease;
+}
+
+.flow-stage.active {
+  background: #ecf5ff;
+  box-shadow: 0 0 10px rgba(64, 158, 255, 0.2);
+}
+
+.flow-stage.completed {
+  background: #f0f9eb;
+}
+
+.stage-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #dcdfe6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  color: white;
+}
+
+.active .stage-icon {
+  background: #409EFF;
+}
+
+.completed .stage-icon {
+  background: #67C23A;
+}
+
+.stage-content {
+  flex: 1;
+}
+
+.stage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.stage-title {
+  font-weight: 500;
+  color: #303133;
+}
+
+.stage-progress {
+  font-size: 13px;
+  color: #606266;
+}
+
+.stage-description {
+  color: #606266;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.detail-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.detail-step {
+  flex: 1 0 45%;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 3px solid #dcdfe6;
+  min-width: 200px;
+}
+
+.detail-active {
+  background: #ecf5ff;
+  border-left-color: #409EFF;
+}
+
+.detail-completed {
+  background: #f0f9eb;
+  border-left-color: #67C23A;
+}
+
+.detail-icon {
+  margin-right: 10px;
+  color: #909399;
+}
+
+.detail-active .detail-icon {
+  color: #409EFF;
+}
+
+.detail-completed .detail-icon {
+  color: #67C23A;
+}
+
+.detail-content {
+  flex: 1;
+}
+
+.detail-title {
+  font-weight: 500;
+  font-size: 13px;
+  color: #303133;
+}
+
+.detail-desc {
+  font-size: 12px;
+  color: #909399;
+}
+
+.detail-status {
+  font-size: 12px;
+  color: #909399;
+}
+
+.detail-active .detail-status {
+  color: #409EFF;
+}
+
+.detail-completed .detail-status {
+  color: #67C23A;
+}
+
+.processing-icon {
+  animation: spin 1.5s linear infinite;
 }
 
 .result-footer {
   margin-top: 30px;
+}
+
+.processing-filter {
+  background: #f5f7fa;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.filter-title {
+  font-weight: 500;
+  margin-bottom: 15px;
+  color: #303133;
+}
+
+.filter-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filter-stage {
+  text-align: center;
+}
+
+.filter-count {
+  font-size: 20px;
+  font-weight: 600;
+  color: #409EFF;
+}
+
+.filter-label {
+  font-size: 13px;
+  color: #606266;
+}
+
+.filter-arrow {
+  margin: 0 15px;
+  color: #909399;
+  font-size: 20px;
 }
 
 .tip-title {
@@ -1661,6 +2055,11 @@ const next = () => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* 问题选择器界面样式 */

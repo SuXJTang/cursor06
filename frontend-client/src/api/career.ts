@@ -10,6 +10,14 @@ export function generateRecommendations(userId: string | number, forceNew: boole
     user_id: userId,
     force_new: forceNew
   })
+  .then(response => {
+    console.log('生成推荐成功:', response)
+    return response
+  })
+  .catch(error => {
+    console.error('生成推荐失败:', error)
+    throw error
+  })
 }
 
 // 获取推荐进度（从数据库或Redis获取）
@@ -17,6 +25,14 @@ export function getRecommendationProgress(userId?: string | number) {
   console.log(`API调用: getRecommendationProgress(userId=${userId})`)
   return request.get('/api/v1/career-recommendations/progress', {
     params: userId ? { user_id: userId } : {}
+  })
+  .then(response => {
+    console.log('获取推荐进度成功:', response)
+    return response
+  })
+  .catch(error => {
+    console.error('获取推荐进度失败:', error)
+    throw error
   })
 }
 
@@ -42,6 +58,21 @@ export function getRecommendations(userId?: string | number) {
   console.log(`API调用: getRecommendations(userId=${userId})`)
   return request.get('/api/v1/career-recommendations', {
     params: userId ? { user_id: userId } : {}
+  })
+  .then(response => {
+    console.log('获取推荐结果成功:', response)
+    return response
+  })
+  .catch(error => {
+    console.error('获取推荐结果失败:', error)
+    // 提供友好的错误信息
+    return {
+      status: 'error',
+      message: '获取推荐结果失败，请稍后重试',
+      error: error.message || '未知错误',
+      recommendations: [],
+      candidates: []
+    }
   })
 }
 
@@ -170,132 +201,37 @@ export async function getUserProfile(userId?: string | number) {
       });
     } catch (e) {
       try {
-        response = await request.get(`/api/v1/users/${userId}`);
+        response = await request.get(`/api/v1/users/${userId}/profile`);
       } catch (e2) {
-        response = await request.get('/api/v1/users/profile', {
-          params: { id: userId }
+        response = await request.get('/api/v1/user-info', {
+          params: { user_id: userId }
         });
       }
     }
     
+    // 检查并记录数据详情
+    const data = response?.data;
+    const hasData = data && typeof data === 'object' && Object.keys(data).length > 0;
+    
+    console.log('用户资料检查结果:', {
+      exists: !!data,
+      hasContent: hasData,
+      dataKeys: data ? Object.keys(data) : []
+    });
+    
     return {
-      data: response?.data,
-      exists: !!response?.data,
-      status: 'success'
+      data,
+      exists: !!data,
+      hasContent: hasData,
+      status: hasData ? 'success' : 'empty'
     };
   } catch (error: any) {
-    console.error('获取用户详细资料失败:', error);
+    console.error('获取用户资料失败:', error);
     return {
       error: error.message || String(error),
       exists: false,
+      hasContent: false,
       status: 'error'
     };
   }
 }
-
-/**
- * 查询用户资料（调试用）
- * @param userId 用户ID
- */
-export const getUserProfileDebug = async (userId: string): Promise<any> => {
-  console.log(`[调试] 获取用户资料: userId=${userId}`);
-  try {
-    const response: any = await axios.get(`/api/v1/debug/user-profile/${userId}`);
-    console.log('[调试] 用户资料查询结果:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('[调试] 获取用户资料失败:', error);
-    return {
-      success: false,
-      message: `获取用户资料失败: ${error}`,
-    };
-  }
-};
-
-/**
- * 查询用户简历数据（调试用）
- * @param userId 用户ID
- */
-export const getResumeDataDebug = async (userId: string): Promise<any> => {
-  console.log(`[调试] 获取用户简历: userId=${userId}`);
-  try {
-    const response: any = await axios.get(`/api/v1/debug/resume-data/${userId}`);
-    console.log('[调试] 用户简历查询结果:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('[调试] 获取用户简历失败:', error);
-    return {
-      success: false,
-      message: `获取用户简历失败: ${error}`,
-    };
-  }
-};
-
-/**
- * 注入用户资料数据（调试用）
- * @param userId 用户ID
- */
-export const injectUserProfileDebug = async (userId: string): Promise<any> => {
-  console.log(`[调试] 注入用户资料: userId=${userId}`);
-  try {
-    const response: any = await axios.post('/api/v1/debug/inject-user-profile', { user_id: userId });
-    console.log('[调试] 用户资料注入结果:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('[调试] 注入用户资料失败:', error);
-    return {
-      success: false,
-      message: `注入用户资料失败: ${error}`,
-    };
-  }
-};
-
-/**
- * 注入简历数据（调试用）
- * @param userId 用户ID
- */
-export const injectResumeDebug = async (userId: string): Promise<any> => {
-  console.log(`[调试] 注入简历数据: userId=${userId}`);
-  try {
-    const response: any = await axios.post('/api/v1/debug/inject-resume', { user_id: userId });
-    console.log('[调试] 简历数据注入结果:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('[调试] 注入简历数据失败:', error);
-    return {
-      success: false,
-      message: `注入简历数据失败: ${error}`,
-    };
-  }
-};
-
-/**
- * 进行用户兴趣分析（调试用）- 仅为保持API兼容性保留
- * @param userId 用户ID
- * @deprecated 此功能已被移除
- */
-export const analyzeUserInterests = async (userId: string): Promise<any> => {
-  console.log(`[已废弃] 兴趣分析功能已移除: userId=${userId}`);
-  return {
-    success: false,
-    message: "兴趣分析功能已被移除",
-    error: "DEPRECATED_FUNCTION"
-  };
-};
-
-export default {
-  generateRecommendations,
-  getRecommendationProgress,
-  getRecommendationStatus,
-  syncRecommendationStatus,
-  getRecommendations,
-  getRecommendationCandidates,
-  toggleFavoriteCareer,
-  getUserRecommendations,
-  checkRecommendationData,
-  getAssessmentData,
-  getRawRecommendationData,
-  checkResumeData,
-  getUserProfile,
-  analyzeUserInterests
-} 

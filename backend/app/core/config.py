@@ -26,7 +26,15 @@ class Settings(BaseSettings):
         "http://localhost:8080",  # 可能的其他前端开发服务器
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
-        "http://127.0.0.1:8080"
+        "http://127.0.0.1:8080",
+        "http://localhost:4173",  # Vite预览服务器
+        "http://127.0.0.1:4173",
+        "http://192.168.77.1:5173",  # 本地网络地址
+        "http://192.168.77.1:8000",  # 后端服务器地址
+        "http://192.168.143.1:5173",  # 其他本地网络地址
+        "http://192.168.1.100:5173",  # 其他可能的本地IP
+        "http://192.168.0.100:5173",  # 其他可能的本地IP
+        "*"  # 允许所有源，开发环境使用
     ]
     
     # 数据库配置
@@ -49,7 +57,7 @@ class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URL: str = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
     
     # JWT配置
-    SECRET_KEY: str = secrets.token_urlsafe(32)
+    SECRET_KEY: str = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))  # 优先使用环境变量
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     ALGORITHM: str = "HS256"  # JWT加密算法
     

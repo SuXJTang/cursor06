@@ -70,16 +70,10 @@ export const authApi = {
     
     // 使用URLSearchParams来创建application/x-www-form-urlencoded格式的数据
     const params = new URLSearchParams()
-    params.append('username', data.email) // 后端OAuth2PasswordRequestForm要求用username字段
+    params.append('username', data.email) // 使用email作为username
     params.append('password', data.password)
     
-    // 不需要添加这些额外字段，FastAPI的OAuth2实现会自动处理
-    // params.append('grant_type', 'password')
-    // params.append('scope', '')
-    // params.append('client_id', '')
-    // params.append('client_secret', '')
-    
-    // 使用正确的API路径，包含/v1前缀
+    // 使用正确的API路径
     console.log('发送登录请求:',{
       url: '/api/v1/auth/login',
       body: params.toString()
@@ -90,7 +84,8 @@ export const authApi = {
       const response = await request.post('/api/v1/auth/login', params, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
-        }
+        },
+        withCredentials: true // 明确设置withCredentials
       })
       console.log('登录响应原始数据:', response)
       

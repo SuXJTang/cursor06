@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import os
@@ -7,11 +7,15 @@ import json
 from typing import Any, Dict
 from datetime import datetime
 import time
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.logging_config import app_logger
 from app.utils.logger import logger as utils_logger
+# 注释掉不存在的中间件导入
+# from app.middleware.response_formatter import CustomResponseMiddleware
+# from app.middleware.request_log import LoggingMiddleware
 
 # 确保日志目录和模板目录存在
 os.makedirs("app/logs", exist_ok=True)
@@ -80,36 +84,57 @@ async def lifespan(app: FastAPI):
         app_logger.error(f"关闭Redis连接时出错: {e}")
 
 app = FastAPI(
-    title="职业推荐系统API",
-    version="1.0.0",
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    # 在这里添加OAuth2
+    swagger_ui_oauth2_redirect_url=f"{settings.API_V1_STR}/docs/oauth2-redirect",
+    docs_url=f"{settings.API_V1_STR}/docs",
+    redoc_url=f"{settings.API_V1_STR}/redoc",
     lifespan=lifespan,
 )
 
-# 配置CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  # Vue Vite 开发服务器
-        "http://localhost:8080",  # Vue CLI 开发服务器
-        "http://localhost:3000",  # 其他可能的前端服务
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:8080",
-        "http://127.0.0.1:3000",
-        "http://localhost",
-        "http://localhost:5174",   # Vue Vite 的备用端口
-        "http://localhost:8000",   # 后端API服务自身
-        "http://127.0.0.1:8000",   # 后端API在本地IP
-        "http://192.168.77.1:5173",  # 添加的局域网IP
-        "http://192.168.77.1:8080",
-        "http://192.168.77.1:3000",
-        "http://192.168.77.1",
-        "*",  # 允许所有来源(生产环境不推荐)
-    ],  # 替换为具体前端域名
-    allow_credentials=True,
-    allow_methods=["*"],  # 允许所有方法
-    allow_headers=["*"],  # 允许所有头
-    expose_headers=["Content-Type", "X-CSRFToken", "Authorization"],  # 暴露这些响应头
-)
+# 确保静态目录存在
+base_dir = os.path.abspath(os.path.dirname(__file__))
+project_root = os.path.abspath(os.path.join(base_dir, ".."))
+static_dir = os.path.join(project_root, "static")
+avatars_dir = os.path.join(static_dir, "avatars")
+
+# 创建目录（如果不存在）
+os.makedirs(static_dir, exist_ok=True)
+os.makedirs(avatars_dir, exist_ok=True)
+app_logger.info(f"确保静态目录存在: {static_dir}")
+app_logger.info(f"确保头像目录存在: {avatars_dir}")
+
+# 挂载静态文件目录
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+# Set all CORS enabled origins
+if settings.BACKEND_CORS_ORIGINS:
+    # 检查是否包含通配符
+    if "*" in settings.BACKEND_CORS_ORIGINS:
+        # 注意: 通配符*与allow_credentials=True不能同时使用，这是浏览器安全限制
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=False,  # 当使用通配符时，必须设置为False
+            allow_methods=["*"],
+            allow_headers=["*"],
+            expose_headers=["Content-Type", "X-CSRFToken", "Authorization"],
+            max_age=600  # 缓存预检请求的结果10分钟
+        )
+        app_logger.info("CORS配置: 允许所有源 (withCredentials 禁用)")
+    else:
+        # 否则只允许指定的源
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+            allow_credentials=True,  # 当使用具体源列表时，可以启用凭证
+            allow_methods=["*"],
+            allow_headers=["*"],
+            expose_headers=["Content-Type", "X-CSRFToken", "Authorization"],
+            max_age=600  # 缓存预检请求的结果10分钟
+        )
+        app_logger.info(f"CORS配置: 允许的源: {settings.BACKEND_CORS_ORIGINS}")
 
 # 包含API路由
 app.include_router(api_router, prefix="/api/v1")

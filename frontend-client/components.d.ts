@@ -63,8 +63,10 @@ declare module 'vue' {
     InterestAnalysisResult: typeof import('./src/components/InterestAnalysisResult.vue')['default']
     NavBar: typeof import('./src/components/NavBar.vue')['default']
     NavMenu: typeof import('./src/components/NavMenu.vue')['default']
+    ProgressBar: typeof import('./src/components/ProgressBar.vue')['default']
     RecommendationDebugTool: typeof import('./src/components/RecommendationDebugTool.vue')['default']
     RecommendationStatus: typeof import('./src/components/RecommendationStatus.vue')['default']
+    ResumeUploader: typeof import('./src/components/Resume/ResumeUploader.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }

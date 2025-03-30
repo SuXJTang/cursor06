@@ -279,35 +279,82 @@ const beforeAvatarUpload = (file: File) => {
 const handleAvatarUpload = async (options: any) => {
   const { file } = options
   try {
+    console.log('开始上传头像文件:', file.name)
+    
     // 创建单独的FormData对象
     const formData = new FormData()
     formData.append('file', file)
     
-    // 直接使用请求库，绕过authApi
-    const response = await request.post('/api/v1/users/me/avatar', formData, {
+    // 设置请求配置，包括超时时间
+    const config = {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
-    })
+      },
+      timeout: 30000 // 增加超时时间到30秒
+    }
+    
+    console.log('准备发送上传请求')
+    
+    // 直接使用请求库，绕过authApi
+    const response = await request.post('/api/v1/users/me/avatar', formData, config)
+    
+    console.log('头像上传响应:', response)
     
     // 使用适配器提取数据
     const responseData = extractData(response)
+    console.log('处理后的响应数据:', responseData)
     
     // 更新头像URL
     if (responseData && responseData.avatar_url) {
-      // 处理头像URL，确保包含正确的API前缀
+      // 处理头像URL
       let avatarUrl = responseData.avatar_url
-      // 如果URL不是以/api/开头，且不是完整的http URL，则添加/api前缀
-      if (!avatarUrl.startsWith('/api/') && !avatarUrl.startsWith('http')) {
+      console.log('服务器返回的原始头像URL:', avatarUrl)
+      
+      // 处理不同格式的URL
+      if (avatarUrl.startsWith('/static/')) {
+        // 静态文件路径，添加域名前缀
+        const baseUrl = location.origin
+        avatarUrl = `${baseUrl}${avatarUrl}`
+        console.log('添加了域名前缀的静态URL:', avatarUrl)
+      } else if (avatarUrl.startsWith('/api/v1/users/avatars/')) {
+        // 旧版API路径，保持不变
+        console.log('使用旧版API路径:', avatarUrl)
+      } else if (!avatarUrl.startsWith('/api/') && !avatarUrl.startsWith('http')) {
+        // 其他相对路径，添加API前缀
         avatarUrl = `/api${avatarUrl}`
+        console.log('添加了API前缀的URL:', avatarUrl)
       }
+      
+      console.log('最终处理后的头像URL:', avatarUrl)
       userForm.avatar_url = avatarUrl
       
+      // 同时更新store中的头像信息
+      if (userStore.userInfo) {
+        userStore.userInfo.avatar_url = avatarUrl
+        // 保存到本地存储
+        userStore.saveUserToStorage()
+        console.log('已更新store中的头像URL并保存到本地存储')
+      }
+      
       ElMessage.success('头像上传成功')
+    } else {
+      console.error('响应中没有avatar_url字段', responseData)
+      ElMessage.error('头像上传失败：服务器返回数据格式不正确')
     }
   } catch (error) {
     console.error('上传头像失败:', error)
-    ElMessage.error('上传头像失败，请检查网络连接或联系管理员')
+    
+    // 提供更详细的错误信息
+    if (error.response) {
+      console.error('错误状态码:', error.response.status)
+      console.error('错误响应数据:', error.response.data)
+      ElMessage.error(`上传头像失败: ${error.response.data?.detail || '服务器错误'}`)
+    } else if (error.request) {
+      console.error('未收到响应:', error.request)
+      ElMessage.error('上传头像失败：服务器无响应，请检查网络连接')
+    } else {
+      ElMessage.error(`上传头像失败：${error.message || '未知错误'}`)
+    }
   }
 }
 

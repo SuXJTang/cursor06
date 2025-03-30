@@ -112,10 +112,21 @@ const processedAvatarUrl = computed(() => {
   if (!authStore.userInfo?.avatar_url) return ''
   
   let avatarUrl = authStore.userInfo.avatar_url
-  // 如果URL不是以/api/开头，且不是完整的http URL，则添加/api前缀
-  if (!avatarUrl.startsWith('/api/') && !avatarUrl.startsWith('http')) {
+  
+  // 兼容多种URL格式
+  if (avatarUrl.startsWith('/api/v1/users/avatars/')) {
+    // API路径格式
+    return avatarUrl
+  } else if (avatarUrl.startsWith('/static/')) {
+    // 静态文件路径
+    // 直接使用当前请求的base URL
+    const baseUrl = location.origin;
+    return `${baseUrl}${avatarUrl}`
+  } else if (!avatarUrl.startsWith('/api/') && !avatarUrl.startsWith('http')) {
+    // 相对路径，转为API路径
     avatarUrl = `/api${avatarUrl}`
   }
+  
   return avatarUrl
 })
 </script>

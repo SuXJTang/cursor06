@@ -49,14 +49,6 @@ interface ApiResponse<T> {
   data: T
 }
 
-// 类型定义
-interface StoreState {
-  token: string | null;
-  userInfo: UserInfo | null;
-  loading: boolean;
-  error: string | null;
-}
-
 export const useAuthStore = defineStore('auth', () => {
   // 状态
   const token = ref<string | null>(localStorage.getItem(TOKEN_KEY))
@@ -77,6 +69,30 @@ export const useAuthStore = defineStore('auth', () => {
   
   // 计算属性
   const isAuthenticated = computed(() => !!token.value && !!userInfo.value)
+  
+  // 获取处理后的头像URL
+  const avatarUrl = computed(() => {
+    if (!userInfo.value || !userInfo.value.avatar_url) {
+      return '/default-avatar.png';
+    }
+    
+    let url = userInfo.value.avatar_url;
+    
+    // 处理不同格式的URL
+    if (url.startsWith('/static/')) {
+      // 静态文件路径，添加域名前缀
+      const baseUrl = location.origin;
+      return `${baseUrl}${url}`;
+    } else if (url.startsWith('/api/v1/users/avatars/')) {
+      // 旧版API路径，保持不变
+      return url;
+    } else if (!url.startsWith('/api/') && !url.startsWith('http')) {
+      // 其他相对路径，添加API前缀
+      return `/api${url}`;
+    }
+    
+    return url;
+  })
   
   // 保存用户信息到本地存储
   const saveUserToStorage = () => {
@@ -281,16 +297,16 @@ export const useAuthStore = defineStore('auth', () => {
   // 上传头像
   const uploadAvatar = async (file: File): Promise<string | null> => {
     // 验证文件格式
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png']
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
     if (!validTypes.includes(file.type)) {
-      ElMessage.error('只支持 jpg、jpeg 和 png 格式的图片')
+      ElMessage.error('只支持 jpg、jpeg、png 和 gif 格式的图片')
       return null
     }
     
-    // 验证文件大小 (2MB)
-    const maxSize = 2 * 1024 * 1024
+    // 验证文件大小 (5MB)
+    const maxSize = 5 * 1024 * 1024
     if (file.size > maxSize) {
-      ElMessage.error('图片大小不能超过 2MB')
+      ElMessage.error('图片大小不能超过 5MB')
       return null
     }
     
@@ -304,6 +320,7 @@ export const useAuthStore = defineStore('auth', () => {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
+        timeout: 30000, // 设置30秒超时
         onUploadProgress: (progressEvent: any) => {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
           console.log(`上传进度: ${percentCompleted}%`)
@@ -311,27 +328,16 @@ export const useAuthStore = defineStore('auth', () => {
       }
       
       console.log('开始上传头像...')
-      // 使用正确的API路径，注意不要使用/auth部分
-      const response = await request.post<ApiResponse<{avatar_url: string}>>('/api/v1/users/me/avatar', formData, config)
-      console.log('头像上传接口响应:', response.data)
+      // 使用正确的API路径
+      const response = await request.post('/api/v1/users/me/avatar', formData, config)
+      console.log('头像上传接口响应:', response)
       
-      if (response.data.code === 200 && response.data.data.avatar_url) {
-        // 处理头像URL，确保包含正确的API前缀
-        let avatarUrl = response.data.data.avatar_url
+      if (response && response.avatar_url) {
+        // 处理头像URL，确保格式正确
+        let avatarUrl = response.avatar_url
         console.log('原始头像URL:', avatarUrl)
         
-        // 确保URL格式正确
-        if (avatarUrl.startsWith('/v1') || avatarUrl.startsWith('v1')) {
-          // 如果路径以/v1或v1开头，添加/api前缀
-          avatarUrl = `/api${avatarUrl.startsWith('/') ? '' : '/'}${avatarUrl}`
-        } else if (!avatarUrl.startsWith('/api') && !avatarUrl.startsWith('http')) {
-          // 对于其他不是以/api或http开头的URL，添加完整路径
-          avatarUrl = `/api/v1/users/avatars/${avatarUrl}`
-        }
-        
-        console.log('处理后的头像URL:', avatarUrl)
-        
-        // 更新本地存储的用户信息
+        // 更新用户信息中的头像
         if (userInfo.value) {
           userInfo.value.avatar_url = avatarUrl
           saveUserToStorage()
@@ -341,16 +347,27 @@ export const useAuthStore = defineStore('auth', () => {
         ElMessage.success('头像上传成功')
         return avatarUrl
       } else {
-        console.error('头像上传响应无效:', response.data)
+        console.error('头像上传响应无效:', response)
         ElMessage.error('头像上传失败：服务器响应无效')
         return null
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || '头像上传失败'
+      const errorMessage = error.response?.data?.detail || '头像上传失败'
       console.error('头像上传发生错误:', error)
-      console.error('错误详情:', error.response?.data || error.message)
+      if (error.response) {
+        console.error('错误状态码:', error.response.status)
+        console.error('错误响应数据:', error.response.data)
+      }
       ElMessage.error(errorMessage)
       return null
+    }
+  }
+  
+  // 更新用户头像
+  const updateAvatar = (avatarUrl: string): void => {
+    if (userInfo.value) {
+      userInfo.value.avatar_url = avatarUrl
+      saveUserToStorage()
     }
   }
   
@@ -360,10 +377,14 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     error,
     isAuthenticated,
+    avatarUrl,
     login,
     logout,
     register,
     getUserInfo,
-    uploadAvatar
+    uploadAvatar,
+    updateAvatar,
+    saveUserToStorage,
+    setToken
   }
 }) 

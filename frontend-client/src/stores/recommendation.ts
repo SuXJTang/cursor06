@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { getRecommendations } from '@/api/career'
 
 // 推荐职业的接口定义
 export interface RecommendedCareer {
@@ -540,6 +541,78 @@ export const useRecommendationStore = defineStore('recommendation', () => {
     console.log('已加载测试数据:', assessmentResults.value.length, '条')
   }
   
+  // 从API获取推荐结果并保存
+  const fetchRecommendationsFromApi = async (userId?: string | number) => {
+    loading.value = true
+    error.value = null
+    
+    try {
+      // 获取推荐结果
+      const result = await getRecommendations(userId)
+      
+      if (result.status === 'error') {
+        error.value = result.message || '获取推荐失败'
+        return null
+      }
+      
+      // 处理并保存结果
+      if (result.recommendations && result.recommendations.length > 0) {
+        // 转换为AssessmentResult格式
+        const assessment: AssessmentResult = {
+          id: result.session_id || `session-${Date.now()}`,
+          userId: userId ? String(userId) : undefined,
+          timestamp: result.timestamp || new Date().toISOString(),
+          summary: {
+            score: result.total_match || 85,
+            careerDirection: result.recommendations[0]?.title || '',
+            matchDegree: `${result.recommendations[0]?.match_degree || 85}%`,
+            characteristics: result.user_traits || []
+          },
+          dimensions: {
+            interest: result.assessment_scores?.interest || {},
+            ability: result.assessment_scores?.ability || {},
+            personality: result.assessment_scores?.personality || {}
+          },
+          recommendedCareers: result.recommendations.map((career: any) => ({
+            id: career.id,
+            title: career.title,
+            matchDegree: career.match_degree || career.matchDegree || 0,
+            skills: career.required_skills || career.skills || [],
+            description: career.description || '',
+            education_required: career.education_required || '',
+            experience_required: career.experience_required || '',
+            future_prospect: career.job_prospects || '',
+            salary: {
+              min: career.salary_min || 0,
+              max: career.salary_max || 0
+            }
+          }))
+        }
+        
+        // 保存测评结果
+        saveAssessmentResult(assessment)
+        
+        // 返回处理后的结果
+        return assessment
+      } else if (result.status === 'processing' || result.status === 'waiting') {
+        // 推荐生成中
+        return {
+          status: 'processing',
+          progress: result.progress || 0,
+          message: result.message || '推荐生成中...'
+        }
+      }
+      
+      return null
+    } catch (err: any) {
+      console.error('获取推荐失败:', err)
+      error.value = err.message || '获取推荐失败，请稍后重试'
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+  
   return {
     // 状态
     loading,
@@ -555,6 +628,7 @@ export const useRecommendationStore = defineStore('recommendation', () => {
     // 方法
     saveAssessmentResult,
     getRecommendedCareers,
-    clearAllData
+    clearAllData,
+    fetchRecommendationsFromApi
   }
 }) 

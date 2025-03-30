@@ -34,7 +34,7 @@ from app.core.logging_config import app_logger
 from app.core.config import settings
 from app import crud, models, schemas
 from app.api import deps
-from app.schemas.resume import ResumeCreate, ResumeFile
+from app.schemas.resume import ResumeCreate, ResumeFile, ResumeStatus
 from app.services.resume import perform_resume_parsing
 
 router = APIRouter()
@@ -221,7 +221,7 @@ async def upload_resume_file(
                     description="",  # 初始描述为空
                     content="",  # 初始内容为空
                     file_url=file_url,
-                    status=schemas.ResumeStatus.DRAFT  # 使用枚举值
+                    status=ResumeStatus.DRAFT  # 使用枚举值
                 )
                 # 使用异步创建
                 from app.models.resume import Resume

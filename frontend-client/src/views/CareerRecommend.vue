@@ -198,15 +198,20 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { DataAnalysis, PieChart, Connection, Trophy } from '@element-plus/icons-vue'
 import { useRecommendationStore } from '@/stores/recommendation'
+import { getRecommendationProgress } from '@/api/career'
 
 const router = useRouter()
 const recommendationStore = useRecommendationStore()
+const loading = ref(false)
+const polling = ref(false)
+const currentProgress = ref(0)
+const progressMessage = ref('')
 
 // 所有测评结果
 const assessmentResults = computed(() => {
@@ -233,18 +238,102 @@ const selectedAssessment = computed(() => {
 })
 
 // 初始化选中的测评ID
-onMounted(() => {
-  if (recommendationStore.latestAssessmentResult) {
-    selectedAssessmentId.value = recommendationStore.latestAssessmentResult.id
+onMounted(async () => {
+  loading.value = true
+  
+  try {
+    // 获取用户ID
+    const userId = localStorage.getItem('userId') || '1'
+    
+    // 加载最新推荐数据
+    const result = await recommendationStore.fetchRecommendationsFromApi(userId)
+    
+    if (result) {
+      // 有结果则更新选中的ID
+      if (result.id) {
+        selectedAssessmentId.value = result.id
+        console.log('已选择最新的推荐结果:', result.id)
+      } else if (result.status === 'processing') {
+        // 推荐还在生成中，需要轮询
+        console.log('推荐生成中，进度:', result.progress)
+        startPolling(userId)
+      }
+    } else if (recommendationStore.latestAssessmentResult) {
+      // 使用store中已有的最新测评结果
+      selectedAssessmentId.value = recommendationStore.latestAssessmentResult.id
+      console.log('使用本地存储的最新推荐结果:', selectedAssessmentId.value)
+    }
+  } catch (err) {
+    console.error('加载推荐数据失败:', err)
+    ElMessage.error('加载推荐数据失败，将显示本地缓存数据')
+  } finally {
+    loading.value = false
   }
 })
 
-// 监听测评结果变化，更新选中的ID
-watch(() => recommendationStore.latestAssessmentResult, (newValue) => {
-  if (newValue && !selectedAssessmentId.value) {
-    selectedAssessmentId.value = newValue.id
+// 轮询获取推荐进度
+const pollingInterval = ref<ReturnType<typeof setInterval> | null>(null)
+const pollingCount = ref(0)
+const maxPollingCount = 30 // 最多轮询30次，避免无限轮询
+
+// 开始轮询
+const startPolling = (userId: string | number) => {
+  // 清除可能存在的定时器
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value)
   }
-})
+  
+  pollingCount.value = 0
+  polling.value = true
+  
+  // 每5秒查询一次进度
+  pollingInterval.value = setInterval(async () => {
+    pollingCount.value++
+    
+    // 超过最大轮询次数，停止轮询
+    if (pollingCount.value > maxPollingCount) {
+      stopPolling()
+      ElMessage.warning('推荐生成超时，请稍后刷新页面查看')
+      return
+    }
+    
+    try {
+      // 获取推荐进度
+      const progress = await getRecommendationProgress(userId)
+      console.log('轮询获取推荐进度:', progress)
+      
+      // 更新进度信息
+      currentProgress.value = progress.progress || 0
+      progressMessage.value = progress.message || '推荐生成中...'
+      
+      // 如果已完成，获取结果并停止轮询
+      if (progress.status === 'completed') {
+        const result = await recommendationStore.fetchRecommendationsFromApi(userId)
+        if (result && result.id) {
+          selectedAssessmentId.value = result.id
+          ElMessage.success('推荐生成完成')
+        }
+        stopPolling()
+      }
+    } catch (err) {
+      console.error('获取推荐进度失败:', err)
+      // 错误次数过多则停止轮询
+      if (pollingCount.value > 5) {
+        stopPolling()
+        ElMessage.error('获取推荐进度失败，请刷新页面重试')
+      }
+    }
+  }, 5000) // 5秒轮询一次
+}
+
+// 停止轮询
+const stopPolling = () => {
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value)
+    pollingInterval.value = null
+  }
+  polling.value = false
+}
 
 // 格式化测评结果选项标签
 const formatAssessmentLabel = (assessment) => {

@@ -19,9 +19,13 @@ const TOKEN_KEY = 'auth_token'
 // 使用全局axios实例，这样可以被mock拦截
 // 创建axios实例
 export const request = axios.create({
-  baseURL: '',  // 清空基础URL，在各API方法中已经包含了完整路径
-  timeout: 10000,
-  withCredentials: true  // 允许跨域携带cookie
+  baseURL: '/api',  // 使用相对路径，通过代理访问后端
+  timeout: 15000,   // 增加超时时间到15秒
+  withCredentials: false,  // 禁用跨域凭证，因为后端使用通配符允许所有源
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest'
+  }
 })
 
 // 请求拦截器

@@ -51,29 +51,13 @@ const stats = ref([
 
 // 跳转到功能页面
 const navigateTo = (feature: typeof features[0]) => {
-  if (feature.requiresAuth && !userStore.isLoggedIn) {
-    ElMessage({
-      message: '请先登录后使用该功能',
-      type: 'warning'
-    })
-    userStore.setRedirectPath(feature.route)
-    router.push('/login')
-    return
-  }
+  // 直接导航到指定路由，让路由守卫处理认证问题
   router.push(feature.route)
 }
 
 // 开始测评按钮点击
 const startAssessment = () => {
-  if (!userStore.isLoggedIn) {
-    ElMessage({
-      message: '请先登录后开始测评',
-      type: 'warning'
-    })
-    userStore.setRedirectPath('/assessment')
-    router.push('/login')
-    return
-  }
+  // 直接跳转到测评页面，让路由守卫处理认证问题
   router.push('/assessment')
 }
 </script>

@@ -1,3 +1,4 @@
 @echo off
-cd /d %~dp0
-"C:\Program Files\nodejs\node.exe" node_modules\vite\bin\vite.js --port 5173
+chcp 65001 >nul
+echo 启动前端开发服务器...
+npx vite --host 

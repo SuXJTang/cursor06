@@ -21,7 +21,7 @@
     "pinia": "2.1.7",
     "pinia-plugin-persistedstate": "^4.2.0",
     "sass": "1.71.1",
-    "unplugin-auto-import": "0.17.5",
+    "unplugin-auto-import": "19.1.2",
     "unplugin-vue-components": "0.26.0",
     "vue": "3.4.19",
     "vue-cropper": "^0.6.5",

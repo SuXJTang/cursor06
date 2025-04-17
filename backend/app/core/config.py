@@ -6,6 +6,8 @@ import os
 from dotenv import load_dotenv
 import json
 import secrets
+from functools import lru_cache
+from pydantic import AnyHttpUrl, HttpUrl
 
 # 加载.env文件
 load_dotenv()
@@ -17,25 +19,12 @@ class Settings(BaseSettings):
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
     API_V1_STR: str = "/api/v1"
-    PROJECT_NAME: str = "cursor06"
+    PROJECT_NAME: str = "职业推荐系统"
+    PROJECT_DESCRIPTION: str = "职业推荐系统API"
+    PROJECT_VERSION: str = "0.1.0"
     
     # CORS配置
-    BACKEND_CORS_ORIGINS: List[str] = [
-        "http://localhost:5173",  # 前端开发服务器
-        "http://localhost:3000",  # 可能的其他前端开发服务器
-        "http://localhost:8080",  # 可能的其他前端开发服务器
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:8080",
-        "http://localhost:4173",  # Vite预览服务器
-        "http://127.0.0.1:4173",
-        "http://192.168.77.1:5173",  # 本地网络地址
-        "http://192.168.77.1:8000",  # 后端服务器地址
-        "http://192.168.143.1:5173",  # 其他本地网络地址
-        "http://192.168.1.100:5173",  # 其他可能的本地IP
-        "http://192.168.0.100:5173",  # 其他可能的本地IP
-        "*"  # 允许所有源，开发环境使用
-    ]
+    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
     
     # 数据库配置
     MYSQL_HOST: str = "localhost"
@@ -57,8 +46,8 @@ class Settings(BaseSettings):
     SQLALCHEMY_DATABASE_URL: str = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
     
     # JWT配置
-    SECRET_KEY: str = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))  # 优先使用环境变量
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
+    SECRET_KEY: str = secrets.token_urlsafe(32)
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
     ALGORITHM: str = "HS256"  # JWT加密算法
     
     # 日志配置
@@ -72,13 +61,14 @@ class Settings(BaseSettings):
     # Redis配置
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
-    REDIS_PASSWORD: Optional[str] = None
     REDIS_DB: int = 0
+    REDIS_PASSWORD: Optional[str] = None
     
     # 文件上传配置
     STATIC_DIR: str = "static"  # 静态文件根目录
     UPLOAD_DIR: str = "uploads"
     DATA_DIR: str = "data"  # 数据文件目录
+    AVATAR_DIR: str = os.path.join("static", "avatars")  # 头像目录
     MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5MB
     ALLOWED_UPLOAD_EXTENSIONS: List[str] = [".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx"]
     
@@ -95,7 +85,7 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER_PASSWORD: str = "admin123"
     
     # DeepSeek API配置
-    DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "sk-c694d610737e48eda2b04d0b21959bf7")
+    DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "sk-ff5f9c45691b47a3a6db771ae1d2558c")
     DEEPSEEK_API_BASE_URL: str = os.getenv("DEEPSEEK_API_BASE_URL", "https://api.deepseek.com/v1")
     DEEPSEEK_MODEL: str = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
     
@@ -136,6 +126,10 @@ class Settings(BaseSettings):
         elif isinstance(v, (list, str)):
             return v
         raise ValueError(v)
+
+    # 添加文件目录配置
+    UPLOADS_DIR: str = "app/uploads"
+    RESUME_DATA_DIR: str = "static/resumes"
 
 # 创建设置实例
 settings = Settings() 

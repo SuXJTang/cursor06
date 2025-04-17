@@ -74,7 +74,7 @@ export const authApi = {
     params.append('password', data.password)
     
     // 使用正确的API路径
-    console.log('发送登录请求:',{
+    console.log('发送登录请求:', {
       url: '/api/v1/auth/login',
       body: params.toString()
     })

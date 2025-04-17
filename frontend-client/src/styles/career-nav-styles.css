@@ -1,0 +1,212 @@
+/* 职业分类导航样式优化 */
+
+/* 左侧导航区域整体样式 */
+.category-sidebar {
+  background-color: #f5f7fa;
+  border-right: 1px solid #e8e8e8;
+  height: 100%;
+  overflow-y: auto;
+  width: 100%;
+  padding: 8px 0;
+}
+
+/* 一级分类样式 */
+.category-sidebar .el-menu {
+  border-right: none;
+  background-color: transparent;
+}
+
+.category-sidebar .el-menu-item,
+.category-sidebar .el-submenu__title {
+  height: 40px;
+  line-height: 40px;
+  padding: 0 16px !important;
+  border-radius: 4px;
+  margin: 2px 8px;
+}
+
+/* 文件夹图标 */
+.category-sidebar .el-submenu__title i:first-child,
+.category-sidebar .el-menu-item i:first-child {
+  color: #faad14;
+  margin-right: 8px;
+}
+
+/* 文本样式 */
+.category-sidebar .el-submenu__title span,
+.category-sidebar .el-menu-item span {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  max-width: calc(100% - 50px);
+}
+
+/* 二级分类样式 */
+.category-sidebar .el-menu--inline {
+  padding-left: 16px;
+}
+
+.category-sidebar .el-menu--inline .el-menu-item,
+.category-sidebar .el-menu--inline .el-submenu__title {
+  height: 36px;
+  line-height: 36px;
+}
+
+.category-sidebar .el-menu--inline .el-menu-item span,
+.category-sidebar .el-menu--inline .el-submenu__title span {
+  font-size: 13px;
+}
+
+/* 三级分类样式 */
+.category-sidebar .el-menu--inline .el-menu--inline {
+  padding-left: 16px;
+}
+
+.category-sidebar .el-menu--inline .el-menu--inline .el-menu-item {
+  height: 32px;
+  line-height: 32px;
+}
+
+.category-sidebar .el-menu--inline .el-menu--inline .el-menu-item span {
+  font-size: 12px;
+  color: #606266;
+}
+
+/* 悬停和选中状态 */
+.category-sidebar .el-menu-item:hover,
+.category-sidebar .el-submenu__title:hover {
+  background-color: #e6f1fc !important;
+}
+
+.category-sidebar .el-menu-item.is-active {
+  color: #409eff;
+  background-color: #ecf5ff !important;
+}
+
+/* 分类折叠图标 */
+.category-sidebar .el-submenu__icon-arrow {
+  font-size: 12px;
+  margin-top: -6px;
+}
+
+/* 箭头图标 */
+.category-sidebar .arrow-icon {
+  position: absolute;
+  right: 16px;
+  font-size: 12px;
+  color: #909399;
+  transition: transform 0.3s;
+}
+
+/* 展开状态的箭头 */
+.category-sidebar .is-opened .arrow-icon {
+  transform: rotate(90deg);
+}
+
+/* 搜索框样式 */
+.category-search {
+  padding: 12px 16px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.category-search .el-input__inner {
+  border-radius: 4px;
+  height: 36px;
+  background-color: #f0f2f5;
+  border: 1px solid #dcdfe6;
+}
+
+.category-search .el-input__inner:focus {
+  background-color: #fff;
+  border-color: #409eff;
+}
+
+/* 自定义滚动条 */
+.category-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.category-sidebar::-webkit-scrollbar-thumb {
+  background-color: #c0c4cc;
+  border-radius: 3px;
+}
+
+.category-sidebar::-webkit-scrollbar-track {
+  background-color: #f5f7fa;
+}
+
+/* 文件夹项样式 */
+.folder-item {
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  border-radius: 4px;
+  margin: 2px 8px;
+  transition: background-color 0.2s;
+}
+
+.folder-item:hover {
+  background-color: #e6f1fc;
+}
+
+.folder-item.active {
+  background-color: #ecf5ff;
+  color: #409eff;
+}
+
+.folder-icon {
+  margin-right: 8px;
+  font-size: 16px;
+  color: #faad14;
+}
+
+.folder-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+/* 文件夹层级样式 */
+.first-level > .folder-item {
+  font-weight: 500;
+}
+
+.second-level {
+  padding-left: 20px;
+}
+
+.second-level > .folder-item {
+  font-size: 13px;
+}
+
+.third-level {
+  padding-left: 40px;
+}
+
+.third-level > .folder-item {
+  font-size: 12px;
+  color: #606266;
+}
+
+.third-level > .folder-item:hover,
+.third-level > .folder-item.active {
+  color: #409eff;
+}
+
+/* 展开/折叠指示器 */
+.toggle-icon {
+  margin-left: 5px;
+  font-size: 12px;
+  color: #909399;
+  transition: transform 0.3s;
+}
+
+.folder-expanded .toggle-icon {
+  transform: rotate(90deg);
+} 

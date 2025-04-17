@@ -1,5 +1,51 @@
 <template>
   <div class="career-recommend-container">
+    <div class="header-section">
+      <h1 class="page-title">职业推荐</h1>
+      <div class="action-buttons">
+        <el-button type="primary" @click="generateNewRecommendation" :loading="loading">
+          生成新推荐
+        </el-button>
+        <el-button @click="goToNewAssessment">去做测评</el-button>
+      </div>
+      <p class="page-description">
+        基于您的职业测评结果，为您推荐最匹配的职业选择
+      </p>
+    </div>
+    
+    <!-- 推荐生成中状态 -->
+    <div v-if="polling || !recommendedCareers.length" class="loading-section">
+      <el-card class="recommendation-processing">
+        <div class="processing-header">
+          <h2>推荐生成中</h2>
+          <el-button v-if="polling" size="small" @click="stopPolling">取消</el-button>
+        </div>
+        
+        <!-- 使用新的推荐进度组件 -->
+        <RecommendationProgress 
+          v-if="sessionId" 
+          :session-id="sessionId" 
+          :user-id="userId" 
+          @completed="handleRecommendationCompleted"
+          @error="handleRecommendationError"
+        />
+        
+        <!-- 替换之前的旧进度条 -->
+        <div v-else>
+          <el-progress 
+            :percentage="currentProgress" 
+            :stroke-width="18"
+            :format="() => `${currentProgress}%`"
+          ></el-progress>
+          <div class="progress-message">{{ progressMessage }}</div>
+        </div>
+        
+        <div class="note-section">
+          <p>推荐生成过程包括：数据收集、职业匹配、智能分析和报告生成等步骤，预计需要30秒至2分钟</p>
+        </div>
+      </el-card>
+    </div>
+    
     <el-card class="recommend-card">
       <template #header>
         <div class="card-header">
@@ -200,11 +246,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { DataAnalysis, PieChart, Connection, Trophy } from '@element-plus/icons-vue'
 import { useRecommendationStore } from '@/stores/recommendation'
-import { getRecommendationProgress } from '@/api/career'
+import { getRecommendationProgress, generateRecommendations } from '@/api/career_old'
+import RecommendationProgress from '@/components/RecommendationProgress.vue'
 
 const router = useRouter()
 const recommendationStore = useRecommendationStore()
@@ -237,16 +284,21 @@ const selectedAssessment = computed(() => {
          recommendationStore.latestAssessmentResult
 })
 
+// 添加会话ID
+const sessionId = ref('')
+
+// 获取用户ID
+const userId = localStorage.getItem('userId') || '1'
+
 // 初始化选中的测评ID
 onMounted(async () => {
-  loading.value = true
-  
   try {
-    // 获取用户ID
-    const userId = localStorage.getItem('userId') || '1'
+    loading.value = true
+    console.log(`尝试加载用户${userId}的推荐数据`)
     
-    // 加载最新推荐数据
+    // 尝试获取现有的推荐结果
     const result = await recommendationStore.fetchRecommendationsFromApi(userId)
+    console.log('获取到推荐结果:', result)
     
     if (result) {
       // 有结果则更新选中的ID
@@ -254,9 +306,16 @@ onMounted(async () => {
         selectedAssessmentId.value = result.id
         console.log('已选择最新的推荐结果:', result.id)
       } else if (result.status === 'processing') {
-        // 推荐还在生成中，需要轮询
+        // 推荐还在生成中
         console.log('推荐生成中，进度:', result.progress)
-        startPolling(userId)
+        
+        // 设置会话ID用于WebSocket连接
+        if (result.session_id) {
+          sessionId.value = result.session_id
+        } else {
+          // 使用旧的轮询逻辑作为备选
+          startPolling(userId)
+        }
       }
     } else if (recommendationStore.latestAssessmentResult) {
       // 使用store中已有的最新测评结果
@@ -490,455 +549,260 @@ const viewAssessmentDetail = (assessmentId) => {
     query: { assessmentId }
   });
 };
+
+// 生成新的推荐
+const generateNewRecommendation = async () => {
+  try {
+    loading.value = true
+    
+    // 清除旧的轮询
+    stopPolling()
+    
+    // 调用API开始生成新的推荐
+    const result = await generateRecommendations(userId, true)
+    console.log('开始生成新推荐:', result)
+    
+    // 设置会话ID用于WebSocket连接
+    if (result && result.session_id) {
+      sessionId.value = result.session_id
+      ElMessage.success('已开始生成新的职业推荐')
+    } else {
+      // 使用旧的轮询逻辑作为备选
+      startPolling(userId)
+    }
+    
+  } catch (err) {
+    console.error('生成新推荐失败:', err)
+    ElMessage.error('生成新推荐失败，请稍后重试')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 推荐完成回调
+const handleRecommendationCompleted = async () => {
+  try {
+    // 获取结果
+    const result = await recommendationStore.fetchRecommendationsFromApi(userId)
+    if (result && result.id) {
+      selectedAssessmentId.value = result.id
+      ElMessage.success('推荐生成完成')
+    }
+    stopPolling()
+  } catch (err) {
+    console.error('获取推荐结果失败:', err)
+    ElMessage.warning('推荐生成完成，但获取结果失败，请刷新页面')
+  }
+}
+
+// 推荐错误回调
+const handleRecommendationError = (message: string) => {
+  ElMessage.error(`推荐生成失败: ${message}`)
+  stopPolling()
+}
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .career-recommend-container {
-  padding: 20px;
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
-}
-
-.recommend-card {
-  margin-bottom: 20px;
-  border-radius: 8px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.recommend-content {
-  padding: 20px 0;
-}
-
-/* 无数据样式 */
-.no-data-section {
-  text-align: center;
-  padding: 20px 0;
-}
-
-.feature-preview {
-  margin-top: 40px;
-  text-align: left;
-}
-
-.feature-preview h3 {
-  margin-bottom: 20px;
-  font-size: 18px;
-  color: #555;
-  border-left: 4px solid #409eff;
-  padding-left: 10px;
-  text-align: left;
-}
-
-.feature-card {
-  height: 100%;
-  transition: all 0.3s;
-}
-
-.feature-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-}
-
-.feature-header {
-  display: flex;
-  align-items: center;
-}
-
-.feature-header .el-icon {
-  margin-right: 8px;
-  font-size: 18px;
-  color: #409eff;
-}
-
-.feature-description {
-  color: #666;
-  line-height: 1.6;
-}
-
-/* 有数据样式 - 单卡片多职业布局 */
-.all-careers-card {
-  margin-bottom: 30px;
-  border-radius: 8px;
-  padding: 10px 15px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e4e7ed;
-}
-
-.career-item {
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border-radius: 6px;
-  border: 2px solid transparent;
-  padding: 10px;
-}
-
-.career-item:hover {
-  background-color: #f5f7fa;
-  transform: translateY(-2px);
-}
-
-.career-item.best-match {
-  border-color: #f56c6c;
-  background-color: #fff9f9;
-}
-
-.career-item:nth-child(3) {
-  border-color: #e6a23c;
-  background-color: #fdf6ec;
-}
-
-.career-item:nth-child(5) {
-  border-color: #409eff;
-  background-color: #f0f9ff;
-}
-
-.career-box-layout {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 10px;
-  padding-bottom: 5px;
-}
-
-.career-info-side {
-  flex: 1;
-  padding-right: 15px;
-}
-
-.career-match-side {
-  flex: 0 0 auto;
-  text-align: right;
-}
-
-.match-tag {
-  font-weight: bold;
-  padding: 4px 8px;
-}
-
-.match-tag-small {
-  font-weight: bold;
-  padding: 2px 6px;
-}
-
-.career-title h4 {
-  font-size: 18px;
-  margin: 0 0 10px 0;
-  color: #303133;
-}
-
-.career-description, .career-desc {
-  margin: 5px 0;
-  color: #606266;
-  line-height: 1.5;
-  font-size: 14px;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-}
-
-.career-skills-section {
-  display: flex;
-  align-items: flex-start;
-  margin: 10px 0 5px;
-  padding-top: 5px;
-  border-top: 1px dashed #ebeef5;
-}
-
-.career-skills-section.small {
-  margin: 5px 0;
-}
-
-.skills-label {
-  font-weight: bold;
-  margin-right: 8px;
-  color: #606266;
-  white-space: nowrap;
-  font-size: 14px;
-}
-
-.skills-tags {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.skill-tag {
-  margin-right: 5px;
-  margin-bottom: 5px;
-  font-size: 12px;
-}
-
-.match-rank {
-  font-size: 16px;
-  font-weight: bold;
-  color: #f56c6c;
-  margin-bottom: 10px;
-  text-align: right;
-}
-
-.assessment-info {
-  margin-top: 30px;
-  text-align: center;
-  color: #909399;
-  font-size: 14px;
-}
-
-.section-title {
-  margin-bottom: 20px;
-}
-
-.section-title h3 {
-  font-size: 18px;
-  color: #303133;
-  border-left: 4px solid #67c23a;
-  padding-left: 10px;
-  margin: 0;
-}
-
-/* 测评卡片样式 */
-.assessment-cards-container {
-  margin-bottom: 30px;
-}
-
-.assessment-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.assessment-card {
-  width: 100%;
-  transition: all 0.3s;
-  cursor: default;
-  border-radius: 10px;
-  border-left: 5px solid #409eff;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  background-color: #ffffff;
-}
-
-.assessment-card:hover {
-  transform: translateX(5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-}
-
-.assessment-card:nth-child(3n+1) {
-  border-left-color: #67c23a;
-}
-
-.assessment-card:nth-child(3n+2) {
-  border-left-color: #e6a23c;
-}
-
-.assessment-card:nth-child(3n+3) {
-  border-left-color: #409eff;
-}
-
-.assessment-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #ebeef5;
-}
-
-.assessment-time-tag {
-  margin-right: 10px;
-  font-weight: 500;
-  background-color: #f2f6fc;
-  color: #606266;
-  border: none;
-}
-
-.three-careers-layout {
-  display: flex;
-  gap: 15px;
-}
-
-.best-career-container {
-  flex: 3;
-  padding: 15px;
-  border-radius: 8px;
-  background-color: #f0f9eb;
-  border: 1px solid #e1f3d8;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.best-career-container:hover {
-  background-color: #e1f3d8;
-  border-color: #c2e7b0;
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-}
-
-.other-careers-container {
-  flex: 2;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.other-career-item {
-  padding: 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.other-career-item:nth-child(1) {
-  background-color: #fdf6ec;
-  border: 1px solid #faecd8;
-}
-
-.other-career-item:nth-child(2) {
-  background-color: #ecf5ff;
-  border: 1px solid #d9ecff;
-}
-
-.other-career-item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-}
-
-.other-career-item:nth-child(1):hover {
-  background-color: #faecd8;
-  border-color: #f5dab1;
-}
-
-.other-career-item:nth-child(2):hover {
-  background-color: #d9ecff;
-  border-color: #b3d8ff;
-}
-
-.career-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 10px;
-}
-
-.career-title {
-  margin: 0;
-  font-size: 16px;
-  color: #303133;
-  font-weight: bold;
-}
-
-.career-match {
-  text-align: right;
-}
-
-.match-rank {
-  font-size: 14px;
-  font-weight: bold;
-  color: #67c23a;
-  margin-bottom: 5px;
-}
-
-.match-rank-small {
-  font-size: 12px;
-  font-weight: bold;
-  color: #e6a23c;
-  margin-bottom: 3px;
-}
-
-.match-tag {
-  font-weight: bold;
-  padding: 4px 8px;
-  border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.match-tag-small {
-  font-weight: bold;
-  padding: 2px 6px;
-  border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
-}
-
-.career-desc {
-  margin: 10px 0;
-  color: #606266;
-  line-height: 1.5;
-  font-size: 14px;
-}
-
-.career-skills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
-}
-
-.other-career-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 8px;
-}
-
-.other-career-header h5 {
-  margin: 0;
-  font-size: 14px;
-  color: #303133;
-  font-weight: bold;
-}
-
-.other-career-match {
-  text-align: right;
-}
-
-.other-career-skills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 5px;
-}
-
-.skill-tag {
-  margin: 0;
-  font-size: 12px;
-  background-color: #f5f7fa;
-  color: #409eff;
-  border-color: #e4e7ed;
-  transition: all 0.2s;
-}
-
-.skill-tag:hover {
-  transform: scale(1.05);
-  background-color: #ecf5ff;
-  color: #409eff;
-  border-color: #b3d8ff;
-}
-
-.skill-tag-mini {
-  margin: 0;
-  font-size: 11px;
-  background-color: rgba(255, 255, 255, 0.6);
-  border-color: transparent;
-  transition: all 0.2s;
-}
-
-.skill-tag-mini:hover {
-  transform: scale(1.05);
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .three-careers-layout {
+  padding: 20px;
+  
+  .header-section {
+    margin-bottom: 24px;
+    display: flex;
     flex-direction: column;
+    
+    .page-title {
+      font-size: 28px;
+      color: #303133;
+      margin-bottom: 8px;
+    }
+    
+    .action-buttons {
+      display: flex;
+      margin-bottom: 16px;
+      gap: 12px;
+    }
+    
+    .page-description {
+      color: #606266;
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
   }
   
-  .best-career-container {
-    margin-bottom: 10px;
+  .loading-section {
+    margin-bottom: 24px;
+    
+    .recommendation-processing {
+      .processing-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        
+        h2 {
+          margin: 0;
+          font-size: 20px;
+          color: #303133;
+        }
+      }
+      
+      .progress-message {
+        margin-top: 8px;
+        margin-bottom: 16px;
+        color: #606266;
+        text-align: center;
+      }
+      
+      .note-section {
+        margin-top: 16px;
+        font-size: 14px;
+        color: #909399;
+        background-color: #f9f9f9;
+        padding: 12px;
+        border-radius: 4px;
+        
+        p {
+          margin: 0;
+        }
+      }
+    }
+  }
+  
+  .recommend-card {
+    margin-bottom: 24px;
+    
+    .select-label {
+      font-size: 16px;
+      margin-bottom: 8px;
+      color: #606266;
+    }
+    
+    .assessment-select {
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    
+    .test-info {
+      margin-bottom: 16px;
+      
+      .info-item {
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        
+        .icon-wrapper {
+          margin-right: 8px;
+        }
+        
+        .info-label {
+          color: #909399;
+          margin-right: 8px;
+        }
+        
+        .info-value {
+          color: #303133;
+          font-weight: 500;
+        }
+      }
+    }
+    
+    .careers-list {
+      margin-top: 24px;
+      
+      .careers-title {
+        font-size: 18px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        
+        .icon {
+          margin-right: 8px;
+        }
+      }
+      
+      .career-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 16px;
+        
+        .career-card {
+          height: 100%;
+          transition: all 0.3s;
+          
+          &:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+          }
+          
+          .match-rate {
+            font-size: 24px;
+            font-weight: bold;
+            color: #409EFF;
+            text-align: center;
+            margin-bottom: 12px;
+          }
+          
+          .career-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 12px;
+            color: #303133;
+          }
+          
+          .career-description {
+            color: #606266;
+            margin-bottom: 16px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          
+          .career-footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 16px;
+          }
+        }
+      }
+      
+      .no-careers {
+        text-align: center;
+        padding: 40px 0;
+        color: #909399;
+        
+        .icon {
+          font-size: 48px;
+          margin-bottom: 16px;
+          color: #DCDFE6;
+        }
+        
+        .message {
+          font-size: 16px;
+          margin-bottom: 16px;
+        }
+      }
+    }
+  }
+  
+  @media (max-width: 768px) {
+    padding: 16px;
+    
+    .header-section {
+      .page-title {
+        font-size: 24px;
+      }
+    }
+    
+    .careers-list {
+      .career-cards {
+        grid-template-columns: 1fr;
+      }
+    }
   }
 }
 </style> 

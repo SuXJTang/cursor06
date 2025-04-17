@@ -26,10 +26,12 @@
             :disabled="!isEditing"
           >
             <img
-              :src="userForm.avatar_url || defaultAvatar"
+              v-if="userForm.avatar_url"
+              :src="processAvatarUrl(userForm.avatar_url)"
               alt="用户头像"
               class="avatar"
             />
+            <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
           </el-upload>
         </el-form-item>
         
@@ -310,33 +312,24 @@ const handleAvatarUpload = async (options: any) => {
       let avatarUrl = responseData.avatar_url
       console.log('服务器返回的原始头像URL:', avatarUrl)
       
-      // 处理不同格式的URL
-      if (avatarUrl.startsWith('/static/')) {
-        // 静态文件路径，添加域名前缀
-        const baseUrl = location.origin
-        avatarUrl = `${baseUrl}${avatarUrl}`
-        console.log('添加了域名前缀的静态URL:', avatarUrl)
-      } else if (avatarUrl.startsWith('/api/v1/users/avatars/')) {
-        // 旧版API路径，保持不变
-        console.log('使用旧版API路径:', avatarUrl)
-      } else if (!avatarUrl.startsWith('/api/') && !avatarUrl.startsWith('http')) {
-        // 其他相对路径，添加API前缀
-        avatarUrl = `/api${avatarUrl}`
-        console.log('添加了API前缀的URL:', avatarUrl)
-      }
-      
-      console.log('最终处理后的头像URL:', avatarUrl)
-      userForm.avatar_url = avatarUrl
+      // 使用处理函数更新头像URL
+      userForm.avatar_url = processAvatarUrl(avatarUrl)
+      console.log('最终处理后的头像URL:', userForm.avatar_url)
       
       // 同时更新store中的头像信息
       if (userStore.userInfo) {
-        userStore.userInfo.avatar_url = avatarUrl
+        userStore.userInfo.avatar_url = avatarUrl // 存储原始URL
         // 保存到本地存储
         userStore.saveUserToStorage()
         console.log('已更新store中的头像URL并保存到本地存储')
       }
       
       ElMessage.success('头像上传成功')
+      
+      // 添加延迟后强制刷新页面以确保新头像显示
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
     } else {
       console.error('响应中没有avatar_url字段', responseData)
       ElMessage.error('头像上传失败：服务器返回数据格式不正确')
@@ -356,6 +349,40 @@ const handleAvatarUpload = async (options: any) => {
       ElMessage.error(`上传头像失败：${error.message || '未知错误'}`)
     }
   }
+}
+
+// 处理头像URL
+const processAvatarUrl = (url: string) => {
+  console.log('处理头像URL:', url)
+  
+  if (!url) return ''
+  
+  // 修正URL前的多余斜杠
+  const normalizedUrl = url.replace(/^\/+/, '/')
+  
+  // 处理不同格式的URL
+  if (normalizedUrl.startsWith('/static/')) {
+    // 直接使用静态路径，Vite代理将处理
+    console.log('使用静态路径:', normalizedUrl)
+    return normalizedUrl
+  } else if (normalizedUrl.startsWith('/api/v1/users/avatars/')) {
+    // 如果已经是完整的API路径，保持不变
+    console.log('使用API路径:', normalizedUrl)
+    return normalizedUrl
+  } else if (normalizedUrl.includes('/avatars/')) {
+    // 提取文件名
+    const filename = normalizedUrl.split('/avatars/').pop()
+    if (filename) {
+      // 构建为静态路径
+      const staticPath = `/static/avatars/${filename}`
+      console.log('转换为静态路径:', staticPath)
+      return staticPath
+    }
+  }
+  
+  // 保持原路径
+  console.log('保持原始URL:', normalizedUrl)
+  return normalizedUrl
 }
 
 // 组件挂载时获取用户信息

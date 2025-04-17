@@ -70,6 +70,17 @@ export const useAuthStore = defineStore('auth', () => {
   // 计算属性
   const isAuthenticated = computed(() => !!token.value && !!userInfo.value)
   
+  // 直接设置认证状态
+  const setAuthenticated = (value: boolean) => {
+    if (!value) {
+      // 如果设置为未认证，清除token和用户信息
+      token.value = null
+      userInfo.value = null
+      localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem(USER_INFO_KEY)
+    }
+  }
+  
   // 获取处理后的头像URL
   const avatarUrl = computed(() => {
     if (!userInfo.value || !userInfo.value.avatar_url) {
@@ -165,6 +176,31 @@ export const useAuthStore = defineStore('auth', () => {
         
         ElMessage.success('登录成功')
         console.log('登录成功，认证状态:', isAuthenticated.value)
+        
+        // 获取重定向URL（如果存在）
+        let redirectUrl = localStorage.getItem('auth_redirect')
+        
+        // 获取URL参数中的redirect值
+        const urlParams = new URLSearchParams(window.location.search)
+        const urlRedirect = urlParams.get('redirect')
+        
+        // 优先使用URL中的重定向参数
+        if (urlRedirect) {
+          redirectUrl = urlRedirect
+        }
+        
+        // 清除存储的重定向URL
+        localStorage.removeItem('auth_redirect')
+        
+        // 如果有重定向URL，跳转到该页面
+        if (redirectUrl && redirectUrl !== '/login') {
+          console.log('登录成功，重定向到:', redirectUrl)
+          router.replace(redirectUrl)
+        } else {
+          // 否则跳转到首页
+          router.push('/')
+        }
+        
         return true
       } else {
         console.error('未找到有效token，响应数据:', response)
@@ -332,25 +368,36 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await request.post('/api/v1/users/me/avatar', formData, config)
       console.log('头像上传接口响应:', response)
       
-      if (response && response.avatar_url) {
-        // 处理头像URL，确保格式正确
-        let avatarUrl = response.avatar_url
-        console.log('原始头像URL:', avatarUrl)
+      // 处理response类型，确保类型安全
+      if (response && typeof response === 'object') {
+        // 获取avatar_url，处理多种可能的响应格式
+        let avatarUrl: string | undefined;
         
-        // 更新用户信息中的头像
-        if (userInfo.value) {
-          userInfo.value.avatar_url = avatarUrl
-          saveUserToStorage()
-          console.log('用户头像URL已更新并保存到存储')
+        if ('avatar_url' in response) {
+          avatarUrl = response.avatar_url as string;
+        } else if (response.data && typeof response.data === 'object' && 'avatar_url' in response.data) {
+          avatarUrl = response.data.avatar_url as string;
         }
         
-        ElMessage.success('头像上传成功')
-        return avatarUrl
-      } else {
-        console.error('头像上传响应无效:', response)
-        ElMessage.error('头像上传失败：服务器响应无效')
-        return null
+        if (avatarUrl) {
+          console.log('解析后的头像URL:', avatarUrl)
+          
+          // 更新用户信息中的头像
+          if (userInfo.value) {
+            userInfo.value.avatar_url = avatarUrl
+            saveUserToStorage()
+            console.log('用户头像URL已更新并保存到存储')
+          }
+          
+          ElMessage.success('头像上传成功')
+          return avatarUrl
+        }
       }
+      
+      // 如果到这里还没有返回，说明没有获取到有效的头像URL
+      console.error('头像上传响应无效:', response)
+      ElMessage.error('头像上传失败：服务器响应无效')
+      return null
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || '头像上传失败'
       console.error('头像上传发生错误:', error)
@@ -385,6 +432,7 @@ export const useAuthStore = defineStore('auth', () => {
     uploadAvatar,
     updateAvatar,
     saveUserToStorage,
-    setToken
+    setToken,
+    setAuthenticated
   }
 }) 

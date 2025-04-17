@@ -15,10 +15,10 @@ interface CareerCategory {
  * 职业信息接口
  */
 interface Career {
-  id: number;
+  id: string | number;
   name?: string;
   title?: string;
-  category_id: number;
+  category_id: string | number;
   description?: string;
 }
 

@@ -20,10 +20,10 @@ const isLogin = ref(true)
 
 // 表单数据
 const form = reactive({
-  username: '',
-  password: '',
   email: '',
+  password: '',
   confirmPassword: '',
+  username: '', // 用于注册
   phone: '' // 可选字段，用于注册
 })
 
@@ -64,6 +64,10 @@ const validatePhone = (rule: any, value: string, callback: any) => {
 }
 
 const rules = reactive<FormRules>({
+  email: [
+    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+  ],
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { min: 4, max: 20, message: '用户名长度在4到20个字符之间', trigger: 'blur' }
@@ -76,10 +80,6 @@ const rules = reactive<FormRules>({
   confirmPassword: [
     { required: true, message: '请再次输入密码', trigger: 'blur' },
     { validator: validatePass2, trigger: 'blur' }
-  ],
-  email: [
-    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
   ],
   phone: [
     { validator: validatePhone, trigger: 'blur' }
@@ -105,7 +105,7 @@ const submitForm = async () => {
         if (isLogin.value) {
           // 登录
           console.log('尝试登录:', {
-            username: form.username,
+            email: form.email,
             password: '***'
           })
           
@@ -114,7 +114,7 @@ const submitForm = async () => {
             ElMessage.closeAll()
             
             const success = await authStore.login({
-              email: form.username, // 使用username字段作为邮箱
+              email: form.email, // 使用email字段作为邮箱
               password: form.password
             })
             
@@ -221,12 +221,12 @@ onMounted(() => {
         label-width="80px"
         status-icon
       >
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" placeholder="请输入用户名或邮箱" />
+        <el-form-item label="邮箱" prop="email">
+          <el-input v-model="form.email" placeholder="请输入邮箱地址" />
         </el-form-item>
         
-        <el-form-item v-if="!isLogin" label="邮箱" prop="email">
-          <el-input v-model="form.email" placeholder="请输入邮箱" />
+        <el-form-item v-if="!isLogin" label="用户名" prop="username">
+          <el-input v-model="form.username" placeholder="请输入用户名" />
         </el-form-item>
         
         <el-form-item v-if="!isLogin" label="手机号" prop="phone">
@@ -263,22 +263,17 @@ onMounted(() => {
             {{ isLogin ? '没有账号？去注册' : '已有账号？去登录' }}
           </el-button>
         </el-form-item>
+
+        <!-- 测试账号信息 -->
+        <div v-if="isLogin" class="test-account-info">
+          <p>测试账号: admin@example.com</p>
+          <p>密码: admin123</p>
+        </div>
         
-        <el-alert
-          v-if="isLogin"
-          type="info"
-          :closable="false"
-          title="测试账号信息"
-          description="用户名: admin@example.com，密码: admin123"
-        />
-        
-        <el-alert
-          v-if="authStore.error"
-          type="error"
-          :closable="true"
-          :title="authStore.error"
-          style="margin-top: 10px;"
-        />
+        <!-- 错误信息展示 -->
+        <div v-if="authStore.error" class="error-message">
+          {{ authStore.error }}
+        </div>
       </el-form>
     </el-card>
   </div>

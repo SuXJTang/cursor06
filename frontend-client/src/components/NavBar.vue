@@ -11,15 +11,16 @@
 
       <!-- 导航菜单 -->
       <div class="nav-menu">
-        <router-link 
+        <a 
           v-for="item in menuItems" 
           :key="item.path"
-          :to="item.path"
           class="menu-item"
           :class="{ active: route.path === item.path }"
+          @click.prevent="handleMenuClick(item.path)"
+          href="#"
         >
           {{ item.name }}
-        </router-link>
+        </a>
       </div>
 
       <!-- 用户区域 -->
@@ -56,11 +57,24 @@
   </div>
 </template>
 
+<script lang="ts">
+export default {
+  name: 'NavBar'
+}
+</script>
+
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { School, UserFilled } from '@element-plus/icons-vue'
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+
+// 添加全局声明
+declare global {
+  interface Window {
+    logNavigation?: (action: string, data: any) => void;
+  }
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -146,6 +160,27 @@ const handleCommand = (command: string) => {
 // 处理登录按钮点击
 const handleLogin = () => {
   router.push('/login')
+}
+
+// 处理菜单项点击
+const handleMenuClick = (path: string) => {
+  console.log('菜单点击:', path);
+  
+  // 直接使用路由导航，不再使用特殊处理
+  if (path === '/career-library') {
+    console.log('正在导航到职业库...');
+    router.push('/career-library');
+    // 记录导航尝试
+    if (window.logNavigation) {
+      window.logNavigation('导航尝试', { 
+        from: router.currentRoute.value.path,
+        to: '/career-library',
+        method: 'router.push'
+      });
+    }
+  } else {
+    router.push(path);
+  }
 }
 </script>
 
@@ -237,4 +272,14 @@ const handleLogin = () => {
     padding: 0;
   }
 }
-</style> 
+</style>
+
+<!-- 声明全局Window接口的扩展 -->
+declare global {
+  interface Window {
+    appNavigation?: {
+      goToCareerLibrary: () => void;
+      reloadCurrentPage: () => void;
+    }
+  }
+} 

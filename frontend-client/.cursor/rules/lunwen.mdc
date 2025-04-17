@@ -1,0 +1,15 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to
+
+1.我们的论文题目是 基于VUE的高校职业推荐系统 请围绕这个主题进行修改 
+2.要能避免aigc率大于10%
+
+3.可以提供更加简洁但清晰的流程图版本，保持内容的完整性同时确保图形在论文中显示更大更清晰

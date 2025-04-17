@@ -91,9 +91,9 @@
         v-for="career in filteredCareers" 
         :key="career.id" 
         :xs="24" 
-        :sm="12" 
-        :md="8" 
-        :lg="6"
+        :sm="24" 
+        :md="12" 
+        :lg="8"
         class="career-column"
       >
         <!-- 不使用自定义组件，而是直接内联显示职业卡片 -->
@@ -111,9 +111,14 @@
           </div>
           
           <div class="career-card-content">
+            <div class="career-info-item company-item" v-if="career.company_name || career.company">
+              <el-icon><OfficeBuilding /></el-icon>
+              <span :title="career.company_name || career.company">{{ career.company_name || career.company }}</span>
+            </div>
+            
             <div class="career-info-item salary-item">
               <el-icon><Money /></el-icon>
-              <span>{{ formatSalary(career.salary_range) }}</span>
+              <span :title="JSON.stringify(career.salary_range || career.salary)">{{ formatSalary(career.salary_range || career.salary) }}</span>
             </div>
             
             <div class="career-info-item" v-if="career.education_required">
@@ -168,7 +173,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { RefreshRight, Search, Money, School, Clock } from '@element-plus/icons-vue'
+import { RefreshRight, Search, Money, School, Clock, OfficeBuilding } from '@element-plus/icons-vue'
 import request from '../api/request'
 
 interface SalaryRange {
@@ -186,7 +191,10 @@ interface Career {
   experience_required?: string;
   future_prospect?: string;
   salary_range?: SalaryRange;
+  salary?: any;
   category_id?: number;
+  company_name?: string;
+  company?: string;
 }
 
 interface ApiResponse {
@@ -278,10 +286,24 @@ const fetchFavoriteCareers = async () => {
     if (response && 'careers' in response && Array.isArray(response.careers)) {
       favoriteCareers.value = response.careers
       console.log('获取到收藏职业:', favoriteCareers.value.length)
+      // 打印第一个职业数据以便调试
+      if (favoriteCareers.value.length > 0) {
+        console.log('第一个职业数据示例:', JSON.stringify(favoriteCareers.value[0]))
+        console.log('薪资数据类型:', typeof favoriteCareers.value[0].salary)
+        console.log('薪资数据:', favoriteCareers.value[0].salary)
+        console.log('薪资范围数据:', favoriteCareers.value[0].salary_range)
+      }
     } else if (Array.isArray(response)) {
       // 如果API直接返回数组数据
       favoriteCareers.value = response
       console.log('获取到收藏职业:', favoriteCareers.value.length)
+      // 打印第一个职业数据以便调试
+      if (favoriteCareers.value.length > 0) {
+        console.log('第一个职业数据示例:', JSON.stringify(favoriteCareers.value[0]))
+        console.log('薪资数据类型:', typeof favoriteCareers.value[0].salary)
+        console.log('薪资数据:', favoriteCareers.value[0].salary)
+        console.log('薪资范围数据:', favoriteCareers.value[0].salary_range)
+      }
     } else {
       console.error('API返回数据格式不符合预期:', response)
       favoriteCareers.value = []
@@ -299,17 +321,166 @@ const fetchFavoriteCareers = async () => {
 }
 
 // 格式化薪资范围
-const formatSalary = (salaryRange?: SalaryRange): string => {
-  if (!salaryRange || (!salaryRange.min && !salaryRange.max)) {
-    return '薪资未知'
+const formatSalary = (salary?: SalaryRange | any): string => {
+  // 调试输出
+  console.log('原始薪资数据:', salary);
+  
+  // 防止undefined或null
+  if (!salary) return '薪资未知';
+  
+  // 1. 如果salary就是一个字符串，直接进入字符串处理逻辑
+  if (typeof salary === 'string') {
+    return formatSalaryString(salary);
   }
   
-  const min = salaryRange.min || '?'
-  const max = salaryRange.max || '?'
-  const unit = salaryRange.unit || '元/月'
+  // 2. 处理对象格式
+  if (typeof salary === 'object') {
+    console.log('对象格式薪资:', salary);
+    
+    // 2.1 检查salary_range特殊格式：{text: "1-1.5万"}
+    if (salary.salary_range && typeof salary.salary_range === 'object' && salary.salary_range.text) {
+      return formatSalaryString(salary.salary_range.text);
+    }
+    
+    // 2.2 检查是否有自定义显示文本
+    if (salary.display_text || salary.salary_text || salary.text) {
+      const displayText = salary.display_text || salary.salary_text || salary.text;
+      if (displayText && typeof displayText === 'string') {
+        return formatSalaryString(displayText);
+      }
+    }
+    
+    // 2.3 检查是否直接包含"面议"字段
+    if (salary.type === '面议' || salary.desc === '面议' || 
+        salary.negotiable === true || salary.is_negotiable === true) {
+      return '薪资面议';
+    }
+    
+    // 2.4 确保min和max值是有效的数字
+    let min: number | null = null;
+    let max: number | null = null;
+    
+    // 尝试解析min值
+    if (salary.min !== undefined && salary.min !== null) {
+      min = typeof salary.min === 'string' ? parseInt(salary.min.replace(/[^\d]/g, ''), 10) : parseInt(String(salary.min), 10);
+      if (isNaN(min)) min = null;
+    }
+    
+    // 尝试解析max值
+    if (salary.max !== undefined && salary.max !== null) {
+      max = typeof salary.max === 'string' ? parseInt(salary.max.replace(/[^\d]/g, ''), 10) : parseInt(String(salary.max), 10);
+      if (isNaN(max)) max = null;
+    }
+    
+    // 检查其他可能的字段名称
+    if (min === null && salary.minimum !== undefined) {
+      min = typeof salary.minimum === 'string' ? parseInt(salary.minimum.replace(/[^\d]/g, ''), 10) : parseInt(String(salary.minimum), 10);
+      if (isNaN(min)) min = null;
+    }
+    
+    if (max === null && salary.maximum !== undefined) {
+      max = typeof salary.maximum === 'string' ? parseInt(salary.maximum.replace(/[^\d]/g, ''), 10) : parseInt(String(salary.maximum), 10);
+      if (isNaN(max)) max = null;
+    }
+    
+    // 检查salary_min和salary_max字段
+    if (min === null && salary.salary_min !== undefined) {
+      min = typeof salary.salary_min === 'string' ? parseInt(salary.salary_min.replace(/[^\d]/g, ''), 10) : parseInt(String(salary.salary_min), 10);
+      if (isNaN(min)) min = null;
+    }
+    
+    if (max === null && salary.salary_max !== undefined) {
+      max = typeof salary.salary_max === 'string' ? parseInt(salary.salary_max.replace(/[^\d]/g, ''), 10) : parseInt(String(salary.salary_max), 10);
+      if (isNaN(max)) max = null;
+    }
+    
+    // 检查salaryMin和salaryMax字段
+    if (min === null && salary.salaryMin !== undefined) {
+      min = typeof salary.salaryMin === 'string' ? parseInt(salary.salaryMin.replace(/[^\d]/g, ''), 10) : parseInt(String(salary.salaryMin), 10);
+      if (isNaN(min)) min = null;
+    }
+    
+    if (max === null && salary.salaryMax !== undefined) {
+      max = typeof salary.salaryMax === 'string' ? parseInt(salary.salaryMax.replace(/[^\d]/g, ''), 10) : parseInt(String(salary.salaryMax), 10);
+      if (isNaN(max)) max = null;
+    }
+    
+    // 格式化薪资显示
+    if (min && max) {
+      return `${(min/1000).toFixed(0)}K-${(max/1000).toFixed(0)}K/月`;
+    } else if (min) {
+      return `${(min/1000).toFixed(0)}K+/月`;
+    } else if (max) {
+      return `${(max/1000).toFixed(0)}K以下/月`;
+    }
+  }
   
-  return `${min}-${max} ${unit}`
-}
+  // 4. 如果是数字，格式化为k单位
+  if (typeof salary === 'number') {
+    return `${(salary/1000).toFixed(0)}K/月`;
+  }
+  
+  // 其他情况
+  return '薪资未知';
+};
+
+// 字符串格式薪资处理辅助函数
+const formatSalaryString = (salaryStr: string): string => {
+  if (!salaryStr) return '薪资未知';
+  
+  const cleanSalary = String(salaryStr).trim();
+  
+  // 如果字符串中包含"面议"，直接返回
+  if (cleanSalary.includes('面议') || cleanSalary.toLowerCase().includes('negotiable')) {
+    return '薪资面议';
+  }
+  
+  // 直接保留原格式的情况
+  if (cleanSalary.includes('万/年') || 
+      cleanSalary.includes('万/月') || 
+      cleanSalary.includes('千-') || 
+      cleanSalary.match(/\d+\s*[-~～]\s*\d+\s*万/)) {
+    return cleanSalary;
+  }
+  
+  // 尝试解析带单位的字符串，如"10k-20k"或"¥10k-20k/月"
+  const matches = cleanSalary.match(/(\d+\.?\d*)[kK千][-~～](\d+\.?\d*)[kK千]/i);
+  if (matches) {
+    const min = parseFloat(matches[1]);
+    const max = parseFloat(matches[2]);
+    return `${min}K-${max}K/月`;
+  }
+  
+  // 尝试解析数字范围，如"10000-20000"或"1-1.5万"
+  const rangeMatches = cleanSalary.match(/(\d+\.?\d*)[-~～](\d+\.?\d*)/);
+  if (rangeMatches) {
+    const min = parseFloat(rangeMatches[1]);
+    const max = parseFloat(rangeMatches[2]);
+    if (!isNaN(min) && !isNaN(max)) {
+      if (min > 1000 || max > 1000) {
+        return `${(min/1000).toFixed(1)}K-${(max/1000).toFixed(1)}K/月`;
+      } else {
+        return `${min}-${max}K/月`;
+      }
+    }
+  }
+  
+  // 尝试解析单一数字
+  const singleNumberMatch = cleanSalary.match(/(\d+\.?\d*)/);
+  if (singleNumberMatch) {
+    let value = parseFloat(singleNumberMatch[1]);
+    if (!isNaN(value)) {
+      if (value > 1000) {
+        return `${(value/1000).toFixed(1)}K/月`;
+      } else {
+        return `${value}K/月`;
+      }
+    }
+  }
+  
+  // 如果没有匹配到特定格式，直接返回原字符串
+  return cleanSalary;
+};
 
 // 获取职业前景标签类型
 const getProspectType = (prospect?: string): string => {
@@ -520,6 +691,8 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  position: relative;
+  padding-bottom: 70px; /* 增加底部空间确保内容不被按钮覆盖 */
 }
 
 .career-card:hover {
@@ -529,9 +702,8 @@ onMounted(() => {
 
 .career-card-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
+  flex-direction: column;
+  margin-bottom: 15px;
 }
 
 .career-title {
@@ -539,15 +711,17 @@ onMounted(() => {
   font-weight: 600;
   color: #303133;
   margin-right: 10px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 70%;
+  word-wrap: break-word;
+  word-break: break-all;
+  white-space: normal !important;
+  overflow: visible;
+  max-width: 100%;
+  line-height: 1.3;
 }
 
 .prospect-tag {
-  white-space: nowrap;
-  flex-shrink: 0;
+  margin-top: 8px;
+  align-self: flex-start;
 }
 
 .career-card-content {
@@ -556,6 +730,7 @@ onMounted(() => {
   gap: 8px;
   margin-bottom: 12px;
   flex-grow: 1;
+  min-height: 100px; /* 确保内容区域有足够的高度 */
 }
 
 .career-info-item {
@@ -596,9 +771,12 @@ onMounted(() => {
 
 .career-card-actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   gap: 10px;
-  margin-top: auto;
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
 }
 
 /* 响应式调整 */
@@ -629,12 +807,23 @@ onMounted(() => {
   }
 
   .career-card-actions {
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: center;
   }
 }
 
 .career-column {
   display: flex;
   margin-bottom: 20px;
+}
+
+.company-item {
+  color: #409EFF;
+  font-weight: 500;
+  word-wrap: break-word;
+  word-break: break-all;
+  white-space: normal !important;
+  overflow: visible;
+  line-height: 1.3;
 }
 </style> 

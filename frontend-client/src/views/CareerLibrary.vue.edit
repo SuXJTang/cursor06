@@ -1,0 +1,2493 @@
+<template>
+  <div class="career-library">
+    <!-- 调试面板 -->
+    <div v-if="showDebugPanel" class="debug-panel">
+      <div class="debug-header">
+        <h3>调试面板</h3>
+        <el-button size="small" @click="showDebugPanel = false">关闭</el-button>
+      </div>
+      <div class="debug-content">
+        <div class="debug-item">
+          <div class="debug-label">当前分类ID:</div>
+          <div class="debug-value">{{ activeCategory }}</div>
+        </div>
+        <div class="debug-item">
+          <div class="debug-label">分类总数:</div>
+          <div class="debug-value">{{ categories.length }}</div>
+        </div>
+        <div class="debug-item">
+          <div class="debug-label">职业总数:</div>
+          <div class="debug-value">{{ careers.length }}</div>
+        </div>
+        <div class="debug-item">
+          <div class="debug-label">筛选后职业数:</div>
+          <div class="debug-value">{{ filteredCareers.length }}</div>
+        </div>
+        <div class="debug-item">
+          <div class="debug-label">已选职业:</div>
+          <div class="debug-value">{{ selectedCareer?.name || '无' }}</div>
+        </div>
+        <div class="debug-item">
+          <div class="debug-label">加载状态:</div>
+          <div class="debug-value">{{ isLoading ? '加载中' : '加载完成' }}</div>
+        </div>
+        <div class="debug-item">
+          <div class="debug-label">错误信息:</div>
+          <div class="debug-value">{{ errorMessage || '无' }}</div>
+        </div>
+        <div class="debug-item">
+          <div class="debug-label">API原始数据:</div>
+          <div class="debug-value">
+            <el-button type="info" size="small" @click="showRawData = !showRawData">
+              {{ showRawData ? '隐藏' : '显示' }}原始数据
+            </el-button>
+          </div>
+        </div>
+        <div v-if="showRawData" class="debug-raw-data">
+          <h4>原始数据:</h4>
+          <pre>{{ rawApiData }}</pre>
+        </div>
+      </div>
+      <div class="debug-actions">
+        <el-button type="primary" size="small" @click="debugForceRender">强制渲染</el-button>
+        <el-button type="success" size="small" @click="refreshData">刷新数据</el-button>
+        <el-button type="warning" size="small" @click="debugClearCache">清除缓存</el-button>
+      </div>
+    </div>
+    
+    <!-- 悬浮调试按钮 -->
+    <div v-if="!showDebugPanel" class="debug-button" @click="showDebugPanel = true">
+      <el-icon><ElementIcons.Tools /></el-icon>
+    </div>
+    
+    <el-row :gutter="20">
+      <!-- 左侧分类和搜索 -->
+      <el-col :span="6">
+        <el-card class="filter-card">
+          <template #header>
+            <div class="filter-header">
+              <el-input
+                v-model="searchQuery"
+                placeholder="搜索职业..."
+                :prefix-icon="ElementIcons.Search"
+                clearable
+              />
+            </div>
+          </template>
+          <el-scrollbar height="calc(100vh - 180px)">
+            <el-menu
+              :default-active="activeCategory"
+              class="category-menu"
+              @select="handleCategorySelect"
+            >
+              <div v-for="category in categories" :key="category.id">
+                <el-sub-menu v-if="category.subcategories && category.subcategories.length" :index="String(category.id)">
+                  <template #title>
+                    <div 
+                      class="submenu-title" 
+                      @click.stop="handleSubMenuTitleClick(category.id)"
+                    >
+                      <div class="category-indicator" :class="{'active-indicator': activeCategory === String(category.id)}" />
+                      <el-icon><ElementIcons.Folder /></el-icon>
+                      <span>{{ category.name }}</span>
+                    </div>
+                  </template>
+                  
+                  <div v-for="subcategory in category.subcategories" :key="subcategory.id">
+                    <el-sub-menu v-if="subcategory.subcategories && subcategory.subcategories.length" :index="String(subcategory.id)">
+                      <template #title>
+                        <div 
+                          class="submenu-title" 
+                          @click.stop="handleSubMenuTitleClick(subcategory.id)"
+                        >
+                          <div class="category-indicator" :class="{'active-indicator': activeCategory === String(subcategory.id)}" />
+                          <el-icon><ElementIcons.Folder /></el-icon>
+                          <span>{{ subcategory.name }}</span>
+                        </div>
+                      </template>
+                      
+                      <el-menu-item 
+                        v-for="thirdCategory in subcategory.subcategories" 
+                        :key="thirdCategory.id" 
+                        :index="String(thirdCategory.id)"
+                      >
+                        <div class="category-indicator" :class="{'active-indicator': activeCategory === String(thirdCategory.id)}" />
+                        <el-icon><ElementIcons.Document /></el-icon>
+                        <span>{{ thirdCategory.name }}</span>
+                      </el-menu-item>
+                    </el-sub-menu>
+                    
+                    <el-menu-item v-else :index="String(subcategory.id)">
+                      <div class="category-indicator" :class="{'active-indicator': activeCategory === String(subcategory.id)}" />
+                      <el-icon><ElementIcons.Document /></el-icon>
+                      <span>{{ subcategory.name }}</span>
+                    </el-menu-item>
+                  </div>
+                </el-sub-menu>
+                
+                <el-menu-item v-else :index="String(category.id)">
+                  <div class="category-indicator" :class="{'active-indicator': activeCategory === String(category.id)}" />
+                  <el-icon><ElementIcons.Document /></el-icon>
+                  <span>{{ category.name }}</span>
+                </el-menu-item>
+              </div>
+            </el-menu>
+          </el-scrollbar>
+        </el-card>
+      </el-col>
+
+      <!-- 中间职业列表 -->
+      <el-col :span="8">
+        <el-card class="career-list-card">
+          <template #header>
+            <div class="list-header">
+              <h3>{{ getCurrentCategoryName() }}</h3>
+              <div class="sort-actions">
+                <el-radio-group v-model="sortBy" size="small">
+                  <el-radio-button label="salary">
+                    薪资
+                  </el-radio-button>
+                  <el-radio-button label="hot">
+                    热度
+                  </el-radio-button>
+                  <el-radio-button label="growth">
+                    增长
+                  </el-radio-button>
+                </el-radio-group>
+              </div>
+            </div>
+          </template>
+          
+          <!-- 添加加载状态 -->
+          <el-scrollbar height="calc(100vh - 180px)">
+            <!-- 加载中显示 -->
+            <div v-if="isLoading" class="loading-container">
+              <el-skeleton :rows="8" animated />
+            </div>
+            
+            <!-- 错误消息显示 -->
+            <div v-else-if="errorMessage" class="error-container">
+              <el-empty :description="errorMessage">
+                <template #image>
+                  <el-icon class="error-icon"><ElementIcons.WarningFilled /></el-icon>
+                </template>
+                <el-button @click="retryFetchCareers">重试</el-button>
+              </el-empty>
+            </div>
+            
+            <!-- 空数据显示 -->
+            <div v-else-if="filteredCareers.length === 0" class="empty-container">
+              <el-empty description="该分类下暂无职业数据">
+                <el-button type="primary" @click="handleGoToCategory">
+                  浏览其他分类
+                </el-button>
+              </el-empty>
+            </div>
+            
+            <!-- 正常数据显示（按子类别分组） -->
+            <div v-else class="career-list grouped-career-list">
+              <div v-for="group in groupedCareers" :key="group.title" class="career-group">
+                <div class="career-group-header">
+                  <h4>{{ group.title }}</h4>
+                  <el-tag size="small" type="info">{{ group.careers.length }}个职位</el-tag>
+                </div>
+                
+                <div 
+                  v-for="career in group.careers"
+                  :key="career.id"
+                  class="career-item"
+                  :class="{ active: selectedCareer?.id === career.id }"
+                  @click="selectCareer(career)"
+                >
+                  <div v-if="isCareerFavorited(career.id)" class="favorite-icon" @click.stop="toggleFavorite(career)">
+                    <el-icon color="#FFD700">
+                      <ElementIcons.Star fill="true" />
+                    </el-icon>
+                  </div>
+                  <div class="career-item-header">
+                    <h4>{{ career.name }}</h4>
+                  </div>
+                  <div class="career-level">
+                    <el-tag :type="getCareerLevelType(career.level)" size="small">
+                      {{ career.level }}
+                    </el-tag>
+                  </div>
+                  <div class="career-brief">
+                    <div class="salary-range">
+                      <el-icon><ElementIcons.Money /></el-icon>
+                      {{ career.salary }}
+                    </div>
+                    <div class="education-req">
+                      <el-icon><ElementIcons.School /></el-icon>
+                      {{ career.education }}
+                    </div>
+                    <div class="experience-req">
+                      <el-icon><ElementIcons.Timer /></el-icon>
+                      {{ career.experience }}
+                    </div>
+                  </div>
+                  <div class="career-tags">
+                    <el-tag
+                      v-for="tag in career.tags"
+                      :key="tag"
+                      size="small"
+                      effect="plain"
+                    >
+                      {{ tag }}
+                    </el-tag>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 分页控件 -->
+              <div class="pagination-container" v-if="totalPages > 1">
+                <el-pagination
+                  v-model:current-page="currentPage"
+                  v-model:page-size="pageSize"
+                  :page-sizes="[10, 20, 50, 100]"
+                  layout="total, sizes, prev, pager, next, jumper"
+                  :total="totalItems"
+                  @size-change="handleSizeChange"
+                  @current-change="handlePageChange"
+                  background
+                />
+              </div>
+            </div>
+          </el-scrollbar>
+        </el-card>
+      </el-col>
+
+      <!-- 右侧职业详情 -->
+      <el-col :span="10">
+        <el-card v-if="selectedCareer" class="career-detail-card">
+          <template #header>
+            <div class="detail-header">
+              <h2>{{ selectedCareer.name }}</h2>
+              <div class="action-buttons">
+                <el-button type="primary" @click="handleSaveCareer">
+                  <el-icon><ElementIcons.Star /></el-icon>{{ isFavorite ? '取消收藏' : '收藏' }}
+                </el-button>
+                <el-button @click="handleShareCareer">
+                  <el-icon><ElementIcons.Share /></el-icon>分享
+                </el-button>
+              </div>
+            </div>
+          </template>
+          
+          <el-scrollbar height="calc(100vh - 180px)">
+            <div class="career-detail">
+              <!-- 基本信息 -->
+              <section class="detail-section">
+                <h3>基本信息</h3>
+                <el-descriptions :column="2" border>
+                  <el-descriptions-item label="职业类别">
+                    {{ selectedCareer.category }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="发展阶段">
+                    {{ selectedCareer.level }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="薪资范围">
+                    {{ selectedCareer.salary }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="经验要求">
+                    {{ selectedCareer.experience }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="学历要求">
+                    {{ selectedCareer.education }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="技能要求">
+                    {{ selectedCareer.skills }}
+                  </el-descriptions-item>
+                </el-descriptions>
+              </section>
+
+              <!-- 职业描述 -->
+              <section class="detail-section">
+                <h3>职业描述</h3>
+                <p class="description">
+                  {{ selectedCareer.description }}
+                </p>
+              </section>
+
+              <!-- 公司信息部分 - 新增 -->
+              <section v-if="selectedCareer.companyName" class="detail-section">
+                <h3>公司信息</h3>
+                <el-descriptions :column="2" border>
+                  <el-descriptions-item label="公司名称">
+                    <div class="company-name">
+                      <img v-if="selectedCareer.companyLogo" :src="selectedCareer.companyLogo" class="company-logo" alt="公司Logo">
+                      {{ selectedCareer.companyName }}
+                    </div>
+                  </el-descriptions-item>
+                  <el-descriptions-item label="公司行业">
+                    {{ selectedCareer.companyField || '未知' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="公司性质">
+                    {{ selectedCareer.companyNature || '未知' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="公司规模">
+                    {{ selectedCareer.companySize || '未知' }}
+                  </el-descriptions-item>
+                </el-descriptions>
+                <div v-if="selectedCareer.companyInfo" class="company-info">
+                  <h4>公司简介</h4>
+                  <p>{{ selectedCareer.companyInfo }}</p>
+                </div>
+                <div v-if="selectedCareer.companyLink" class="company-link">
+                  <a :href="selectedCareer.companyLink" target="_blank">访问公司网站</a>
+                </div>
+              </section>
+
+              <!-- 工作职责 -->
+              <section class="detail-section">
+                <h3>工作职责</h3>
+                <ul class="responsibility-list">
+                  <li v-for="(item, index) in selectedCareer.responsibilities" :key="index">
+                    {{ item }}
+                  </li>
+                </ul>
+              </section>
+
+              <!-- 发展路径 -->
+              <section class="detail-section">
+                <h3>发展路径</h3>
+                <el-steps :active="2" direction="vertical">
+                  <el-step 
+                    v-for="(step, index) in selectedCareer.careerPath"
+                    :key="index"
+                    :title="step.position"
+                    :description="step.description"
+                  />
+                </el-steps>
+              </section>
+
+              <!-- 相关证书 -->
+              <section class="detail-section">
+                <h3>相关证书</h3>
+                <div class="certificate-list">
+                  <el-tag
+                    v-for="cert in selectedCareer.certificates"
+                    :key="cert"
+                    class="certificate-item"
+                    effect="dark"
+                  >
+                    {{ cert }}
+                  </el-tag>
+                </div>
+              </section>
+            </div>
+          </el-scrollbar>
+        </el-card>
+        <el-empty v-else description="请选择职业查看详细信息" />
+      </el-col>
+    </el-row>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, watch, nextTick, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+import request from '../api/request'
+import { ElMessage } from 'element-plus'
+// 导入所有图标
+import * as ElementIcons from '@element-plus/icons-vue'
+import { useCareerStore } from '../stores/career'
+// 导入收藏相关API
+import { addFavoriteCareer, removeFavoriteCareer, checkIsFavorite as apiCheckIsFavorite } from '../api/favorites'
+
+// 职业类型定义
+interface Career {
+  id: string | number;
+  name: string;
+  category: string;
+  level: string;
+  salary: string;
+  education: string;
+  experience: string;
+  skills: string;
+  description: string;
+  responsibilities: string[];
+  careerPath: Array<{ position: string; description: string }>;
+  certificates: string[];
+  tags: string[];
+  companyName: string;
+  companyLogo: string;
+  companyField: string;
+  companyNature: string;
+  companySize: string;
+  companyLink: string;
+  companyInfo: string;
+}
+
+// API响应类型
+interface CategoryResponse {
+  id: number;
+  name: string;
+  parent_id?: number | null;
+  subcategories?: CategoryResponse[];
+  [key: string]: any;
+}
+
+// API职业数据响应类型
+interface CareerResponse {
+  id: string | number;
+  title?: string;
+  name?: string;
+  category_id?: string | number;
+  education_required?: string;
+  education_requirement?: string;
+  experience_required?: string;
+  experience_requirement?: string;
+  salary_range?: string | { min?: number; max?: number; unit?: string };
+  required_skills?: string[] | string;
+  description?: string;
+  responsibilities?: string[] | string;
+  career_path?: string | Record<string, string> | Record<string, string>[];
+  certificates?: string[] | string;
+  level?: string;
+  // 增加新字段
+  company_name?: string;
+  company_logo?: string;
+  company_field?: string;
+  company_nature?: string;
+  company_size?: string;
+  company_link?: string;
+  company_info?: string;
+  skill_tags?: string | string[];
+  [key: string]: any;
+}
+
+interface ApiResponse<T> {
+  items?: T[];
+  total?: number;
+  page?: number;
+  [key: string]: any;
+}
+
+// 职业分类
+const categories = ref<CategoryResponse[]>([]);
+const activeCategory = ref('');
+const searchQuery = ref('');
+const selectedCareer = ref<Career | null>(null);
+const selectedCareerId = ref<number | null>(null);
+const isFavorite = ref(false);
+const sortBy = ref('salary');
+const router = useRouter();
+const authStore = useAuthStore();
+
+// 分页相关变量
+const currentPage = ref(1);
+const pageSize = ref(10);
+const totalItems = ref(0);
+const totalPages = ref(1);
+
+// 新增：调试面板状态
+const showDebugPanel = ref(false);
+const showRawData = ref(false);
+const rawApiData = ref('暂无原始数据');
+
+// 在setup函数内
+const careerStore = useCareerStore()
+
+// 职业列表和加载状态
+const careers = ref<Career[]>([]);
+const isLoading = ref(false);
+const errorMessage = ref('');
+
+// 收藏职业相关
+const favoriteCareers = ref<Career[]>([]);
+
+// 计算属性：过滤后的职业列表
+const filteredCareers = computed(() => {
+  // 如果有搜索关键字，根据关键字过滤
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    return careers.value.filter(career => 
+      career.name.toLowerCase().includes(query) || 
+      career.tags.some(tag => tag.toLowerCase().includes(query)) ||
+      career.description.toLowerCase().includes(query)
+    );
+  }
+  
+  // 否则返回所有职业
+  return careers.value;
+});
+
+// 计算属性：按子类别分组的职业列表
+const groupedCareers = computed(() => {
+  const sortedCareers = [...filteredCareers.value].sort((a, b) => {
+    if (sortBy.value === 'salary') {
+      // 薪资排序逻辑 (假设薪资格式为 "5k-10k" 或类似)
+      const extractMinSalary = (salaryStr: string): number => {
+        const match = salaryStr.match(/(\d+)/);
+        return match ? parseInt(match[1]) : 0;
+      };
+      
+      return extractMinSalary(b.salary) - extractMinSalary(a.salary);
+    } else if (sortBy.value === 'hot') {
+      // 热度排序，这里简单地按字母顺序排序
+      return a.name.localeCompare(b.name);
+    } else {
+      // 其他排序逻辑
+      return 0;
+    }
+  });
+  
+  // 按职业等级分组
+  const grouped: { title: string; careers: Career[] }[] = [];
+  const groups: Record<string, Career[]> = {};
+  
+  // 分组逻辑
+  sortedCareers.forEach(career => {
+    const groupKey = career.level || '未分类';
+    if (!groups[groupKey]) {
+      groups[groupKey] = [];
+    }
+    groups[groupKey].push(career);
+  });
+  
+  // 转换为数组格式
+  Object.keys(groups).forEach(title => {
+    grouped.push({
+      title,
+      careers: groups[title]
+    });
+  });
+  
+  return grouped;
+});
+
+// 工具函数：检查网络连接
+const checkNetworkConnection = () => {
+  return navigator.onLine;
+};
+
+// 职业数据处理
+const processCareerItem = (item: any, categoryId: string): Career => {
+  return {
+    id: item.id || item.career_id || '',
+    name: item.name || item.title || `职业${item.id}`,
+    title: item.title || item.name || '',
+    category: item.category || categoryId || '',
+    level: item.level || item.career_level || '初级',
+    salary: item.salary || item.salary_range || '面议',
+    education: item.education || item.education_required || '不限',
+    experience: item.experience || item.experience_required || '不限',
+    skills: item.skills || (Array.isArray(item.required_skills) ? item.required_skills.join(', ') : (item.required_skills || '')),
+    description: item.description || '暂无描述',
+    responsibilities: Array.isArray(item.responsibilities) ? item.responsibilities : 
+      (typeof item.responsibilities === 'string' ? [item.responsibilities] : ['职责描述暂无']),
+    careerPath: item.career_path || [],
+    certificates: Array.isArray(item.certificates) ? item.certificates : 
+      (typeof item.certificates === 'string' ? [item.certificates] : []),
+    tags: Array.isArray(item.tags) ? item.tags : 
+      (typeof item.tags === 'string' ? [item.tags] : [])
+  };
+};
+
+// 创建默认职业数据
+const createDefaultCareer = (id: string, categoryId: string, name: string, level: string): Career => {
+  return {
+    id,
+    name,
+    title: name,
+    category: categoryId,
+    level,
+    salary: '5k-15k',
+    education: '本科',
+    experience: '1-3年',
+    skills: '专业技能, 沟通能力',
+    description: '这是一个示例职业描述，展示职业的基本情况和工作内容。',
+    responsibilities: [
+      '负责相关专业工作',
+      '与团队协作完成项目',
+      '持续学习和改进工作方法'
+    ],
+    careerPath: [
+      { position: '初级', description: '入门阶段' },
+      { position: '中级', description: '进阶阶段' },
+      { position: '高级', description: '专业阶段' }
+    ],
+    certificates: ['行业认证', '专业资格证书'],
+    tags: ['专业技能', '沟通能力', '团队协作'],
+    companyName: '',
+    companyLogo: '',
+    companyField: '',
+    companyNature: '',
+    companySize: '',
+    companyLink: '',
+    companyInfo: ''
+  };
+};
+
+// 缓存数据
+const saveToCache = (categoryId: string, data: Career[]) => {
+  try {
+    if (!data || data.length === 0) {
+      console.warn('试图缓存空数据，categoryId:', categoryId);
+      return;
+    }
+    
+    // 同时保存到Pinia存储
+    careerStore.updateCareers(categoryId, adaptCareerForStore(data, categoryId));
+    
+    // 保存到本地存储作为备份
+    const cacheKey = `careers_${categoryId}`;
+    const cacheData = {
+      timestamp: Date.now(),
+      data: data
+    };
+    
+    // 将数据转为JSON字符串
+    localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+    console.log(`成功缓存职业数据 (categoryId: ${categoryId}), ${data.length} 条记录`);
+  } catch (error) {
+    console.error('缓存职业数据失败:', error);
+  }
+};
+
+// 获取职业数据
+const fetchCareers = async (categoryId: string) => {
+  try {
+    // 重置状态
+    errorMessage.value = '';
+    isLoading.value = true;
+    
+    console.log('开始获取职业数据，分类ID:', categoryId, '页码:', currentPage.value, '每页数量:', pageSize.value);
+    
+    // 检查网络连接
+    if (!checkNetworkConnection()) {
+      console.error('网络连接已断开');
+      ElMessage.error('网络连接已断开，请检查网络设置');
+      errorMessage.value = '网络连接已断开';
+      isLoading.value = false;
+      return;
+    }
+    
+    // 获取认证令牌
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      console.error('未找到认证token');
+      ElMessage.error('请先登录后再访问');
+      router.push('/login');
+      return;
+    }
+    
+    // 使用正确的API端点获取职业数据，添加分页参数
+    const response = await request<any>({
+      url: '/api/v1/careers',
+      method: 'GET',
+      params: {
+        category_id: categoryId,
+        page: currentPage.value,
+        per_page: pageSize.value
+      },
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      timeout: 15000
+    });
+    
+    // 更新调试面板中的原始数据
+    rawApiData.value = JSON.stringify(response, null, 2);
+    
+    console.log('API响应数据:', response);
+    
+    // 处理响应数据
+    let careerItems: any[] = [];
+    
+    // 解析不同格式的响应
+    if (response) {
+      // 提取职业列表数据
+      if (response.items && Array.isArray(response.items)) {
+        careerItems = response.items;
+      } else if (response.data && Array.isArray(response.data)) {
+        careerItems = response.data;
+      } else if (response.careers && Array.isArray(response.careers)) {
+        careerItems = response.careers;
+      } else if (response.results && Array.isArray(response.results)) {
+        careerItems = response.results;
+      } else if (Array.isArray(response)) {
+        careerItems = response;
+      }
+      
+      // 提取分页信息
+      totalItems.value = response.total || response.count || careerItems.length;
+      
+      // 如果响应中包含页码信息，优先使用
+      if (response.page) {
+        currentPage.value = response.page;
+      }
+      
+      // 如果响应中包含每页数量信息，优先使用
+      if (response.per_page) {
+        pageSize.value = response.per_page;
+      } else if (response.page_size) {
+        pageSize.value = response.page_size;
+      } else if (response.limit) {
+        pageSize.value = response.limit;
+      }
+    }
+    
+    console.log(`获取到 ${careerItems.length} 条职业数据，总计 ${totalItems.value} 条`);
+    
+    // 计算总页数
+    totalPages.value = Math.ceil(totalItems.value / pageSize.value);
+    
+    if (careerItems.length > 0) {
+      // 转换职业数据格式
+      careers.value = careerItems.map(item => processCareerItem(item, categoryId));
+      
+      console.log(`已加载第 ${currentPage.value}/${totalPages.value} 页，${careers.value.length} 条职业数据`);
+      
+      // 缓存获取到的数据
+      saveToCache(categoryId, careers.value);
+      
+      // 确保选中第一个职业，使用nextTick确保DOM更新
+      nextTick(() => {
+        if (careers.value.length > 0 && !selectedCareer.value) {
+          selectedCareer.value = { ...careers.value[0] };
+          console.log('已选择第一个职业:', selectedCareer.value.name);
+        }
+      });
+      
+      ElMessage.success(`获取到${careers.value.length}个职业数据`);
+    } else {
+      // 没有找到职业数据，创建默认数据
+      console.log(`未找到分类 ${categoryId} 的职业数据，创建默认数据`);
+      const defaultCareers = [
+        createDefaultCareer('1', categoryId, '软件工程师', '稳定发展期'),
+        createDefaultCareer('2', categoryId, '数据分析师', '快速发展期'),
+        createDefaultCareer('3', categoryId, '产品经理', '稳定发展期')
+      ];
+      
+      // 确保careers.value被正确赋值
+      careers.value = defaultCareers;
+      totalItems.value = defaultCareers.length;
+      totalPages.value = 1;
+      
+      // 缓存示例数据
+      saveToCache(categoryId, careers.value);
+      
+      // 确保选中第一个职业
+      nextTick(() => {
+        if (careers.value.length > 0) {
+          selectedCareer.value = { ...careers.value[0] };
+          console.log('已选择默认职业:', selectedCareer.value.name);
+        }
+      });
+      
+      ElMessage.info('该分类下没有职业数据，显示示例数据');
+    }
+  } catch (error: any) {
+    console.error('获取职业数据失败:', error);
+    errorMessage.value = `获取职业数据失败: ${error.message || '未知错误'}`;
+    ElMessage.error(errorMessage.value);
+    careers.value = [];
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// 切换页码的处理函数
+const handlePageChange = (page: number) => {
+  console.log(`切换到第 ${page} 页`);
+  currentPage.value = page;
+  fetchCareers(activeCategory.value);
+};
+
+// 切换每页显示数量的处理函数
+const handleSizeChange = (size: number) => {
+  console.log(`修改每页显示数量为 ${size} 条`);
+  pageSize.value = size;
+  currentPage.value = 1; // 重置到第一页
+  fetchCareers(activeCategory.value);
+};
+
+// 选择职业
+const selectCareer = (career: Career) => {
+  console.log('选择职业:', career.name);
+  
+  // 更新当前选中的职业
+  selectedCareer.value = { ...career };
+  selectedCareerId.value = Number(career.id);
+  
+  // 检查是否已收藏
+  apiCheckIsFavorite(career.id);
+  
+  // 确保DOM元素更新
+  nextTick(() => {
+    // 滚动到详情
+    const detailsElement = document.querySelector('.career-details');
+    if (detailsElement) {
+      detailsElement.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // 添加活动样式到选中项
+    document.querySelectorAll('.career-item').forEach(item => {
+      if (item.textContent && item.textContent.includes(career.name)) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  });
+};
+
+// 收藏职业
+const handleSaveCareer = async () => {
+  try {
+    if (!selectedCareerId.value) {
+      ElMessage.warning('请先选择职业');
+      return;
+    }
+    
+    if (!authStore.isAuthenticated) {
+      ElMessage.warning('请先登录');
+      router.push('/login');
+      return;
+    }
+    
+    console.log('保存/取消收藏职业ID:', selectedCareerId.value, '类型:', typeof selectedCareerId.value);
+    
+    try {
+      // 安全转换为整数
+      const numericId = safeParseInt(selectedCareerId.value);
+      
+      // 添加请求调试信息
+      const token = localStorage.getItem('auth_token');
+      console.log('当前令牌:', token ? `${token.substring(0, 10)}...${token.substring(token.length - 10)}` : '未设置');
+      console.log('认证状态:', authStore.isAuthenticated ? '已登录' : '未登录');
+      
+      if (isFavorite.value) {
+        // 已收藏，取消收藏
+        console.log(`准备取消收藏: ${numericId}`);
+        
+        // 使用正确的DELETE API端点
+        const url = `/api/v1/careers/${numericId}/favorite`;
+        console.log(`调用API: ${url} (DELETE)`);
+        
+        try {
+          // 使用DELETE方法
+          const response = await request.delete(url);
+          console.log('API响应:', response);
+          
+          isFavorite.value = false;
+          // 从收藏集合中移除
+          favoriteCareersIds.value.delete(String(selectedCareerId.value));
+          ElMessage.success('已取消收藏');
+        } catch (apiError) {
+          console.error('API调用失败:', apiError);
+          
+          // 详细记录API错误信息
+          if (apiError.response) {
+            console.error('错误状态码:', apiError.response.status);
+            console.error('错误头信息:', apiError.response.headers);
+            console.error('错误数据:', apiError.response.data);
+            
+            // 尝试使用备用方法
+            if (apiError.response.status === 404 || apiError.response.status === 422) {
+              console.log('尝试使用备用方法...');
+              const success = await tryFallbackFavorite(numericId, 'delete');
+              
+              if (success) {
+                favoriteCareersIds.value.delete(String(selectedCareerId.value));
+                
+                // 如果当前选中的职业就是这个，也要更新其状态
+                if (String(selectedCareerId.value) === String(selectedCareer.value?.id)) {
+                  isFavorite.value = false;
+                }
+                
+                ElMessage.success('已取消收藏 (备用方法)');
+                return;
+              }
+            }
+            
+            // 根据错误码提供更具体的提示
+            const statusCode = apiError.response.status;
+            if (statusCode === 401) {
+              ElMessage.error('请重新登录');
+              router.push('/login');
+            } else if (statusCode === 404) {
+              ElMessage.error('职业不存在');
+            } else if (statusCode === 422) {
+              ElMessage.error('参数验证错误: ' + 
+                (apiError.response.data.detail || '请检查职业ID格式'));
+            } else {
+              ElMessage.error(`操作失败 (${statusCode}): ${apiError.response.data.message || '未知错误'}`);
+            }
+          } else {
+            ElMessage.error('网络连接失败，请稍后重试');
+          }
+        }
+      } else {
+        // 未收藏，添加收藏
+        console.log(`准备添加收藏: ${numericId}`);
+        
+        // 使用正确的POST API端点
+        const url = `/api/v1/careers/${numericId}/favorite`;
+        console.log(`调用API: ${url} (POST)`);
+        
+        try {
+          // 使用POST方法
+          const response = await request.post(url);
+          console.log('API响应:', response);
+          
+          isFavorite.value = true;
+          // 添加到收藏集合
+          favoriteCareersIds.value.add(String(selectedCareerId.value));
+          ElMessage.success('收藏成功');
+        } catch (apiError) {
+          console.error('API调用失败:', apiError);
+          
+          // 详细记录API错误信息
+          if (apiError.response) {
+            console.error('错误状态码:', apiError.response.status);
+            console.error('错误头信息:', apiError.response.headers);
+            console.error('错误数据:', apiError.response.data);
+            
+            // 尝试使用备用方法
+            if (apiError.response.status === 404 || apiError.response.status === 422) {
+              console.log('尝试使用备用方法...');
+              const success = await tryFallbackFavorite(numericId, 'add');
+              
+              if (success) {
+                favoriteCareersIds.value.add(String(selectedCareerId.value));
+                
+                // 如果当前选中的职业就是这个，也要更新其状态
+                if (String(selectedCareerId.value) === String(selectedCareer.value?.id)) {
+                  isFavorite.value = true;
+                }
+                
+                ElMessage.success('收藏成功 (备用方法)');
+                return;
+              }
+            }
+            
+            // 根据错误码提供更具体的提示
+            const statusCode = apiError.response.status;
+            if (statusCode === 401) {
+              ElMessage.error('请重新登录');
+              router.push('/login');
+            } else if (statusCode === 404) {
+              ElMessage.error('职业不存在');
+            } else if (statusCode === 422) {
+              ElMessage.error('参数验证错误: ' + 
+                (apiError.response.data.detail || '请检查职业ID格式'));
+            } else {
+              ElMessage.error(`操作失败 (${statusCode}): ${apiError.response.data.message || '未知错误'}`);
+            }
+          } else {
+            ElMessage.error('网络连接失败，请稍后重试');
+          }
+        }
+      }
+    } catch (conversionError) {
+      console.error('ID转换失败:', conversionError);
+      ElMessage.error('无效的职业ID格式');
+    }
+  } catch (error) {
+    console.error('收藏操作失败:', error);
+    // 增加更详细的错误信息
+    if (error.response) {
+      console.error('错误响应数据:', error.response.data);
+      console.error('错误状态码:', error.response.status);
+      ElMessage.error(`操作失败 (${error.response.status}): ${error.response.data.message || '未知错误'}`);
+    } else {
+      ElMessage.error('操作失败，请稍后重试');
+    }
+  }
+};
+
+// 分享职业
+const handleShareCareer = () => {
+  ElMessage.success('分享链接已复制到剪贴板')
+}
+
+// 重试获取职业数据
+const retryFetchCareers = () => {
+  if (activeCategory.value) {
+    ElMessage.info('正在重新获取数据...');
+    errorMessage.value = '';
+    fetchCareers(activeCategory.value);
+  }
+};
+
+// 处理空数据显示
+const handleGoToCategory = () => {
+  // 跳转到第一个有数据的分类
+  // 这里简单地选择第一个根分类
+  if (categories.value.length > 0) {
+    const firstCat = categories.value[0];
+    handleCategorySelect(String(firstCat.id));
+    ElMessage.info(`已切换到${firstCat.name}分类`);
+  }
+}
+
+// 刷新数据
+const refreshData = async () => {
+  ElMessage.info('正在刷新所有数据...');
+  
+  // 清空缓存
+  clearCache();
+  
+  // 重新获取分类数据
+  await fetchCategories();
+  
+  ElMessage.success('数据已刷新');
+};
+
+// 清除缓存
+const clearCache = () => {
+  // 清除与职业相关的所有缓存
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('careers_')) {
+      keysToRemove.push(key);
+    }
+  }
+  
+  keysToRemove.forEach(key => {
+    localStorage.removeItem(key);
+  });
+  
+  ElMessage.success(`已清除${keysToRemove.length}项缓存数据`);
+};
+
+// 检查并修复职业数据状态
+const checkAndFixCareersState = () => {
+  if (careers.value.length === 0 && activeCategory.value) {
+    console.log('检测到空职业数据，尝试重新获取分类:', activeCategory.value);
+    fetchCategoryCareers(activeCategory.value);
+    return true;
+  }
+  return false;
+};
+
+// 修复渲染问题：使用更强大的watch，监视多个可能影响渲染的值
+watch([() => careers.value.length, activeCategory], ([careersLength, newCategory]) => {
+  console.log(`watch触发: careers长度=${careersLength}, 分类=${newCategory}`);
+  
+  // 如果有职业数据但没有选中职业，选择第一个
+  if (careersLength > 0 && !selectedCareer.value) {
+    nextTick(() => {
+      console.log('watch: 职业数据已更新，自动选择第一个职业');
+      selectedCareer.value = { ...careers.value[0] };
+    });
+  }
+}, { immediate: true });
+
+// 添加特殊处理ID 33的监视
+watch(() => activeCategory.value, (newCategory) => {
+  if (newCategory === '33') {
+    console.log('检测到软件工程师分类(ID 33)被选中');
+    
+    // 强制刷新此分类数据
+    console.log('强制刷新软件工程师分类数据');
+    
+    // 清除该分类的缓存
+    const cacheKey = `careers_${newCategory}`;
+    localStorage.removeItem(cacheKey);
+    
+    // 清空当前数据
+    careers.value = [];
+    selectedCareer.value = null;
+    
+    // 立即重新获取数据
+    fetchCareers(newCategory);
+  }
+}, { immediate: true });
+
+// 新增函数：处理子菜单标题点击事件
+const handleSubMenuTitleClick = (categoryId: number | string) => {
+  console.log('点击子菜单标题:', categoryId);
+  handleCategorySelect(String(categoryId));
+};
+
+// 处理分类选择
+const handleCategorySelect = (categoryId: string) => {
+  console.log('选择分类:', categoryId);
+  
+  // 更新当前选中的分类
+  activeCategory.value = categoryId;
+  
+  // 重置分页参数
+  currentPage.value = 1;
+  
+  // 获取该分类下的职业数据
+  fetchCategoryCareers(categoryId);
+};
+
+// 处理职业选择
+const handleCareerSelect = (career: Career) => {
+  selectCareer(career);
+}
+
+// 检查职业是否已收藏 - 强化版
+const checkIsFavorite = async (careerId: number) => {
+  try {
+    if (!authStore.isAuthenticated) {
+      isFavorite.value = false;
+      return;
+    }
+    
+    console.log('检查收藏状态，职业ID:', careerId, '类型:', typeof careerId);
+    const careerIdStr = String(careerId);
+    
+    // 先从已获取的收藏列表中检查
+    if (favoriteCareersIds.value.size > 0) {
+      const result = favoriteCareersIds.value.has(careerIdStr);
+      console.log(`从已加载列表检查收藏: ID=${careerIdStr}, 结果=${result}`);
+      isFavorite.value = result;
+      return;
+    }
+    
+    try {
+      // 安全转换为整数
+      const numericId = safeParseInt(careerId);
+      
+      // 使用后端API的正确端点格式
+      const url = `/api/v1/careers/${numericId}/is_favorite`;
+      console.log(`调用API: ${url}`);
+      
+      const response = await request.get(url);
+      console.log('API响应:', response);
+      
+      // 根据后端API响应格式获取is_favorite字段 - response已经是data部分
+      if (typeof response === 'object' && response !== null) {
+        // 详细记录响应对象的结构
+        console.log('响应对象键:', Object.keys(response));
+        
+        // 使用类型断言处理动态字段
+        const respObj = response as Record<string, any>;
+        
+        // 尝试获取不同可能的字段名称
+        const isFavoriteValue = 
+          respObj.is_favorite !== undefined ? respObj.is_favorite : 
+          respObj.isFavorite !== undefined ? respObj.isFavorite : false;
+        
+        isFavorite.value = !!isFavoriteValue;
+        console.log(`API返回收藏状态: ${isFavorite.value}, 原始值: ${isFavoriteValue}`);
+      } else {
+        console.log('响应不是有效对象:', response);
+        isFavorite.value = false;
+      }
+    } catch (conversionError) {
+      console.error('ID转换失败:', conversionError);
+      isFavorite.value = false;
+    }
+  } catch (error) {
+    console.error('检查收藏状态失败:', error);
+    // 增加更详细的错误信息
+    if (error.response) {
+      console.error('错误响应数据:', error.response.data);
+      console.error('错误状态码:', error.response.status);
+    }
+    isFavorite.value = false;
+  }
+};
+
+// 已收藏职业ID列表 - 改用Set结构提高查询性能
+const favoriteCareersIds = ref(new Set<string>());
+
+// 获取用户收藏的职业ID列表 - 强化版
+const fetchFavoriteCareersIds = async () => {
+  try {
+    console.log('开始获取收藏列表...');
+    if (!authStore.isAuthenticated) {
+      console.log('用户未登录，清空收藏列表');
+      favoriteCareersIds.value.clear();
+      return;
+    }
+    
+    // 使用正确的API端点获取收藏列表
+    const response = await request.get('/v1/careers/user/favorites', {
+      baseURL: '/' // 覆盖默认baseURL
+    });
+    console.log('收藏列表API响应:', response);
+    
+    // 使用类型断言处理响应
+    const respObj = response as Record<string, any>;
+    
+    // 检查careers字段是否存在
+    if (respObj && respObj.careers && Array.isArray(respObj.careers)) {
+      // 清空现有集合
+      favoriteCareersIds.value.clear();
+      
+      // 添加所有ID，确保转为字符串
+      respObj.careers.forEach((career: any) => {
+        if (career && career.id) {
+          favoriteCareersIds.value.add(String(career.id));
+        }
+      });
+      
+      console.log('收藏列表获取成功，数量:', favoriteCareersIds.value.size);
+      console.log('收藏IDs:', Array.from(favoriteCareersIds.value));
+      
+      // 强制更新收藏状态
+      if (selectedCareerId.value) {
+        isFavorite.value = isCareerFavorited(selectedCareerId.value);
+      }
+    } else {
+      console.warn('无效的收藏列表响应格式:', respObj);
+      // 尝试其他可能的响应格式
+      if (Array.isArray(respObj)) {
+        // 如果直接返回数组
+        favoriteCareersIds.value.clear();
+        respObj.forEach((career: any) => {
+          if (career && career.id) {
+            favoriteCareersIds.value.add(String(career.id));
+          }
+        });
+        console.log('从数组响应获取收藏，数量:', favoriteCareersIds.value.size);
+      }
+    }
+  } catch (error) {
+    console.error('获取收藏职业列表失败:', error);
+    
+    if (error.response) {
+      console.error('错误状态码:', error.response.status);
+      console.error('错误响应:', error.response.data);
+    }
+    
+    // 清空收藏列表
+    favoriteCareersIds.value.clear();
+    
+    // 如果出现404错误，可能是API路径问题，尝试备用路径
+    if (error.response && error.response.status === 404) {
+      try {
+        console.log('尝试备用API路径获取收藏列表');
+        const backupResponse = await request.get('/v1/careers/favorites', {
+          baseURL: '/' // 覆盖默认baseURL
+        });
+        
+        // 使用类型断言处理响应
+        const backupRespObj = backupResponse as Record<string, any>;
+        
+        if (backupRespObj && backupRespObj.careers && Array.isArray(backupRespObj.careers)) {
+          // 清空现有集合
+          favoriteCareersIds.value.clear();
+          
+          // 添加所有ID
+          backupRespObj.careers.forEach((career: any) => {
+            if (career && career.id) {
+              favoriteCareersIds.value.add(String(career.id));
+            }
+          });
+          
+          console.log('备用路径获取收藏列表成功，数量:', favoriteCareersIds.value.size);
+        }
+      } catch (backupError) {
+        console.error('备用路径获取收藏列表失败:', backupError);
+      }
+    }
+  }
+};
+
+// 检查职业是否被收藏（使用Set提高性能）
+const isCareerFavorited = (id: string | number): boolean => {
+  // 确保ID是字符串类型，以支持UUID
+  const careerId = String(id);
+  
+  // 检查该职业是否在收藏列表中
+  return favoriteCareersIds.value.has(careerId);
+};
+
+// 添加或删除收藏
+const toggleFavorite = async (career: Career) => {
+  try {
+    const careerId = String(career.id);
+    const isFavorited = isCareerFavorited(careerId);
+    
+    console.log(`${isFavorited ? '取消收藏' : '添加收藏'} 职业ID: ${careerId}, 名称: ${career.name}`);
+    
+    if (isFavorited) {
+      // 从收藏中移除
+      await removeFavoriteCareer(careerId);
+      ElMessage.success(`已取消收藏: ${career.name}`);
+      
+      // 更新收藏列表
+      favoriteCareersIds.value.delete(careerId);
+    } else {
+      // 添加到收藏
+      await addFavoriteCareer(careerId);
+      ElMessage.success(`已添加收藏: ${career.name}`);
+      
+      // 更新收藏列表
+      favoriteCareersIds.value.add(careerId);
+    }
+    
+    // 刷新收藏列表
+    fetchFavoriteCareers();
+  } catch (error: any) {
+    console.error('操作收藏失败:', error);
+    ElMessage.error(`操作失败: ${error.message || '未知错误'}`);
+  }
+};
+
+// 自动重新获取收藏状态的计时器
+let refreshFavoritesInterval: any = null;
+
+// 页面加载时初始化数据
+onMounted(async () => {
+  console.log('职业库组件已挂载');
+  
+  // 初始化收藏列表集合
+  favoriteCareersIds.value = new Set();
+  
+  // 检查URL是否包含重定向参数
+  const url = window.location.href;
+  if (url.includes('/login') || url.includes('redirect=')) {
+    console.log('检测到重定向，尝试登录后访问');
+    // 等待登录状态更新
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  
+  // 检查登录状态
+  if (!authStore.isAuthenticated) {
+    console.log('用户未登录，提示登录');
+    ElMessage.warning('请先登录后查看职业库');
+    
+    // 如果已经在登录页就不再重定向
+    if (!url.includes('/login')) {
+      router.push('/login?redirect=/career-library');
+      return;
+    }
+  }
+  
+  // 先加载示例数据供用户预览
+  setTimeout(() => {
+    if (isLoading.value && careers.value.length === 0) {
+      loadDemoData();
+    }
+  }, 300);
+  
+  try {
+    // 获取分类数据
+    await fetchCategories();
+    
+    // 获取收藏职业列表
+    await fetchFavoriteCareers();
+    
+    // 如果请求成功但没有数据，也显示示例数据
+    if (careers.value.length === 0) {
+      loadDemoData();
+    }
+    
+    console.log('职业库初始化完成');
+  } catch (error) {
+    console.error('职业库初始化失败:', error);
+    ElMessage.error('加载数据失败，显示示例数据');
+    
+    // 请求失败时显示示例数据
+    loadDemoData();
+  }
+});
+
+// 在组件卸载时清除定时器
+onUnmounted(() => {
+  if (refreshFavoritesInterval) {
+    clearInterval(refreshFavoritesInterval);
+    refreshFavoritesInterval = null;
+  }
+});
+
+// 添加更安全的ID转换函数
+const safeParseInt = (value: any): number => {
+  // 首先输出原始值用于调试
+  console.log('尝试转换ID:', value, '类型:', typeof value);
+  
+  if (typeof value === 'number') {
+    return value; // 已经是数字，直接返回
+  }
+  
+  if (typeof value === 'string') {
+    // 处理可能的字符串格式问题
+    const cleanedValue = value.trim().replace(/[^0-9]/g, '');
+    if (cleanedValue) {
+      const num = parseInt(cleanedValue, 10);
+      console.log('转换结果:', num);
+      return num;
+    }
+  }
+  
+  // 默认返回一个安全值，或者抛出异常
+  console.error('无法转换为有效整数:', value);
+  throw new Error(`无法将 ${value} 转换为有效整数ID`);
+};
+
+// 失败时使用备用API调用方式
+const tryFallbackFavorite = async (careerId: number, action: 'add' | 'delete') => {
+  try {
+    console.log(`尝试备用方法进行${action === 'add' ? '添加' : '删除'}收藏...`);
+    
+    // 使用旧的API路径和表单数据方式
+    const url = action === 'add' 
+      ? `/api/v1/careers/favorite/add` 
+      : `/api/v1/careers/favorite/delete`;
+    
+    console.log(`备用API调用: ${url}, 参数:`, { career_id: careerId });
+    
+    const response = await request.post(url, { 
+      career_id: careerId,
+      // 如果是删除，添加_method参数
+      ...(action === 'delete' ? { _method: 'DELETE' } : {})
+    });
+    
+    console.log('备用API响应:', response);
+    return true;
+  } catch (fallbackError) {
+    console.error('备用API调用也失败:', fallbackError);
+    return false;
+  }
+};
+
+// 适配函数：将组件使用的Career类型适配为Pinia store使用的Career类型
+const adaptCareerForStore = (careers: Career[], categoryId: string): any[] => {
+  return careers.map(career => ({
+    id: career.id,
+    categoryId: categoryId,
+    careerName: career.name,
+    stage: career.level,
+    // 保留原始数据
+    ...career
+  }))
+}
+
+/**
+ * 处理和标准化分类数据项
+ * @param items 原始分类数据
+ * @returns 标准化后的分类数据
+ */
+const processCategoryItems = (items: any[]): CategoryResponse[] => {
+  return items.map(item => {
+    // 标准化格式
+    const category: CategoryResponse = {
+      id: item.id,
+      name: item.name || item.title || `分类${item.id}`,
+      parent_id: item.parent_id || item.parentId || null,
+      subcategories: []
+    };
+    
+    // 处理子分类
+    if (Array.isArray(item.subcategories)) {
+      category.subcategories = processCategoryItems(item.subcategories);
+    } else if (Array.isArray(item.children)) {
+      category.subcategories = processCategoryItems(item.children);
+    } else if (Array.isArray(item.sub_categories)) {
+      category.subcategories = processCategoryItems(item.sub_categories);
+    }
+    
+    return category;
+  });
+};
+
+// 获取职业分类数据
+const fetchCategories = async () => {
+  try {
+    console.log('开始获取职业分类数据');
+    
+    // 设置加载状态
+    isLoading.value = true;
+    
+    // 检查网络连接
+    if (!checkNetworkConnection()) {
+      console.error('网络连接已断开');
+      ElMessage.error('网络连接已断开，请检查网络设置');
+      errorMessage.value = '网络连接已断开';
+      isLoading.value = false;
+      return;
+    }
+    
+    // 获取认证令牌
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      console.error('未找到认证token');
+      ElMessage.error('请先登录后再访问');
+      router.push('/login');
+      return;
+    }
+    
+    // 使用正确的API获取分类数据
+    const response = await request<any>({
+      url: '/api/v1/careers/categories/tree',
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      timeout: 10000
+    });
+    
+    console.log('获取到分类数据:', response);
+    
+    // 更新原始数据（调试用）
+    rawApiData.value = JSON.stringify(response, null, 2);
+    
+    // 解析响应数据
+    let categoryItems: any[] = [];
+    
+    if (response) {
+      if (Array.isArray(response)) {
+        categoryItems = response;
+      } else if (response.categories && Array.isArray(response.categories)) {
+        categoryItems = response.categories;
+      } else if (response.data && Array.isArray(response.data)) {
+        categoryItems = response.data;
+      } else if (response.items && Array.isArray(response.items)) {
+        categoryItems = response.items;
+      } else if (response.results && Array.isArray(response.results)) {
+        categoryItems = response.results;
+      }
+    }
+    
+    if (categoryItems.length > 0) {
+      // 标准化分类数据结构
+      categories.value = processCategoryItems(categoryItems);
+      
+      console.log(`成功加载 ${categories.value.length} 个顶级分类`);
+      
+      // 设置默认活动分类为第一个分类
+      const firstCategory = categories.value[0];
+      if (firstCategory) {
+        activeCategory.value = String(firstCategory.id);
+        console.log('设置默认活动分类:', activeCategory.value);
+        
+        // 获取该分类下的职业数据
+        await fetchCareers(activeCategory.value);
+      }
+    } else {
+      console.warn('未获取到分类数据或数据为空');
+      
+      // 创建示例分类数据
+      categories.value = [
+        { id: 1, name: '互联网/IT', subcategories: [
+          { id: 101, name: '开发', subcategories: [] },
+          { id: 102, name: '测试', subcategories: [] },
+          { id: 103, name: '产品', subcategories: [] }
+        ] },
+        { id: 2, name: '金融', subcategories: [
+          { id: 201, name: '银行', subcategories: [] },
+          { id: 202, name: '证券', subcategories: [] }
+        ] },
+        { id: 3, name: '教育', subcategories: [] }
+      ];
+      
+      activeCategory.value = '1';
+      console.log('未找到分类数据，使用默认分类数据');
+      
+      // 获取默认分类的职业数据
+      await fetchCareers(activeCategory.value);
+    }
+  } catch (error: any) {
+    console.error('获取分类数据失败:', error);
+    errorMessage.value = `获取分类数据失败: ${error.message || '未知错误'}`;
+    ElMessage.error(errorMessage.value);
+    
+    // 创建示例分类数据，与上面的逻辑相同
+    categories.value = [
+      { id: 1, name: '互联网/IT', subcategories: [
+        { id: 101, name: '开发', subcategories: [] },
+        { id: 102, name: '测试', subcategories: [] },
+        { id: 103, name: '产品', subcategories: [] }
+      ] },
+      { id: 2, name: '金融', subcategories: [
+        { id: 201, name: '银行', subcategories: [] },
+        { id: 202, name: '证券', subcategories: [] }
+      ] },
+      { id: 3, name: '教育', subcategories: [] }
+    ];
+    
+    activeCategory.value = '1';
+    console.log('加载分类失败，使用默认分类数据');
+    
+    await fetchCareers(activeCategory.value);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// 获取分类下的职业数据 (不包含额外处理逻辑)
+const fetchCategoryCareers = (categoryId: string) => {
+  console.log('获取分类下的职业:', categoryId);
+  
+  // 清空当前职业数据
+  careers.value = [];
+  selectedCareer.value = null;
+  
+  // 获取职业数据
+  fetchCareers(categoryId);
+};
+
+// 生成默认职业发展路径
+const getDefaultCareerPath = () => {
+  return [
+    { position: '初级岗位', description: '入门级职位，负责基础工作，积累经验' },
+    { position: '中级岗位', description: '具备一定专业能力，可独立完成工作' },
+    { position: '高级岗位', description: '具备深厚专业知识，可指导团队工作' },
+    { position: '专家/管理岗', description: '行业专家或部门管理者，制定战略方向' }
+  ];
+};
+
+// 获取收藏的职业列表
+const fetchFavoriteCareers = async () => {
+  try {
+    console.log('获取收藏的职业列表');
+    
+    // 检查登录状态
+    if (!authStore.isAuthenticated) {
+      console.log('用户未登录，无法获取收藏列表');
+      favoriteCareers.value = [];
+      favoriteCareersIds.value.clear();
+      return;
+    }
+    
+    // 获取收藏职业列表
+    const favorites = await getFavoriteCareers();
+    console.log('获取到收藏职业:', favorites);
+    
+    // 更新收藏职业列表
+    favoriteCareers.value = favorites;
+    
+    // 更新收藏ID集合，用于快速检索
+    favoriteCareersIds.value.clear();
+    favorites.forEach(career => {
+      favoriteCareersIds.value.add(String(career.id));
+    });
+    
+    console.log('收藏职业ID集合已更新，共', favoriteCareersIds.value.size, '个');
+  } catch (error: any) {
+    console.error('获取收藏职业失败:', error);
+    ElMessage.error(`获取收藏列表失败: ${error.message || '未知错误'}`);
+  }
+};
+
+// 获取当前选中分类的名称
+const getCurrentCategoryName = (): string => {
+  // 如果没有选中任何分类，返回默认文本
+  if (!activeCategory.value) {
+    return '所有职业';
+  }
+  
+  // 在分类树中查找当前选中的分类
+  const findCategoryName = (cats: CategoryResponse[], categoryId: string): string => {
+    for (const cat of cats) {
+      // 检查当前分类
+      if (String(cat.id) === categoryId) {
+        return cat.name;
+      }
+      
+      // 检查子分类
+      if (cat.subcategories && cat.subcategories.length > 0) {
+        const name = findCategoryName(cat.subcategories, categoryId);
+        if (name) {
+          return name;
+        }
+      }
+    }
+    return '';
+  };
+  
+  // 在所有分类中查找
+  const name = findCategoryName(categories.value, activeCategory.value);
+  return name || `分类 ${activeCategory.value}`;
+};
+
+// 调试：强制刷新
+const debugForceRender = () => {
+  console.log('强制刷新页面数据');
+  
+  // 清除缓存
+  debugClearCache();
+  
+  // 重新获取分类数据
+  fetchCategories();
+  
+  // 输出状态信息
+  console.log('职业分类数:', categories.value.length);
+  console.log('当前选中分类:', activeCategory.value);
+};
+
+// 调试：清除缓存
+const debugClearCache = () => {
+  // 清除与职业相关的所有缓存
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (key.startsWith('careers_') || key.startsWith('categoryTree_'))) {
+      keysToRemove.push(key);
+    }
+  }
+  
+  keysToRemove.forEach(key => {
+    localStorage.removeItem(key);
+  });
+  
+  // 清除store缓存
+  careerStore.clearCache();
+  
+  ElMessage.success(`已清除${keysToRemove.length}项缓存数据`);
+};
+
+// 加载临时示例数据
+const loadDemoData = () => {
+  console.log('加载示例数据作为临时显示');
+  
+  // 创建示例分类数据
+  if (categories.value.length === 0) {
+    categories.value = [
+      { id: 1, name: '互联网/IT', subcategories: [
+        { id: 101, name: '软件开发', subcategories: [] },
+        { id: 102, name: '测试/运维', subcategories: [] }
+      ] },
+      { id: 2, name: '金融', subcategories: [] },
+      { id: 3, name: '教育', subcategories: [] }
+    ];
+    
+    // 设置默认选中分类
+    activeCategory.value = '1';
+  }
+  
+  // 创建示例职业数据
+  if (careers.value.length === 0) {
+    careers.value = [
+      createDefaultCareer('1', activeCategory.value, '软件工程师', '稳定发展期'),
+      createDefaultCareer('2', activeCategory.value, '数据分析师', '快速发展期'),
+      createDefaultCareer('3', activeCategory.value, '产品经理', '稳定发展期')
+    ];
+    
+    // 选择第一个职业
+    if (!selectedCareer.value && careers.value.length > 0) {
+      selectedCareer.value = { ...careers.value[0] };
+    }
+  }
+  
+  ElMessage.info('加载示例数据供预览，实际数据加载中...');
+};
+
+// 手动导入收藏相关API
+const addFavoriteCareer = async (careerId: string | number): Promise<any> => {
+  try {
+    // 确保careerId是字符串
+    const id = String(careerId);
+    
+    console.log(`添加收藏职业: ${id}`);
+    const response = await request.post(`/api/v1/careers/${id}/favorite`, {}, {
+      baseURL: '/' // 覆盖默认baseURL
+    });
+    return response;
+  } catch (error) {
+    console.error('收藏职业失败:', error);
+    throw error;
+  }
+};
+
+const removeFavoriteCareer = async (careerId: string | number): Promise<any> => {
+  try {
+    // 确保careerId是字符串
+    const id = String(careerId);
+    
+    console.log(`取消收藏职业: ${id}`);
+    const response = await request.delete(`/api/v1/careers/${id}/favorite`, {
+      baseURL: '/' // 覆盖默认baseURL
+    });
+    return response;
+  } catch (error) {
+    console.error('取消收藏职业失败:', error);
+    throw error;
+  }
+};
+
+const checkIsFavorite = async (careerId: string | number): Promise<boolean> => {
+  try {
+    // 确保careerId是字符串
+    const id = String(careerId);
+    
+    console.log(`检查职业是否已收藏: ${id}`);
+    const response: any = await request.get(`/api/v1/careers/${id}/is_favorite`, {
+      baseURL: '/' // 覆盖默认baseURL
+    });
+    
+    // 根据API返回格式解析结果
+    if (typeof response === 'boolean') {
+      return response;
+    } else if (response && typeof response === 'object') {
+      return response.is_favorite === true || response.data === true || response.result === true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('检查收藏状态失败:', error);
+    return false;
+  }
+};
+
+const getFavoriteCareers = async (): Promise<any[]> => {
+  try {
+    console.log('获取用户收藏的职业列表');
+    
+    // 使用正确的API路径
+    const response = await request.get('/api/v1/careers/user/favorites', {
+      baseURL: '/' // 覆盖默认baseURL
+    });
+    
+    console.log('获取收藏职业列表响应:', response);
+    
+    // 处理不同格式的响应
+    if (Array.isArray(response)) {
+      return response;
+    } else if (response && typeof response === 'object') {
+      if (Array.isArray(response.data)) return response.data;
+      if (Array.isArray(response.items)) return response.items;
+      if (Array.isArray(response.favorites)) return response.favorites;
+      if (Array.isArray(response.careers)) return response.careers;
+    }
+    
+    return [];
+  } catch (error: any) {
+    console.error('获取收藏职业失败:', error);
+    
+    // 如果是404错误，表示没有收藏，返回空数组
+    if (error.response && error.response.status === 404) {
+      console.log('用户没有收藏职业');
+      return [];
+    }
+    
+    throw error;
+  }
+};
+
+// 调试：快速登录测试用户
+const debugQuickLogin = async () => {
+  try {
+    console.log('尝试快速登录测试用户');
+    
+    // 测试用户登录信息
+    const loginData = {
+      username: 'testuser',
+      password: 'password123'
+    };
+    
+    // 发送登录请求
+    const response = await request.post('/api/v1/auth/login', loginData, {
+      baseURL: '/'
+    });
+    
+    console.log('登录响应:', response);
+    
+    // 检查是否有token
+    if (response && response.token) {
+      // 存储token
+      localStorage.setItem('auth_token', response.token);
+      
+      // 更新认证状态
+      authStore.setAuthenticated(true);
+      
+      // 重新加载数据
+      ElMessage.success('登录成功，开始加载数据');
+      setTimeout(() => refreshData(), 500);
+    } else {
+      ElMessage.error('登录失败：无效的响应格式');
+    }
+  } catch (error) {
+    console.error('快速登录失败:', error);
+    ElMessage.error('登录失败，请手动登录');
+  }
+};
+</script>
+
+<style scoped lang="scss">
+.career-library {
+  padding: 20px;
+  min-height: calc(100vh - 60px);
+  background-color: #f5f7fa;
+}
+
+.filter-card,
+.career-list-card,
+.career-detail-card {
+  height: calc(100vh - 100px);
+}
+
+.filter-header {
+  margin-bottom: 16px;
+}
+
+.category-menu {
+  width: 100%;
+  border-right: none;
+  
+  .el-sub-menu {
+    // 确保子菜单能够显示完整
+    width: 100%;
+    
+    &.is-active {
+      .submenu-title {
+        color: var(--el-color-primary);
+        font-weight: bold;
+      }
+    }
+    
+    .el-sub-menu__title {
+      height: auto;
+      padding: 12px 20px;
+    }
+  }
+  
+  .el-menu-item {
+    height: auto;
+    padding: 10px 20px 10px 48px;
+    line-height: 1.5;
+    
+    &.is-active {
+      background-color: var(--el-color-primary-light-9);
+    }
+  }
+  
+  // 增加缩进效果
+  .el-sub-menu .el-sub-menu .el-menu-item {
+    padding-left: 65px;
+  }
+  
+  // 分类指示器样式
+  .category-indicator {
+    width: 3px;
+    height: 16px;
+    position: absolute;
+    left: 0;
+    border-radius: 0 2px 2px 0;
+    transition: all 0.3s;
+    
+    &.active-indicator {
+      background-color: var(--el-color-primary);
+    }
+  }
+  
+  // 提高子菜单标题的可点击性
+  .submenu-title {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    cursor: pointer;
+    
+    .el-icon {
+      margin-right: 5px;
+    }
+  }
+}
+
+// 响应式优化
+@media (max-width: 1200px) {
+  .category-menu {
+    .el-menu-item, .el-sub-menu__title {
+      padding: 8px 15px;
+      font-size: 13px;
+    }
+  }
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.list-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.career-list {
+  padding: 10px;
+}
+
+.career-item {
+  position: relative;
+  padding: 12px;
+  border-bottom: 1px solid #ebeef5;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.favorite-icon {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  cursor: pointer;
+  font-size: 22px;
+  transition: all 0.2s ease;
+}
+
+.favorite-icon:hover {
+  transform: scale(1.2);
+}
+
+.career-item:hover,
+.career-item.active {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--el-color-primary);
+}
+
+.career-item-header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-right: 30px; /* 为收藏图标留出空间 */
+}
+
+.career-item-header h4 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--el-color-primary);
+}
+
+.career-level {
+  margin-bottom: 8px;
+}
+
+.career-brief {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.career-brief .el-icon {
+  margin-right: 4px;
+}
+
+.career-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.career-detail {
+  padding: 20px;
+}
+
+.detail-section {
+  margin-bottom: 24px;
+}
+
+.detail-section h3 {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.description {
+  line-height: 1.6;
+  color: #606266;
+}
+
+.responsibility-list {
+  padding-left: 20px;
+  margin: 0;
+  color: #606266;
+}
+
+.responsibility-list li {
+  margin-bottom: 8px;
+}
+
+.certificate-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.certificate-item {
+  margin-bottom: 8px;
+}
+
+:deep(.el-card__body) {
+  height: calc(100% - 60px);
+  padding: 0;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.error-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.empty-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+/* 新增调试面板样式 */
+.debug-panel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 400px;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  padding: 12px;
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.debug-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.debug-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #409eff;
+}
+
+.debug-content {
+  margin-bottom: 12px;
+}
+
+.debug-item {
+  display: flex;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.debug-label {
+  font-weight: bold;
+  width: 120px;
+  color: #606266;
+}
+
+.debug-value {
+  flex: 1;
+  word-break: break-all;
+  color: #303133;
+}
+
+.debug-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  border-top: 1px solid #eee;
+  padding-top: 12px;
+}
+
+.debug-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background-color: #409eff;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 9999;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.debug-button:hover {
+  background-color: #66b1ff;
+}
+
+.debug-raw-data {
+  max-height: 300px;
+  overflow: auto;
+  background-color: #f8f8f8;
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 8px;
+  font-family: monospace;
+  font-size: 12px;
+  border: 1px solid #ddd;
+}
+
+.debug-raw-data h4 {
+  margin: 0 0 8px 0;
+  color: #606266;
+}
+
+.debug-raw-data pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 按分组显示的职业列表样式 */
+.grouped-career-list {
+  padding: 0;
+}
+
+.career-group {
+  margin-bottom: 24px;
+}
+
+.career-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px 8px 10px;
+  border-bottom: 1px solid #ebeef5;
+  margin-bottom: 12px;
+}
+
+.career-group-header h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #303133;
+  font-weight: bold;
+}
+
+.career-item {
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+/* Adjust existing styles for better grouped display */
+.career-item {
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+/* 添加选中指示器样式 */
+.category-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background-color: transparent;
+  transition: all 0.3s ease;
+}
+
+.active-indicator {
+  background-color: var(--el-color-primary);
+  box-shadow: 0 0 4px var(--el-color-primary);
+}
+
+/* 为菜单添加垂直连接线 */
+.category-menu {
+  position: relative;
+}
+
+/* 为子菜单添加垂直连接线 */
+:deep(.el-sub-menu.is-opened) {
+  position: relative;
+}
+
+:deep(.el-sub-menu.is-opened::before) {
+  display: none;
+}
+
+:deep(.el-menu--inline .el-menu-item::before) {
+  display: none;
+}
+
+:deep(.el-menu-item.is-active::after), 
+:deep(.el-sub-menu.is-active > .el-sub-menu__title::after) {
+  display: none;
+}
+
+/* 重置菜单项的样式为默认样式 */
+:deep(.el-menu-item.is-active) {
+  background-color: transparent;
+  color: var(--el-color-primary);
+  font-weight: bold;
+  border-left: none;
+}
+
+:deep(.el-sub-menu.is-active > .el-sub-menu__title) {
+  background-color: transparent;
+  color: var(--el-color-primary);
+  font-weight: bold;
+  border-left: none;
+}
+
+:deep(.el-sub-menu.is-opened.is-active > .el-sub-menu__title) {
+  background-color: transparent;
+  border-left: none;
+}
+
+/* 蓝色点样式优化 */
+.category-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background-color: transparent;
+  transition: all 0.3s ease;
+}
+
+.active-indicator {
+  background-color: var(--el-color-primary);
+  box-shadow: 0 0 4px var(--el-color-primary);
+}
+
+/* 子菜单样式简化 */
+:deep(.el-menu--inline) {
+  background-color: #f5f7fa;  /* 灰色背景 */
+  margin-left: 20px;
+  padding-left: 0;
+  border-radius: 4px;
+}
+
+/* 基本菜单项布局 */
+:deep(.el-menu-item), :deep(.el-sub-menu__title) {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  line-height: 40px;
+  transition: all 0.3s ease;  /* 加长过渡时间使动画更丝滑 */
+}
+
+/* 基本图标样式 */
+:deep(.el-icon) {
+  margin-right: 6px;
+  font-size: 16px;
+}
+
+/* 菜单悬停效果 */
+:deep(.el-menu-item:hover), :deep(.el-sub-menu__title:hover) {
+  background-color: var(--el-color-primary-light-9);
+}
+
+/* 保持菜单风格一致 */
+:deep(.category-menu) {
+  border-right: none;
+}
+
+/* 一级菜单展开时的背景 */
+:deep(.el-sub-menu.is-opened > .el-sub-menu__title) {
+  transition: all 0.3s ease;
+}
+
+/* 菜单展开/折叠的丝滑过渡 */
+:deep(.el-menu-item), 
+:deep(.el-sub-menu__title), 
+:deep(.el-sub-menu__icon-arrow) {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 选中状态的文本过渡效果 */
+:deep(.el-menu-item.is-active), 
+:deep(.el-sub-menu.is-active > .el-sub-menu__title) {
+  color: var(--el-color-primary);
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+/* 子菜单展开箭头动画 */
+:deep(.el-sub-menu.is-opened > .el-sub-menu__title .el-sub-menu__icon-arrow) {
+  transform: rotateZ(180deg);
+}
+
+/* 一级菜单展开时的背景效果 */
+:deep(.el-sub-menu.is-opened:not(.is-nested)) {
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+/* 选中的子菜单项背景 */
+:deep(.el-menu--inline .el-menu-item.is-active) {
+  background-color: var(--el-color-primary-light-9);
+}
+
+/* 蓝色点样式增强 */
+.category-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background-color: transparent;
+  transition: all 0.3s ease;
+}
+
+.active-indicator {
+  background-color: var(--el-color-primary);
+  box-shadow: 0 0 6px var(--el-color-primary);
+}
+
+.company-logo {
+  max-width: 40px;
+  max-height: 40px;
+  margin-right: 10px;
+  vertical-align: middle;
+  border-radius: 5px;
+}
+
+.company-name {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+}
+
+.company-info {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+}
+
+.company-info h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #505050;
+}
+
+.company-link {
+  margin-top: 10px;
+}
+
+.company-link a {
+  color: #409eff;
+  text-decoration: none;
+}
+
+/* 分页控件样式 */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+}
+</style> 

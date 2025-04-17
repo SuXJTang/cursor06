@@ -6,10 +6,12 @@ import type { AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios'
 declare module 'axios' {
   export interface AxiosRequestConfig {
     silent?: boolean;
+    followRedirect?: boolean;
   }
   
   export interface InternalAxiosRequestConfig {
     isSilent?: boolean;
+    followRedirect?: boolean;
   }
 }
 
@@ -19,9 +21,10 @@ const TOKEN_KEY = 'auth_token'
 // 使用全局axios实例，这样可以被mock拦截
 // 创建axios实例
 export const request = axios.create({
-  baseURL: '/api',  // 使用相对路径，通过代理访问后端
+  baseURL: '/api',  // 恢复为原始baseURL，不使用双重api路径
   timeout: 15000,   // 增加超时时间到15秒
   withCredentials: false,  // 禁用跨域凭证，因为后端使用通配符允许所有源
+  maxRedirects: 0,  // 禁用自动重定向，我们将手动处理重定向
   headers: {
     'Content-Type': 'application/json',
     'X-Requested-With': 'XMLHttpRequest'
@@ -38,6 +41,13 @@ request.interceptors.request.use(
       console.log('请求原本为silent模式，但已禁用')
       // 删除自定义参数，避免axios警告
       delete config.silent
+    }
+    
+    // 处理followRedirect参数
+    if (config.followRedirect !== undefined) {
+      config.maxRedirects = config.followRedirect ? 5 : 0
+      // 删除自定义参数
+      delete config.followRedirect
     }
     
     // 从localStorage获取token
@@ -61,7 +71,8 @@ request.interceptors.request.use(
       }, 
       data: config.data,
       params: config.params,
-      isSilent: config.isSilent
+      isSilent: config.isSilent,
+      maxRedirects: config.maxRedirects
     })
     
     return config
@@ -111,14 +122,77 @@ request.interceptors.response.use(
     // 注意：之前返回整个response导致在某些地方需要访问response.data
     return response.data
   },
-  error => {
-    console.error('API请求错误:', error)
-    console.error('请求URL:', error.config?.url)
-    console.error('请求方法:', error.config?.method)
-    console.error('请求参数:', error.config?.params)
+  async error => {
+    console.error('API请求错误，状态码:', error.response?.status, '请求URL:', error.config?.url)
+    
+    // 特别处理307重定向但仅针对职业库相关请求
+    if (error.response && error.response.status === 307) {
+      // 检查本地存储中是否有token(已登录)
+      const token = localStorage.getItem('auth_token')
+      // 检查是否是职业库相关的请求
+      const isCareerRequest = error.config?.url?.includes('/careers') || 
+                             error.config?.url?.includes('/career-categories')
+      
+      if (token && isCareerRequest) {
+        console.log('检测到职业库相关的307重定向，用户已登录，返回空结果而非重定向')
+        
+        // 对于已登录用户的职业库请求，返回一个空数组而不是执行重定向
+        // 这会中断重定向循环，前端会显示空数据或缓存数据
+        return Promise.resolve({ data: [] })
+      }
+      
+      // 对于非职业库请求或未登录状态，正常返回错误
+      console.log('非职业库请求或未登录状态，正常返回307错误')
+    }
     
     // 检查是否为静默请求，如果是则不显示错误消息
     const isSilent = error.config?.isSilent === true
+    
+    // 手动处理重定向
+    if (error.response && (error.response.status === 301 || error.response.status === 302 || error.response.status === 307 || error.response.status === 308)) {
+      const redirectUrl = error.response.headers['location']
+      
+      if (redirectUrl) {
+        console.log('检测到重定向，目标URL:', redirectUrl)
+        
+        // 获取当前请求的配置
+        const config = error.config
+        
+        // 保存原始请求信息
+        const originalUrl = config.url
+        
+        // 从localStorage获取最新token
+        const token = localStorage.getItem(TOKEN_KEY)
+        
+        // 创建新的请求配置，用于重定向
+        const newConfig = {
+          ...config,
+          url: redirectUrl,
+          baseURL: '', // 确保不重复添加baseURL
+          headers: {
+            ...config.headers,
+            'Authorization': token ? `Bearer ${token}` : '',
+          }
+        }
+        
+        console.log('手动处理重定向，保留认证信息', {
+          originalUrl,
+          redirectUrl,
+          method: newConfig.method
+        })
+        
+        // 发送新请求
+        return axios(newConfig)
+          .then(response => {
+            console.log('重定向请求成功:', response.status)
+            return response.data
+          })
+          .catch(redirectError => {
+            console.error('重定向请求失败:', redirectError)
+            return Promise.reject(redirectError)
+          })
+      }
+    }
     
     // 处理具体的HTTP错误
     if (error.response) {
@@ -138,28 +212,33 @@ request.interceptors.response.use(
           break
           
         case 401:
+        case 403:
           // 处理未授权错误（无效令牌、令牌过期等）
-          console.error('认证失败: 401错误')
+          console.error(`认证失败: ${status}错误`)
           
           // 避免在登录页面重定向
           if (!window.location.pathname.includes('/login')) {
+            // 获取当前路由，用于登录后跳回
+            const currentPath = window.location.pathname + window.location.search
+            
             // 检查是否有令牌
             const token = localStorage.getItem(TOKEN_KEY)
             if (token) {
-              // 清除失效的令牌
+              // 清除失效的令牌，但保留当前路径信息
               localStorage.removeItem(TOKEN_KEY)
-              if (!isSilent) ElMessage.error('会话已过期，请重新登录')
-              // 重定向到登录页
-              window.location.href = '/login'
+              localStorage.setItem('auth_redirect', currentPath)
+              
+              if (!isSilent) {
+                ElMessage.error('会话已过期，请重新登录')
+                // 使用replace而不是push，避免浏览器返回时循环
+                window.location.replace('/login?redirect=' + encodeURIComponent(currentPath))
+              }
             } else if (!isSilent) {
               ElMessage.error('请先登录')
+              // 使用replace而不是push，避免浏览器返回时循环
+              window.location.replace('/login?redirect=' + encodeURIComponent(currentPath))
             }
           }
-          break
-          
-        case 403:
-          // 处理禁止访问错误
-          if (!isSilent) ElMessage.error('您没有权限执行此操作')
           break
           
         case 404:

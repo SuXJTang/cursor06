@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getRecommendations } from '@/api/career'
+import { getRecommendations } from '@/api/career_old'
 
 // 推荐职业的接口定义
 export interface RecommendedCareer {
@@ -550,41 +550,56 @@ export const useRecommendationStore = defineStore('recommendation', () => {
       // 获取推荐结果
       const result = await getRecommendations(userId)
       
-      if (result.status === 'error') {
-        error.value = result.message || '获取推荐失败'
+      // 从不同类型的响应中安全地提取值
+      const getValueSafely = (obj: any, path: string, defaultValue: any = null) => {
+        const props = path.split('.')
+        let value = obj
+        for (const prop of props) {
+          value = value && typeof value === 'object' ? value[prop] : undefined
+          if (value === undefined) return defaultValue
+        }
+        return value
+      }
+      
+      // 提取状态信息
+      const status = getValueSafely(result, 'status', 'unknown')
+      
+      if (status === 'error') {
+        error.value = getValueSafely(result, 'message', '获取推荐失败')
         return null
       }
       
-      // 处理并保存结果
-      if (result.recommendations && result.recommendations.length > 0) {
+      // 提取推荐列表
+      const recommendations = getValueSafely(result, 'recommendations', [])
+      if (recommendations && recommendations.length > 0) {
         // 转换为AssessmentResult格式
         const assessment: AssessmentResult = {
-          id: result.session_id || `session-${Date.now()}`,
+          id: getValueSafely(result, 'session_id', `session-${Date.now()}`),
           userId: userId ? String(userId) : undefined,
-          timestamp: result.timestamp || new Date().toISOString(),
+          timestamp: getValueSafely(result, 'timestamp', new Date().toISOString()),
           summary: {
-            score: result.total_match || 85,
-            careerDirection: result.recommendations[0]?.title || '',
-            matchDegree: `${result.recommendations[0]?.match_degree || 85}%`,
-            characteristics: result.user_traits || []
+            score: getValueSafely(result, 'total_match', 85),
+            careerDirection: getValueSafely(recommendations, '0.title', ''),
+            matchDegree: `${getValueSafely(recommendations, '0.match_degree', 85)}%`,
+            characteristics: getValueSafely(result, 'user_traits', [])
           },
           dimensions: {
-            interest: result.assessment_scores?.interest || {},
-            ability: result.assessment_scores?.ability || {},
-            personality: result.assessment_scores?.personality || {}
+            interest: getValueSafely(result, 'assessment_scores.interest', {}),
+            ability: getValueSafely(result, 'assessment_scores.ability', {}),
+            personality: getValueSafely(result, 'assessment_scores.personality', {})
           },
-          recommendedCareers: result.recommendations.map((career: any) => ({
-            id: career.id,
-            title: career.title,
-            matchDegree: career.match_degree || career.matchDegree || 0,
-            skills: career.required_skills || career.skills || [],
-            description: career.description || '',
-            education_required: career.education_required || '',
-            experience_required: career.experience_required || '',
-            future_prospect: career.job_prospects || '',
+          recommendedCareers: recommendations.map((career: any) => ({
+            id: getValueSafely(career, 'id', 0),
+            title: getValueSafely(career, 'title', '未知职业'),
+            matchDegree: getValueSafely(career, 'match_degree', getValueSafely(career, 'matchDegree', 0)),
+            skills: getValueSafely(career, 'required_skills', getValueSafely(career, 'skills', [])),
+            description: getValueSafely(career, 'description', ''),
+            education_required: getValueSafely(career, 'education_required', ''),
+            experience_required: getValueSafely(career, 'experience_required', ''),
+            future_prospect: getValueSafely(career, 'job_prospects', ''),
             salary: {
-              min: career.salary_min || 0,
-              max: career.salary_max || 0
+              min: getValueSafely(career, 'salary_min', 0),
+              max: getValueSafely(career, 'salary_max', 0)
             }
           }))
         }
@@ -594,12 +609,12 @@ export const useRecommendationStore = defineStore('recommendation', () => {
         
         // 返回处理后的结果
         return assessment
-      } else if (result.status === 'processing' || result.status === 'waiting') {
+      } else if (status === 'processing' || status === 'waiting') {
         // 推荐生成中
         return {
           status: 'processing',
-          progress: result.progress || 0,
-          message: result.message || '推荐生成中...'
+          progress: getValueSafely(result, 'progress', 0),
+          message: getValueSafely(result, 'message', '推荐生成中...')
         }
       }
       

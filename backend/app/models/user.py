@@ -25,14 +25,16 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), comment='更新时间')
     
     # 关系
-    profile = relationship("UserProfile", back_populates="user", uselist=False)
-    skills = relationship("Skill", secondary=user_skill, back_populates="users")
-    skill_assessments = relationship("SkillAssessment", foreign_keys="SkillAssessment.user_id", back_populates="user")
-    verified_assessments = relationship("SkillAssessment", foreign_keys="SkillAssessment.verifier_id", back_populates="verifier")
-    favorite_careers = relationship("UserFavoriteCareer", back_populates="user")
-    career_recommendations = relationship("CareerRecommendation", back_populates="user")
-    recommendation_sessions = relationship("RecommendationSession", back_populates="user")
-    resumes = relationship("Resume", back_populates="user")
+    profile = relationship("app.models.user_profile.UserProfile", back_populates="user", uselist=False)
+    skills = relationship("app.models.skill.Skill", secondary=user_skill, back_populates="users")
+    skill_assessments = relationship("app.models.skill_assessment.SkillAssessment", foreign_keys="app.models.skill_assessment.SkillAssessment.user_id", back_populates="user")
+    verified_assessments = relationship("app.models.skill_assessment.SkillAssessment", foreign_keys="app.models.skill_assessment.SkillAssessment.verifier_id", back_populates="verifier")
+    favorite_careers = relationship("app.models.user_favorite_career.UserFavoriteCareer", back_populates="user")
+    career_recommendations = relationship("app.models.career_recommendation.CareerRecommendation", back_populates="user")
+    recommendation_sessions = relationship("app.models.recommendation_session.RecommendationSession", back_populates="user")
+    resumes = relationship("app.models.resume.Resume", back_populates="user")
+    assessments = relationship("app.models.assessment.Assessment", back_populates="user")
+    assessment_results = relationship("app.models.assessment.AssessmentResult", back_populates="user")
     
     # 兼容性属性 - 提供对已移动到profile的字段的访问
     @property

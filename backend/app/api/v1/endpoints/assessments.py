@@ -20,6 +20,7 @@ from app.schemas.assessment import (
 )
 from app.core.config import settings
 from app.services.recommendation_service import get_recommendation_service, DeepSeekRecommendationService
+from app.services.optimized_recommendation_service import OptimizedRecommendationService
 
 # 获取logger
 logger = logging.getLogger(__name__)
@@ -28,14 +29,11 @@ router = APIRouter()
 
 @router.get("/questions/{assessment_type}", response_model=List[AssessmentQuestionResponse])
 async def get_assessment_questions(
-    assessment_type: str,
-    current_user: User = Depends(deps.get_current_user_async),
+    assessment_type: str, 
     db: AsyncSession = Depends(deps.get_async_db)
-):
+) -> List[Dict[str, Any]]:
     """
-    获取指定类型的测评问题列表
-    
-    assessment_type: 测评类型，可选值: interest (兴趣测评), ability (能力测评), personality (性格测评)
+    获取特定类型的测评问题
     """
     logger.info(f"开始处理获取测评问题请求，类型: {assessment_type}")
     
@@ -49,12 +47,16 @@ async def get_assessment_questions(
         )
     
     try:
-        # 创建文本SQL语句 - 简化查询，不包含options字段
-        query = text("SELECT id, type, question FROM assessment_questions WHERE type = :type")
-        result = await db.execute(query, {"type": assessment_type})
+        # 使用ORM模型查询，而不是原始SQL
+        from app.models.assessment_question import AssessmentQuestion
+        from sqlalchemy import select
+        
+        # 创建查询对象
+        query = select(AssessmentQuestion).where(AssessmentQuestion.type == assessment_type)
+        result = await db.execute(query)
         
         # 获取所有行
-        questions = result.all()
+        questions = result.scalars().all()
         
         logger.info(f"查询结果: 获取到 {len(questions)} 个测评问题")
         
@@ -72,10 +74,10 @@ async def get_assessment_questions(
             standard_options = ["非常符合", "比较符合", "一般", "比较不符合", "非常不符合"]
             
             question_data = {
-                "id": q.id,
+                "id": q.id,  # 这里id是整数类型
                 "type": q.type,
                 "question": q.question,
-                "options": standard_options
+                "options": standard_options if q.options is None else q.options
             }
             response.append(question_data)
         
@@ -93,6 +95,20 @@ def generate_analysis(assessment_type: str, answers: list) -> dict:
     """
     根据测评类型和答案生成分析结果
     """
+    # 检查是否有答案
+    if not answers or len(answers) == 0:
+        # 返回默认分析结果
+        return {
+            "message": "没有足够的答案进行分析",
+            "characteristics": [] if assessment_type == "interest" else None,
+            "suitable_areas": [] if assessment_type == "interest" else None,
+            "notable_skills": [] if assessment_type == "ability" else None,
+            "skill_characteristics": {} if assessment_type == "ability" else None,
+            "personality_characteristics": {} if assessment_type == "personality" else None,
+            "work_preferences": {} if assessment_type == "personality" else None,
+            "suitable_environments": [] if assessment_type == "personality" else None,
+        }
+    
     # 统计答案分布
     answer_counts = {
         "非常符合": 0,
@@ -106,9 +122,12 @@ def generate_analysis(assessment_type: str, answers: list) -> dict:
         option = answer["selected_option"]
         answer_counts[option] = answer_counts.get(option, 0) + 1
     
+    # 防止除以零
+    answers_count = max(1, len(answers))  # 确保分母至少为1
+    
     # 计算倾向性
-    positive_score = (answer_counts["非常符合"] * 2 + answer_counts["比较符合"]) / len(answers)
-    negative_score = (answer_counts["非常不符合"] * 2 + answer_counts["比较不符合"]) / len(answers)
+    positive_score = (answer_counts["非常符合"] * 2 + answer_counts["比较符合"]) / answers_count
+    negative_score = (answer_counts["非常不符合"] * 2 + answer_counts["比较不符合"]) / answers_count
     
     if assessment_type == "interest":
         # 兴趣测评分析
@@ -177,7 +196,7 @@ def generate_analysis(assessment_type: str, answers: list) -> dict:
 
 @router.post("/submit", response_model=AssessmentResponse)
 async def submit_assessment(
-    request: Union[AssessmentSubmitRequest, MultiAssessmentSubmitRequest],
+    request: Union[AssessmentSubmitRequest, MultiAssessmentSubmitRequest, Dict[str, Any]],
     current_user: User = Depends(deps.get_current_user_async),
     db: AsyncSession = Depends(deps.get_async_db),
     background_tasks: BackgroundTasks = None
@@ -187,13 +206,93 @@ async def submit_assessment(
     支持单一测评类型提交和多测评类型批量提交
     """
     try:
-        # 检查请求类型
-        if hasattr(request, 'assessments'):
-            # 多测评类型提交
+        logger.info(f"接收到测评提交请求: {request}")
+        
+        # 正确区分请求类型
+        if isinstance(request, dict):
+            # 字典类型请求
+            if "assessments" in request:
+                # 多测评类型提交
+                logger.info("检测到多测评提交格式")
+                return await process_multi_assessment(request, current_user, db, background_tasks)
+            elif "type" in request:
+                # 单一测评类型提交
+                logger.info(f"检测到单测评提交格式，类型: {request['type']}")
+                return await process_single_assessment(request, current_user, db, background_tasks)
+            else:
+                logger.error("请求格式错误，既没有assessments也没有type字段")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="无效的请求格式，缺少assessments或type字段"
+                )
+        elif hasattr(request, 'assessments'):
+            # Pydantic模型多测评类型提交
+            logger.info("检测到Pydantic模型多测评提交格式")
             return await process_multi_assessment(request, current_user, db, background_tasks)
         else:
-            # 单一测评类型提交（原有逻辑）
+            # Pydantic模型单测评类型提交
+            logger.info(f"检测到Pydantic模型单测评提交格式，类型: {request.type}")
             return await process_single_assessment(request, current_user, db, background_tasks)
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"提交测评答案时出错: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"提交测评答案时出错: {str(e)}"
+        )
+
+@router.post("/submit/{assessment_type}", response_model=AssessmentResponse)
+async def submit_assessment_with_type(
+    assessment_type: str,
+    request: Dict[str, Any],
+    current_user: User = Depends(deps.get_current_user_async),
+    db: AsyncSession = Depends(deps.get_async_db),
+    background_tasks: BackgroundTasks = None
+):
+    """
+    提交测评答案（路径参数中包含测评类型）
+    此端点专门用于前端未包含type字段的情况
+    """
+    logger.info(f"接收到带类型参数的测评提交请求: {assessment_type}")
+    
+    try:
+        # 验证测评类型
+        valid_types = ["interest", "ability", "personality"]
+        if assessment_type not in valid_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"无效的测评类型: {assessment_type}, 有效值为: {', '.join(valid_types)}"
+            )
+        
+        # 构建一个有效的请求对象
+        if "answers" not in request:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="请求中缺少answers字段"
+            )
+        
+        # 从路径参数中获取的类型构建请求
+        valid_request_data = {
+            "type": assessment_type,
+            "answers": request["answers"]
+        }
+        
+        # 使用Pydantic验证请求
+        from pydantic import TypeAdapter
+        try:
+            validated_request = TypeAdapter(AssessmentSubmitRequest).validate_python(valid_request_data)
+            logger.info(f"成功构建验证后的请求: {validated_request}")
+        except Exception as e:
+            logger.error(f"验证请求数据时出错: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"验证请求数据失败: {str(e)}"
+            )
+        
+        # 处理单一测评
+        return await process_single_assessment(validated_request, current_user, db, background_tasks)
+    
     except Exception as e:
         await db.rollback()
         logger.error(f"提交测评答案时出错: {str(e)}")
@@ -211,12 +310,12 @@ async def process_multi_assessment(
 ) -> AssessmentResponse:
     """处理多测评类型提交"""
     
-    # 为了防止用户ID不匹配，确保使用当前用户的ID
-    if request.user_id != current_user.id:
-        logger.warning(f"请求中的用户ID与当前用户不匹配，使用当前用户ID: {current_user.id}")
+    # 使用当前认证用户的ID，不再从请求中读取
+    user_id = current_user.id
+    logger.info(f"使用当前登录用户ID: {user_id}")
     
     # 固定文件路径格式，不再使用时间戳
-    file_path = f"data/assessments/user_{current_user.id}.json"
+    file_path = f"data/assessments/user_{user_id}.json"
     
     # 检查用户现有的测评记录
     query = text("""
@@ -225,13 +324,13 @@ async def process_multi_assessment(
     WHERE user_id = :user_id 
     LIMIT 1
     """)
-    result = await db.execute(query, {"user_id": current_user.id})
+    result = await db.execute(query, {"user_id": user_id})
     existing_file = result.first()
     
     file_id = None
     # 准备保存的数据
     assessment_data = {
-        "user_id": current_user.id,
+        "user_id": user_id,
         "assessments": []
     }
     
@@ -262,39 +361,48 @@ async def process_multi_assessment(
         """)
         await db.execute(insert_file_query, {
             "id": file_id,
-            "user_id": current_user.id,
+            "user_id": user_id,
             "file_path": file_path
         })
     
     # 将前端发送的数据处理并保存，更新已有的测评类型
-    for new_assessment in request.assessments:
+    # 处理assessments字段，支持字典和对象访问
+    assessments = request["assessments"] if isinstance(request, dict) else request.assessments
+    
+    for new_assessment in assessments:
         # 检查是否已有此类型的测评
         existing_index = None
+        
+        # 获取测评类型，支持字典和对象
+        assessment_type = new_assessment["type"] if isinstance(new_assessment, dict) else new_assessment.type
+        assessment_completion_date = new_assessment["completion_date"] if isinstance(new_assessment, dict) else new_assessment.completion_date
+        assessment_answers = new_assessment["answers"] if isinstance(new_assessment, dict) else new_assessment.answers
+        
         for i, existing_assessment in enumerate(assessment_data["assessments"]):
-            if existing_assessment["type"] == new_assessment.type:
+            if existing_assessment["type"] == assessment_type:
                 existing_index = i
                 break
         
         # 准备新的测评数据
         assessment_item = {
-            "type": new_assessment.type,
-            "completion_date": new_assessment.completion_date,
+            "type": assessment_type,
+            "completion_date": assessment_completion_date,
             "answers": [
                 {
-                    "question_id": answer.question_id,
-                    "question": answer.question,
-                    "selected_option": answer.selected_option
-                } for answer in new_assessment.answers
+                    "question_id": answer["question_id"] if isinstance(answer, dict) else answer.question_id,
+                    "question": answer["question"] if isinstance(answer, dict) else answer.question,
+                    "selected_option": answer["selected_option"] if isinstance(answer, dict) else answer.selected_option
+                } for answer in assessment_answers
             ]
         }
         
         # 更新或添加测评数据
         if existing_index is not None:
             assessment_data["assessments"][existing_index] = assessment_item
-            logger.info(f"更新用户现有的测评类型: {new_assessment.type}")
+            logger.info(f"更新用户现有的测评类型: {assessment_type}")
         else:
             assessment_data["assessments"].append(assessment_item)
-            logger.info(f"添加用户新的测评类型: {new_assessment.type}")
+            logger.info(f"添加用户新的测评类型: {assessment_type}")
     
     # 保存JSON文件
     import os
@@ -307,7 +415,10 @@ async def process_multi_assessment(
     
     # 为每种测评类型创建或更新记录
     record_ids = {}
-    for assessment in request.assessments:
+    for assessment in assessments:
+        # 获取测评类型，支持字典和对象
+        assessment_type = assessment["type"] if isinstance(assessment, dict) else assessment.type
+        
         # 检查是否已有此类型的记录
         check_query = text("""
         SELECT id FROM assessment_records 
@@ -315,8 +426,8 @@ async def process_multi_assessment(
         LIMIT 1
         """)
         result = await db.execute(check_query, {
-            "user_id": current_user.id,
-            "type": assessment.type
+            "user_id": user_id,
+            "type": assessment_type
         })
         existing_record = result.first()
         
@@ -333,7 +444,7 @@ async def process_multi_assessment(
                 "id": record_id,
                 "file_id": file_id
             })
-            logger.info(f"更新用户现有的测评记录: {record_id}, 类型: {assessment.type}")
+            logger.info(f"更新用户现有的测评记录: {record_id}, 类型: {assessment_type}")
         else:
             # 创建新记录
             record_id = f"assessment_{uuid.uuid4().hex[:8]}"
@@ -344,57 +455,77 @@ async def process_multi_assessment(
             """)
             await db.execute(insert_record_query, {
                 "id": record_id,
-                "user_id": current_user.id,
+                "user_id": user_id,
                 "file_id": file_id,
-                "type": assessment.type
+                "type": assessment_type
             })
-            logger.info(f"创建用户新的测评记录: {record_id}, 类型: {assessment.type}")
+            logger.info(f"创建用户新的测评记录: {record_id}, 类型: {assessment_type}")
         
-        record_ids[assessment.type] = record_id
+        record_ids[assessment_type] = record_id
     
     await db.commit()
     
     # 检查用户是否已完成所有三种测评
-    assessment_types = set([assessment.type for assessment in request.assessments])
+    # 获取测评类型集合，支持字典和对象
+    if isinstance(request, dict):
+        assessment_types = set([a["type"] for a in request["assessments"]])
+    else:
+        assessment_types = set([assessment.type for assessment in request.assessments])
+        
     all_types = set(["interest", "ability", "personality"])
     saved_types = set([a["type"] for a in assessment_data["assessments"]])
     
     if saved_types.issuperset(all_types) and background_tasks:
-        logger.info(f"用户{current_user.id}已完成所有三种测评，自动触发职业推荐生成")
+        logger.info(f"用户{user_id}已完成所有三种测评，自动触发职业推荐生成")
         try:
-            # 初始化推荐服务
-            recommendation_service = get_recommendation_service()
+            # 使用优化版推荐服务
+            recommendation_service = OptimizedRecommendationService()
             
             # 添加生成推荐的后台任务
-            from app.api.v1.endpoints.career_recommendations import generate_recommendations_background
             background_tasks.add_task(
-                generate_recommendations_background,
-                user_obj=current_user,
-                force_new=True,
-                user_id=current_user.id,
-                recommendation_service=recommendation_service
+                recommendation_service.start_recommendation,
+                user_id=user_id, 
+                skip_assessment_check=True  # 已完成测评，跳过检查
             )
-            logger.info(f"已将用户{current_user.id}的职业推荐生成任务添加到后台队列")
+            logger.info(f"已将用户{user_id}的职业推荐生成任务添加到后台队列(使用优化版服务)")
         except Exception as e:
             logger.error(f"触发职业推荐生成失败: {str(e)}")
+            logger.error(traceback.format_exc())
     
     # 为响应选择第一个测评类型的record_id
-    first_type = request.assessments[0].type if request.assessments else "unknown"
+    # 获取第一个测评类型，支持字典和对象
+    if assessments:
+        first_assessment = assessments[0]
+        first_type = first_assessment["type"] if isinstance(first_assessment, dict) else first_assessment.type
+    else:
+        first_type = "unknown"
+    
     record_id = record_ids.get(first_type, f"assessment_{uuid.uuid4().hex[:8]}")
     
     # 生成第一个测评类型的分析结果
-    if request.assessments:
-        first_assessment = request.assessments[0]
-        analysis = generate_analysis(
-            first_assessment.type, 
-            [
+    if assessments:
+        first_assessment = assessments[0]
+        first_type = first_assessment["type"] if isinstance(first_assessment, dict) else first_assessment.type
+        
+        # 获取答案，支持字典和对象
+        if isinstance(first_assessment, dict):
+            answers_data = [
+                {
+                    "question_id": a["question_id"],
+                    "selected_option": a["selected_option"]
+                }
+                for a in first_assessment["answers"]
+            ]
+        else:
+            answers_data = [
                 {
                     "question_id": a.question_id,
                     "selected_option": a.selected_option
                 }
                 for a in first_assessment.answers
             ]
-        )
+            
+        analysis = generate_analysis(first_type, answers_data)
     else:
         analysis = {}
     
@@ -402,7 +533,7 @@ async def process_multi_assessment(
     return {
         "id": record_id,
         "type": first_type,
-        "user_id": current_user.id,
+        "user_id": user_id,
         "status": "completed",
         "message": "所有测评已成功提交",
         "analysis": analysis
@@ -588,21 +719,19 @@ async def process_single_assessment(
         if saved_types.issuperset(all_types):
             logger.info(f"用户{current_user.id}已完成所有三种测评，自动触发职业推荐生成")
             try:
-                # 初始化推荐服务
-                recommendation_service = get_recommendation_service()
+                # 使用优化版推荐服务
+                recommendation_service = OptimizedRecommendationService()
                 
                 # 添加生成推荐的后台任务
-                from app.api.v1.endpoints.career_recommendations import generate_recommendations_background
                 background_tasks.add_task(
-                    generate_recommendations_background,
-                    user_obj=current_user,
-                    force_new=True,
-                    user_id=current_user.id,
-                    recommendation_service=recommendation_service
+                    recommendation_service.start_recommendation,
+                    user_id=current_user.id, 
+                    skip_assessment_check=True  # 已完成测评，跳过检查
                 )
-                logger.info(f"已将用户{current_user.id}的职业推荐生成任务添加到后台队列")
+                logger.info(f"已将用户{current_user.id}的职业推荐生成任务添加到后台队列(使用优化版服务)")
             except Exception as e:
                 logger.error(f"触发职业推荐生成失败: {str(e)}")
+                logger.error(traceback.format_exc())
     
     # 返回响应
     return {
@@ -785,4 +914,54 @@ async def get_user_assessment(
             "file_path": f"data/assessments/user_{current_user.id}.json",
             "created_at": None,
             "updated_at": None
+        }
+
+@router.post("/test-submit", response_model=Dict[str, Any])
+async def test_submit(
+    request: Dict[str, Any],
+):
+    """
+    测试测评提交接口，无需认证
+    用于验证请求解析和处理逻辑
+    """
+    try:
+        logger.info(f"接收到测试测评提交请求: {request}")
+        
+        # 验证请求格式
+        if "assessments" in request:
+            logger.info("检测到多测评提交格式")
+            
+            # 尝试访问字典中的字段
+            assessments = request["assessments"]
+            user_id = request.get("user_id", 0)
+            
+            result = {
+                "message": "多测评提交格式有效",
+                "user_id": user_id,
+                "assessments_count": len(assessments),
+                "types": [a["type"] for a in assessments if "type" in a]
+            }
+        elif "type" in request:
+            logger.info(f"检测到单测评提交格式，类型: {request['type']}")
+            
+            result = {
+                "message": "单测评提交格式有效",
+                "type": request["type"],
+                "answers_count": len(request.get("answers", []))
+            }
+        else:
+            logger.error("请求格式错误，既没有assessments也没有type字段")
+            result = {
+                "message": "无效的请求格式",
+                "error": "缺少assessments或type字段"
+            }
+            
+        return result
+    except Exception as e:
+        logger.error(f"测试提交时出错: {str(e)}")
+        logger.error(traceback.format_exc())
+        return {
+            "message": "处理请求时出错",
+            "error": str(e),
+            "traceback": traceback.format_exc()
         } 

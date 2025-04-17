@@ -20,6 +20,57 @@ class RecommendationDataService:
         """初始化数据服务"""
         self.db = None
         self._exit_stack = None
+        self.logger = logger
+    
+    async def initialize(self):
+        """初始化数据库连接"""
+        try:
+            # 初始化退出栈，用于管理异步资源
+            self._exit_stack = AsyncExitStack()
+            # 获取数据库会话
+            self.db = await self._exit_stack.enter_async_context(get_async_session())
+            self.logger.info("【推荐数据服务】数据库连接初始化成功")
+            return True
+        except Exception as e:
+            self.logger.error(f"【推荐数据服务】数据库连接初始化失败: {str(e)}")
+            if self._exit_stack:
+                await self._exit_stack.aclose()
+            self.db = None
+            return False
+            
+    async def close(self):
+        """关闭数据库连接"""
+        if self._exit_stack:
+            await self._exit_stack.aclose()
+            self.logger.info("【推荐数据服务】数据库连接已关闭")
+            self._exit_stack = None
+            self.db = None
+            
+    async def execute_query(self, query, params=None):
+        """执行SQL查询
+        
+        Args:
+            query: SQL查询字符串或SQLAlchemy文本对象
+            params: 查询参数
+            
+        Returns:
+            查询结果
+        """
+        try:
+            if not self.db:
+                async with get_async_session() as db:
+                    # 检查query是否已经是文本对象
+                    query_obj = query if hasattr(query, 'text') else text(query)
+                    result = await db.execute(query_obj, params or {})
+                    return result
+            else:
+                # 检查query是否已经是文本对象
+                query_obj = query if hasattr(query, 'text') else text(query)
+                result = await self.db.execute(query_obj, params or {})
+                return result
+        except Exception as e:
+            self.logger.error(f"【推荐数据服务】执行查询失败: {str(e)}")
+            raise
     
     async def get_user_data(self, user_id: int) -> Optional[Dict[str, Any]]:
         """获取用户个人资料数据"""

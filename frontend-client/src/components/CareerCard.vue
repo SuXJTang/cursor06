@@ -66,7 +66,7 @@ interface SalaryRange {
 }
 
 interface Career {
-  id: number;
+  id: string | number;
   title: string;
   description?: string;
   required_skills?: string[];
@@ -74,7 +74,7 @@ interface Career {
   experience_required?: string;
   future_prospect?: string;
   salary_range?: SalaryRange;
-  category_id?: number;
+  category_id?: string | number;
 }
 
 interface Props {

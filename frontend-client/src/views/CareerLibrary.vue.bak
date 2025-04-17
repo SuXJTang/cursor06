@@ -1,0 +1,1420 @@
+<template>
+  <div class="career-library-container">
+    <!-- 左侧分类面板 -->
+    <div class="category-panel category-sidebar">
+      <div class="search-box category-search">
+        <input type="text" placeholder="搜索职业..." v-model="searchText" />
+      </div>
+      <div v-if="loadingCategories" class="loading-indicator">
+        <div class="spinner"></div>
+        <span>加载分类中...</span>
+      </div>
+      <div v-else class="category-tree">
+        <div v-for="category in filteredCategories" :key="category.id" class="category-item first-level">
+          <div 
+            class="category-title folder-item"
+            :class="{'active': selectedCategory === category.id, 'folder-expanded': expandedCategories.includes(category.id)}"
+            @click="toggleCategory(category.id)"
+          >
+            <i class="folder-icon el-icon-folder" :class="{'el-icon-folder-opened': expandedCategories.includes(category.id)}"></i>
+            <span class="folder-label">{{ category.name }}</span>
+            <i v-if="category.children && category.children.length > 0" 
+               class="toggle-icon el-icon-arrow-right"
+               :class="{'el-icon-arrow-down': expandedCategories.includes(category.id)}"></i>
+          </div>
+          <div v-if="category.children && expandedCategories.includes(category.id)" class="subcategories second-level">
+            <div 
+              v-for="subcat in category.children" 
+              :key="subcat.id" 
+              class="subcategory-item"
+            >
+              <div 
+                class="folder-item"
+                :class="{'active': selectedSubcategory === subcat.id, 'folder-expanded': expandedSubcategories.includes(subcat.id)}"
+                @click.stop="toggleSubcategory(subcat.id)"
+              >
+                <i class="folder-icon el-icon-folder" :class="{'el-icon-folder-opened': expandedSubcategories.includes(subcat.id)}"></i>
+                <span class="folder-label">{{ subcat.name }}</span>
+                <i v-if="subcat.children && subcat.children.length > 0" 
+                   class="toggle-icon el-icon-arrow-right"
+                   :class="{'el-icon-arrow-down': expandedSubcategories.includes(subcat.id)}"></i>
+              </div>
+              
+              <div v-if="subcat.children && expandedSubcategories.includes(subcat.id)" class="third-level">
+                <div 
+                  v-for="thirdCat in subcat.children" 
+                  :key="thirdCat.id" 
+                  class="third-level-item"
+                >
+                  <div 
+                    class="folder-item"
+                  :class="{'active': selectedThirdLevel === thirdCat.id}"
+                  @click.stop="selectThirdLevel(thirdCat.id)"
+                >
+                    <i class="folder-icon el-icon-document"></i>
+                    <span class="folder-label">{{ thirdCat.name }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+      <div v-if="!loadingCategories && filteredCategories.length === 0" class="no-data">
+        没有找到相关分类
+      </div>
+    </div>
+
+    <!-- 中间职业列表面板 -->
+    <div class="career-list-panel">
+      <div class="career-list-header">
+        <div class="category-navigation">
+          <h3>{{ getActiveCategoryName() }}</h3>
+          <div class="career-count" v-if="careers.length > 0">{{ totalCareers }}个职位</div>
+        </div>
+        <div class="tabs">
+          <div class="tab active">新奇</div>
+          <div class="tab">热度</div>
+          <div class="tab">增长</div>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <span>排序方式:</span>
+        <select v-model="sortMethod">
+          <option value="relevance">相关度</option>
+          <option value="salary">薪资高低</option>
+        </select>
+      </div>
+      <div v-if="loadingCareers" class="loading-indicator">
+        <div class="spinner"></div>
+        <span>加载职业中...</span>
+      </div>
+      <div v-else-if="careers.length === 0" class="no-data">
+        没有找到相关职业，请选择其他分类
+      </div>
+      <div v-else class="career-items">
+        <div 
+          v-for="career in sortedCareers" 
+          :key="career.id" 
+          class="career-item"
+          :class="{'selected': selectedCareer === career.id}"
+          @click="selectCareer(career.id)"
+        >
+          <div class="career-development-stage">{{ career.developmentStage || '稳定发展期' }}</div>
+          <div class="career-main-info">
+          <h4>{{ career.title }}</h4>
+            <div class="career-salary">
+              {{ formatSalary(career.salary) }}
+            </div>
+            <div class="career-education">
+              <span class="edu-badge">{{ career.education_required || '本科' }}</span>
+              <span class="experience-badge">{{ career.experience_required || '3-5年' }}</span>
+          </div>
+            <div class="career-tags">
+              <span v-for="(tag, tagIndex) in getCareeerTags(career)" :key="tagIndex" class="tag">{{ tag }}</span>
+        </div>
+          </div>
+        </div>
+      </div>
+      <div class="pagination" v-if="careers.length > 0">
+        <button :disabled="currentPage <= 1" @click="prevPage">上一页</button>
+        <span>{{ currentPage }} / {{ totalPages || 1 }}</span>
+        <button :disabled="currentPage >= totalPages" @click="nextPage">下一页</button>
+      </div>
+    </div>
+
+    <!-- 右侧详情面板 -->
+    <div class="career-detail-panel">
+      <div v-if="loadingDetail" class="loading-indicator">
+        <div class="spinner"></div>
+        <span>加载职业详情中...</span>
+      </div>
+      <div v-else-if="currentCareerDetail" class="career-detail">
+        <div class="detail-header">
+          <h2>{{ currentCareerDetail.title }}</h2>
+          <div class="header-actions">
+            <button class="favorite-btn" @click="toggleFavorite" :class="{'is-favorite': isFavorite}">
+              <span class="action-icon">{{ isFavorite ? '★' : '☆' }}</span>
+              收藏
+            </button>
+            <button class="share-btn">
+              <span class="action-icon">↗</span>
+              分享
+            </button>
+          </div>
+        </div>
+        
+        <div class="basic-info-section">
+          <h3>基本信息</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">职业类别</div>
+              <div class="info-value">{{ getActiveCategoryName() }}</div>
+          </div>
+            <div class="info-item">
+              <div class="info-label">发展阶段</div>
+              <div class="info-value">{{ currentCareerDetail.developmentStage || '稳定发展期' }}</div>
+          </div>
+            <div class="info-item">
+              <div class="info-label">薪资范围</div>
+              <div class="info-value">{{ formatSalary(currentCareerDetail.salary) }}</div>
+          </div>
+            <div class="info-item">
+              <div class="info-label">经验要求</div>
+              <div class="info-value">{{ currentCareerDetail.experience_required || '暂无数据' }}</div>
+          </div>
+            <div class="info-item">
+              <div class="info-label">学历要求</div>
+              <div class="info-value">{{ currentCareerDetail.education_required || '暂无数据' }}</div>
+        </div>
+            <div class="info-item">
+              <div class="info-label">技能要求</div>
+              <div class="info-value">{{ getSkillsText() }}</div>
+        </div>
+          </div>
+        </div>
+        
+        <div class="detail-section">
+          <h3>职业描述</h3>
+          <p v-if="currentCareerDetail.description">{{ currentCareerDetail.description }}</p>
+          <p v-else>暂无职业描述数据</p>
+        </div>
+
+        <div class="detail-section" v-if="currentCareerDetail.responsibilities && currentCareerDetail.responsibilities.length > 0">
+          <h3>工作职责</h3>
+          <ul class="responsibility-list">
+            <li v-for="(responsibility, index) in currentCareerDetail.responsibilities" :key="index">
+              {{ responsibility }}
+            </li>
+          </ul>
+        </div>
+        <div class="detail-section" v-else>
+          <h3>工作职责</h3>
+          <p>暂无工作职责数据</p>
+        </div>
+      </div>
+      <div v-else class="no-selection">
+        <div v-if="selectedCareer">
+          无法获取所选职业的详细信息
+          <div class="error-action">
+            <button @click="loadCareersByCategories([selectedCategory])">重新加载数据</button>
+          </div>
+        </div>
+        <div v-else>
+        请从左侧选择一个职业类别，并从中间列表选择一个职业查看详情
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import request from '@/utils/request'; // 使用统一的request服务
+// 不再直接依赖axios
+// import axios from 'axios';
+
+// 职业分类数据状态
+const categories = ref([]);
+const loadingCategories = ref(false);
+const error = ref(null);
+
+// 分类展开/选择状态
+const expandedCategories = ref([]);
+const expandedSubcategories = ref([]);
+const selectedCategory = ref('');
+const selectedSubcategory = ref('');
+const selectedThirdLevel = ref('');
+
+// 职业数据状态
+const careers = ref([]);
+const loadingCareers = ref(false);
+const currentPage = ref(1);
+const perPage = ref(10);
+const totalCareers = ref(0);
+const totalPages = ref(1);
+
+// 职业详情状态
+const currentCareerDetail = ref(null);
+const loadingDetail = ref(false);
+const isFavorite = ref(false);
+
+// 搜索和排序
+const searchText = ref('');
+const sortMethod = ref('relevance');
+const selectedCareer = ref('');
+
+// 获取API调用的通用headers - 不再需要，request服务会自动添加认证头
+// 仅在回退方案中使用
+const getHeaders = () => {
+  // 使用与request.ts一致的认证令牌键名
+  const token = localStorage.getItem('auth_token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  };
+};
+
+// API请求 - 获取职业分类树
+const fetchCategoryTree = async () => {
+  try {
+    loadingCategories.value = true;
+    error.value = null;
+    
+    console.log('开始获取职业分类树...');
+    
+    // 使用封装好的request服务
+    const response = await request.get('/api/v1/career-categories/tree');
+    console.log('职业分类树原始响应:', response);
+    
+    // 更新分类数据 - 处理正确的响应格式（支持多种可能的数据结构）
+    let categoryData = [];
+    
+    if (Array.isArray(response)) {
+      // 直接是数组格式
+      categoryData = response;
+    } else if (response.items && Array.isArray(response.items)) {
+      // {items: [...]} 格式
+      categoryData = response.items;
+    } else if (response.categories && Array.isArray(response.categories)) {
+      // {categories: [...]} 格式
+      categoryData = response.categories;
+    } else if (response.data && Array.isArray(response.data)) {
+      // {data: [...]} 格式
+      categoryData = response.data;
+    }
+    
+    categories.value = categoryData;
+    console.log('解析后的职业分类数据:', categories.value);
+    
+    // 默认展开第一个分类
+    if (categories.value.length > 0) {
+      const firstCategory = categories.value[0];
+      expandedCategories.value = [firstCategory.id];
+      selectedCategory.value = firstCategory.id;
+      
+      // 加载第一个分类的职业
+      const categoryIds = getAllChildCategoryIds(firstCategory.id);
+      loadCareersByCategories(categoryIds);
+    }
+    
+  } catch (err) {
+    console.error('获取职业分类失败:', err);
+    error.value = '获取职业分类失败，请重试';
+  } finally {
+    loadingCategories.value = false;
+  }
+};
+
+// 分类展开/折叠切换
+const toggleCategory = (categoryId) => {
+  // 选择当前分类
+  selectedCategory.value = categoryId;
+  selectedSubcategory.value = ''; // 清除二级分类选择
+  selectedThirdLevel.value = ''; // 清除三级分类选择
+  
+  // 展开/折叠逻辑
+  if (expandedCategories.value.includes(categoryId)) {
+    expandedCategories.value = expandedCategories.value.filter(id => id !== categoryId);
+  } else {
+    expandedCategories.value.push(categoryId);
+  }
+  
+  // 重置分页
+  currentPage.value = 1;
+  
+  // 获取当前分类及其所有子分类的ID
+  const categoryIds = getAllChildCategoryIds(categoryId);
+  
+  // 根据当前分类加载相关职业，包括所有子分类的职业
+  loadCareersByCategories(categoryIds);
+};
+
+// 子分类展开/折叠切换
+const toggleSubcategory = (subcategoryId) => {
+  // 选择当前子分类
+  selectedSubcategory.value = subcategoryId;
+  selectedThirdLevel.value = ''; // 清除三级分类选择
+  
+  // 展开/折叠逻辑
+  if (expandedSubcategories.value.includes(subcategoryId)) {
+    expandedSubcategories.value = expandedSubcategories.value.filter(id => id !== subcategoryId);
+  } else {
+    expandedSubcategories.value.push(subcategoryId);
+  }
+  
+  // 重置分页
+  currentPage.value = 1;
+  
+  // 获取当前二级分类及其所有三级子分类的ID
+  const subcategoryIds = getThirdLevelCategoryIds(subcategoryId);
+  
+  // 根据当前子分类加载相关职业，包括所有三级子分类的职业
+  loadCareersByCategories(subcategoryIds);
+};
+
+// 选择三级分类
+const selectThirdLevel = (thirdLevelId) => {
+  selectedThirdLevel.value = thirdLevelId;
+  
+  // 重置分页
+  currentPage.value = 1;
+  
+  // 三级分类只加载自己的职业
+  loadCareersByCategories([thirdLevelId]);
+};
+
+// 获取一级分类及其所有子分类的ID
+const getAllChildCategoryIds = (categoryId) => {
+  // 收集所有ID：一级分类、二级分类、三级分类
+  const ids = [categoryId]; // 首先添加当前分类ID
+  
+  // 查找一级分类
+  const category = categories.value.find(cat => cat.id === categoryId);
+  if (category && category.children) {
+    // 添加所有二级分类ID
+    category.children.forEach(subcat => {
+      ids.push(subcat.id);
+      
+      // 添加所有三级分类ID
+      if (subcat.children) {
+        subcat.children.forEach(thirdCat => {
+          ids.push(thirdCat.id);
+        });
+      }
+    });
+  }
+  
+  return ids;
+};
+
+// 获取二级分类及其所有三级子分类的ID
+const getThirdLevelCategoryIds = (subcategoryId) => {
+  const ids = [subcategoryId]; // 首先添加当前二级分类ID
+  
+  // 查找包含该二级分类的一级分类
+  for (const category of categories.value) {
+    if (category.children) {
+      const subcat = category.children.find(sub => sub.id === subcategoryId);
+      if (subcat && subcat.children) {
+        // 添加所有三级分类ID
+        subcat.children.forEach(thirdCat => {
+          ids.push(thirdCat.id);
+        });
+        break; // 找到后退出循环
+      }
+    }
+  }
+  
+  return ids;
+};
+
+// API请求 - 根据多个分类ID加载职业
+const loadCareersByCategories = async (categoryIds) => {
+  try {
+    loadingCareers.value = true;
+    careers.value = [];
+    
+    // 构建API请求参数
+    const params = {
+      page: currentPage.value,
+      per_page: perPage.value
+    };
+    
+    console.log('加载分类职业，分类IDs:', categoryIds);
+    
+    // 使用request服务调用职业列表API
+    try {
+      let response;
+      
+      // 处理不同情况：单个分类ID还是多个分类ID
+      if (categoryIds.length === 1) {
+        // 单个分类ID - 使用新的同步分类API端点
+        response = await request.get(`/api/v1/careers-sync/category/${categoryIds[0]}`, { params });
+      } else {
+        // 多个分类ID - 使用多分类筛选API端点
+        response = await request.get('/api/v1/careers/', { 
+          params: {
+            ...params,
+            category_ids: categoryIds.join(',') // 多个分类ID用逗号分隔
+          }
+        });
+      }
+      
+      // 更新职业数据
+      const data = response || {};
+      careers.value = data.careers || data.items || [];
+      totalCareers.value = data.total || 0;
+      totalPages.value = data.pages || Math.ceil(totalCareers.value / perPage.value) || 1;
+      
+      console.log('加载分类相关职业成功:', careers.value);
+      
+      // 如果返回的职业为空，尝试使用备用API端点
+      if (careers.value.length === 0 && categoryIds.length === 1) {
+        try {
+          console.log('尝试使用备用API端点加载职业数据');
+          // 尝试使用另一个API端点格式
+          const backupResponse = await request.get(`/api/v1/career-categories/${categoryIds[0]}/careers`, {
+            params: {
+              ...params,
+              include_subcategories: true
+            }
+          });
+          
+          const backupData = backupResponse || {};
+          careers.value = backupData.careers || backupData.items || [];
+          totalCareers.value = backupData.total || 0;
+          totalPages.value = backupData.pages || Math.ceil(totalCareers.value / perPage.value) || 1;
+          
+          console.log('使用备用API端点加载职业成功:', careers.value);
+        } catch (backupError) {
+          console.error('备用API调用也失败:', backupError);
+        }
+      }
+    } catch (apiError) {
+      console.error('API调用失败:', apiError);
+      careers.value = [];
+      totalCareers.value = 0;
+      totalPages.value = 1;
+    }
+    
+    // 如果有职业数据且未选中职业，选择第一个
+    if (careers.value.length > 0 && !selectedCareer.value) {
+      selectCareer(careers.value[0].id);
+    }
+    
+  } catch (err) {
+    console.error('加载职业失败:', err);
+  } finally {
+    loadingCareers.value = false;
+  }
+};
+
+// 修改用于加载分类数据的现有函数
+const loadCareersByCategory = async (categoryId) => {
+  // 包装为数组调用多分类加载函数
+  await loadCareersByCategories([categoryId]);
+};
+
+// API请求 - 获取职业详情
+const fetchCareerDetail = async (careerId) => {
+  try {
+    loadingDetail.value = true;
+    currentCareerDetail.value = null;
+    
+    // 使用request服务调用职业详情API
+    try {
+      const response = await request.get(`/api/v1/careers/${careerId}`);
+      
+      // 更新职业详情数据
+      currentCareerDetail.value = response;
+      console.log('获取职业详情成功:', currentCareerDetail.value);
+    } catch (apiError) {
+      console.error('API调用失败:', apiError);
+      currentCareerDetail.value = null;
+    }
+    
+    // 检查是否收藏
+    checkIsFavorite(careerId);
+    
+  } catch (err) {
+    console.error('获取职业详情失败:', err);
+  } finally {
+    loadingDetail.value = false;
+  }
+};
+
+// API请求 - 检查职业是否已收藏
+const checkIsFavorite = async (careerId) => {
+  try {
+    // 使用request服务调用收藏列表API
+    const response = await request.get(`/api/v1/careers/user/favorites`);
+    
+    // 检查当前职业是否在收藏列表中
+    const favorites = response?.careers || response?.items || [];
+    isFavorite.value = favorites.some(fav => fav.id === careerId);
+    
+  } catch (err) {
+    console.error('检查收藏状态失败:', err);
+    isFavorite.value = false;
+  }
+};
+
+// API请求 - 添加/取消收藏
+const toggleFavorite = async () => {
+  try {
+    if (!currentCareerDetail.value) return;
+    
+    const careerId = currentCareerDetail.value.id;
+    
+    // 使用request服务调用收藏/取消收藏API
+    if (isFavorite.value) {
+      // 取消收藏
+      await request.delete(`/api/v1/careers/${careerId}/favorite`);
+    } else {
+      // 添加收藏
+      await request.post(`/api/v1/careers/${careerId}/favorite`);
+    }
+    
+    // 更新收藏状态
+    isFavorite.value = !isFavorite.value;
+    
+  } catch (err) {
+    console.error('收藏操作失败:', err);
+  }
+};
+
+// 翻页功能
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+    loadCurrentCategoryData();
+  }
+};
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+    loadCurrentCategoryData();
+  }
+};
+
+// 加载当前选择的分类数据
+const loadCurrentCategoryData = () => {
+  if (selectedThirdLevel.value) {
+    // 如果选择了三级分类，只加载该三级分类的数据
+    loadCareersByCategories([selectedThirdLevel.value]);
+  } else if (selectedSubcategory.value) {
+    // 如果选择了二级分类，加载该二级分类及其所有三级分类的数据
+    const subcategoryIds = getThirdLevelCategoryIds(selectedSubcategory.value);
+    loadCareersByCategories(subcategoryIds);
+  } else if (selectedCategory.value) {
+    // 如果只选择了一级分类，加载该一级分类及其所有子分类的数据
+    const categoryIds = getAllChildCategoryIds(selectedCategory.value);
+    loadCareersByCategories(categoryIds);
+  }
+};
+
+// 过滤分类 (搜索功能)
+const filteredCategories = computed(() => {
+  if (!searchText.value.trim()) {
+    return categories.value;
+  }
+  
+  const search = searchText.value.toLowerCase().trim();
+  
+  // 递归搜索分类树
+  const filterCategories = (cats) => {
+    return cats.filter(cat => {
+      // 检查当前分类名称是否匹配
+      const nameMatch = cat.name.toLowerCase().includes(search);
+      
+      // 递归检查子分类
+      let childrenMatch = false;
+      let filteredChildren = [];
+      
+      if (cat.children && cat.children.length > 0) {
+        filteredChildren = filterCategories(cat.children);
+        childrenMatch = filteredChildren.length > 0;
+      }
+      
+      // 如果子分类匹配，替换为过滤后的子分类
+      if (childrenMatch) {
+        cat = {...cat, children: filteredChildren};
+      }
+      
+      // 如果当前分类名称匹配或者子分类中有匹配，则包含该分类
+      return nameMatch || childrenMatch;
+    });
+  };
+  
+  return filterCategories(categories.value);
+});
+
+// 计算属性 - 排序后的职业列表
+const sortedCareers = computed(() => {
+  let result = [...careers.value];
+  
+  // 根据排序方法排序
+  if (sortMethod.value === 'salary') {
+    result.sort((a, b) => {
+      const aMax = a.salary?.max || 0;
+      const bMax = b.salary?.max || 0;
+      return bMax - aMax; // 按薪资高低降序排序
+    });
+  }
+  
+  return result;
+});
+
+// 辅助方法 - 解析薪资字符串
+const parseSalary = (salaryStr) => {
+  if (!salaryStr) return 0;
+  
+  // 尝试从如 "¥15K-30K/月" 提取数字
+  const matches = salaryStr.match(/(\d+)K-(\d+)K/);
+  if (matches && matches.length >= 3) {
+    // 取薪资范围的平均值
+    return (parseInt(matches[1]) + parseInt(matches[2])) / 2;
+  }
+  
+  return 0;
+};
+
+// 辅助方法 - 获取职业标签
+const getCareeerTags = (career) => {
+  if (!career) return [];
+  
+  // 尝试各种可能的标签字段
+  if (Array.isArray(career.tags) && career.tags.length > 0) {
+    return career.tags.slice(0, 3);
+  } 
+  
+  if (Array.isArray(career.skills) && career.skills.length > 0) {
+    return career.skills.slice(0, 3);
+  }
+  
+  if (typeof career.tags === 'string' && career.tags.trim()) {
+    return [career.tags];
+  }
+  
+  if (typeof career.skills === 'string' && career.skills.trim()) {
+    return [career.skills];
+  }
+  
+  return []; // 如果没有找到任何标签，返回空数组
+};
+
+// 方法 - 选择职业
+const selectCareer = (careerId) => {
+  selectedCareer.value = careerId;
+  fetchCareerDetail(careerId);
+};
+
+// 页面加载时调用
+onMounted(() => {
+  console.log('职业库页面加载');
+  // 检查本地存储中的认证令牌
+  const token = localStorage.getItem('auth_token');
+  if (!token) {
+    console.warn('未找到认证令牌，可能无法获取数据');
+    error.value = '请先登录以访问完整功能';
+  }
+  
+  // 加载职业分类树
+  fetchCategoryTree();
+});
+
+// 获取活动分类名称路径
+const getActiveCategoryName = () => {
+  // 查找所选分类的完整路径名称
+  let result = '';
+  
+  // 查找一级分类
+  const activeCategory = categories.value.find(cat => cat.id === selectedCategory.value);
+  if (activeCategory) {
+    result = activeCategory.name;
+    
+    // 查找二级分类
+    if (selectedSubcategory.value) {
+      const activeSubcategory = activeCategory.children?.find(sub => sub.id === selectedSubcategory.value);
+      if (activeSubcategory) {
+        result += ' > ' + activeSubcategory.name;
+        
+        // 查找三级分类
+        if (selectedThirdLevel.value) {
+          const activeThirdLevel = activeSubcategory.children?.find(third => third.id === selectedThirdLevel.value);
+          if (activeThirdLevel) {
+            result += ' > ' + activeThirdLevel.name;
+          }
+        }
+      }
+    }
+  }
+  
+  return result || '全部职业';
+};
+
+// 格式化薪资显示
+const formatSalary = (salary) => {
+  // 防止undefined或null
+  if (!salary) return '薪资面议';
+  
+  // 处理对象格式
+  if (typeof salary === 'object') {
+    // 确保min和max值是有效的数字
+    let min = null;
+    let max = null;
+    
+    if (salary.min !== undefined && salary.min !== null) {
+      min = parseInt(salary.min, 10);
+      if (isNaN(min)) min = null;
+    }
+    
+    if (salary.max !== undefined && salary.max !== null) {
+      max = parseInt(salary.max, 10);
+      if (isNaN(max)) max = null;
+    }
+    
+    const currency = (salary.currency === 'CNY' || salary.currency === 'RMB') ? '¥' : '$';
+    
+    if (min && max) {
+      return `${currency}${min/1000}k-${max/1000}k/月`;
+    } else if (min) {
+      return `${currency}${min/1000}k+/月`;
+    } else if (max) {
+      return `${currency}${max/1000}k以下/月`;
+    } else {
+      return '薪资面议';
+    }
+  }
+  
+  // 如果是字符串，检查是否有常见的格式
+  if (typeof salary === 'string') {
+    // 尝试解析带单位的字符串，如"10k-20k"或"¥10k-20k/月"
+    const matches = salary.match(/([¥$])?(\d+)[kK][-~](\d+)[kK]/i);
+    if (matches) {
+      const currency = matches[1] || '¥';
+      const min = parseInt(matches[2], 10);
+      const max = parseInt(matches[3], 10);
+      return `${currency}${min}k-${max}k/月`;
+    }
+    
+    // 如果没有匹配到特定格式，直接返回原字符串
+    return salary;
+  }
+  
+  // 如果是数字，格式化为k单位
+  if (typeof salary === 'number') {
+    return `¥${(salary/1000).toFixed(1)}k/月`;
+  }
+  
+  // 其他情况
+  return '薪资面议';
+};
+
+// 获取技能文本
+const getSkillsText = () => {
+  if (!currentCareerDetail.value) return '暂无数据';
+  
+  // 处理不同可能的数据格式
+  if (Array.isArray(currentCareerDetail.value.skills)) {
+    return currentCareerDetail.value.skills.length > 0 
+      ? currentCareerDetail.value.skills.join('、') 
+      : '无特定技能要求';
+  } else if (typeof currentCareerDetail.value.skills === 'string') {
+    return currentCareerDetail.value.skills || '无特定技能要求';
+  } else if (currentCareerDetail.value.requiredSkills) {
+    // 兼容其他可能的字段名
+    const skills = currentCareerDetail.value.requiredSkills;
+    return Array.isArray(skills) 
+      ? (skills.length > 0 ? skills.join('、') : '无特定技能要求')
+      : (skills || '无特定技能要求');
+  }
+  
+  return '无特定技能要求';
+};
+
+// 用于解决可能的API路径问题的辅助函数
+const ensureApiUrl = (url) => {
+  // 如果已经包含完整的http路径，则直接返回
+  if (url.startsWith('http')) {
+    return url;
+  }
+  
+  // 如果是相对路径且不以/api开头，添加前缀
+  if (!url.startsWith('/api')) {
+    return `/api${url.startsWith('/') ? '' : '/'}${url}`;
+  }
+  
+  return url;
+};
+
+// 可用于测试的功能
+const testApiConnection = async () => {
+  try {
+    console.log('测试API连接...');
+    // 尝试使用request服务调用一个简单的API
+    const response = await request.get('/api/v1/auth/me');
+    console.log('API连接成功:', response);
+    return true;
+  } catch (error) {
+    console.error('API连接测试失败:', error);
+    return false;
+  }
+};
+
+// 更高级的错误处理
+const handleApiError = (error, fallbackData = null, errorMessage = '操作失败') => {
+  console.error(errorMessage, error);
+  
+  // 检查错误类型
+  if (error.response) {
+    // 服务器响应了，但是状态码不在2xx范围内
+    console.error('服务器响应错误:', {
+      status: error.response.status,
+      data: error.response.data
+    });
+    
+    // 处理特定状态码
+    if (error.response.status === 401) {
+      error.value = '您的登录已过期，请重新登录';
+      // 可以添加重定向到登录页的逻辑
+    } else if (error.response.status === 403) {
+      error.value = '您没有权限执行此操作';
+    } else if (error.response.status === 404) {
+      error.value = '请求的资源不存在';
+    } else if (error.response.status >= 500) {
+      error.value = '服务器错误，请稍后重试';
+    } else {
+      error.value = errorMessage;
+    }
+  } else if (error.request) {
+    // 请求被发送，但没有收到响应
+    console.error('未收到服务器响应');
+    error.value = '网络连接问题，请检查您的网络连接';
+  } else {
+    // 请求设置时触发的错误
+    console.error('请求配置错误:', error.message);
+    error.value = '请求配置错误';
+  }
+  
+  // 返回模拟数据作为回退
+  return fallbackData;
+};
+</script>
+
+<style>
+@import '@/styles/career-nav-styles.css';
+
+/* 全局布局样式 */
+.career-library-container {
+  display: flex;
+  height: calc(100vh - 60px);
+  padding: 20px;
+  gap: 20px;
+  background-color: #f5f7fa;
+}
+
+/* 左侧分类面板的尺寸 */
+.category-panel {
+  width: 220px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.category-search {
+  padding: 10px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.category-search input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.category-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 5px;
+}
+
+.category-item {
+  margin-bottom: 5px;
+}
+
+.folder-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folder-item:hover {
+  background-color: #f5f7fa;
+}
+
+.folder-item.active {
+  background-color: #ecf5ff;
+  color: #409eff;
+}
+
+.folder-icon {
+  margin-right: 5px;
+  font-size: 14px;
+}
+
+.folder-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toggle-icon {
+  margin-left: auto;
+  transition: transform 0.3s;
+}
+
+.el-icon-arrow-down {
+  transform: rotate(90deg);
+}
+
+.subcategories {
+  padding-left: 15px;
+  margin-top: 2px;
+}
+
+.subcategory-item {
+  margin-bottom: 2px;
+}
+
+.third-level {
+  padding-left: 15px;
+  margin-top: 2px;
+}
+
+.third-level-item {
+  margin-bottom: 1px;
+}
+
+.third-level .folder-item {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* 中间职业列表面板样式 */
+.career-list-panel {
+  width: 320px;
+  flex: 0 0 auto;
+  background-color: #fff;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.career-list-header {
+  padding: 15px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.category-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.category-navigation h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #303133;
+}
+
+.career-count {
+  font-size: 13px;
+  color: #909399;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.tab {
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  color: #606266;
+}
+
+.tab.active {
+  color: #409eff;
+  border-bottom-color: #409eff;
+}
+
+.filter-bar {
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #606266;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.filter-bar select {
+  margin-left: 10px;
+  padding: 5px 10px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  outline: none;
+}
+
+.career-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.career-item {
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #f8f9fb;
+  border: 1px solid #ebeef5;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.career-item:hover {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.career-item.selected {
+  border-color: #409eff;
+  background-color: #ecf5ff;
+}
+
+.career-development-stage {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 6px;
+  background-color: #f0f9eb;
+  color: #67c23a;
+  font-size: 11px;
+  border-radius: 10px;
+}
+
+.career-main-info {
+  margin-top: 5px;
+}
+
+.career-item h4 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  color: #303133;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.career-salary {
+  font-size: 16px;
+  font-weight: bold;
+  color: #f56c6c;
+  margin-bottom: 10px;
+}
+
+.career-education {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.edu-badge, .experience-badge {
+  padding: 1px 6px;
+  background-color: #f4f4f5;
+  color: #909399;
+  font-size: 11px;
+  border-radius: 2px;
+}
+
+.career-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 40px;
+  overflow: hidden;
+}
+
+.tag {
+  padding: 2px 5px;
+  background-color: #ecf5ff;
+  color: #409eff;
+  font-size: 11px;
+  border-radius: 2px;
+}
+
+/* 右侧详情面板样式 */
+.career-detail-panel {
+  flex: 1;
+  min-width: 400px;
+  background-color: #fff;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  border-radius: 4px;
+  padding: 20px;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.detail-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #303133;
+  font-weight: 600;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.favorite-btn, .share-btn {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border: 1px solid #dcdfe6;
+  background-color: #fff;
+  color: #606266;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.favorite-btn:hover, .share-btn:hover {
+  color: #409eff;
+  border-color: #c6e2ff;
+  background-color: #ecf5ff;
+}
+
+.favorite-btn.is-favorite {
+  color: #f56c6c;
+  border-color: #fbc4c4;
+  background-color: #fef0f0;
+}
+
+.action-icon {
+  margin-right: 5px;
+}
+
+.basic-info-section {
+  background-color: #f8f9fb;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.basic-info-section h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 16px;
+  color: #303133;
+  position: relative;
+  padding-left: 10px;
+}
+
+.basic-info-section h3:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 16px;
+  background-color: #409eff;
+  border-radius: 2px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.info-label {
+  color: #909399;
+  font-size: 12px;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.info-value {
+  color: #303133;
+  font-size: 13px;
+  padding: 4px 8px;
+  background-color: #f0f2f5;
+  border-radius: 3px;
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detail-section {
+  margin-bottom: 15px;
+}
+
+.detail-section h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #303133;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ebeef5;
+  position: relative;
+  padding-left: 10px;
+}
+
+.detail-section h3:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 16px;
+  background-color: #409eff;
+  border-radius: 2px;
+}
+
+.detail-section p {
+  color: #606266;
+  line-height: 1.6;
+  font-size: 14px;
+  margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 5px;
+  text-align: justify;
+}
+
+.responsibility-list {
+  list-style: disc;
+  padding-left: 20px;
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.6;
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 5px;
+  margin-top: 5px;
+}
+
+.responsibility-list li {
+  margin-bottom: 8px;
+  text-align: justify;
+}
+
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  color: #909399;
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #409eff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: auto;
+  padding: 15px;
+  border-top: 1px solid #ebeef5;
+}
+
+.pagination button {
+  padding: 6px 12px;
+  background-color: #409eff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 0 5px;
+  font-size: 13px;
+}
+
+.pagination button:disabled {
+  background-color: #c0c4cc;
+  cursor: not-allowed;
+}
+
+.no-data {
+  padding: 20px;
+  text-align: center;
+  color: #909399;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+}
+
+.no-selection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: #909399;
+  text-align: center;
+  padding: 20px;
+}
+
+.error-action {
+  margin-top: 20px;
+}
+
+.error-action button {
+  padding: 8px 16px;
+  background-color: #409eff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.error-action button:hover {
+  background-color: #66b1ff;
+}
+</style> 

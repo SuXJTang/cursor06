@@ -73,6 +73,84 @@ export default defineConfig(({ mode }) => {
               }
             });
           }
+        },
+        '/static': {
+          target: apiUrl,
+          changeOrigin: true,
+          configure: (proxy, options) => {
+            // 设置超时 (使用任意字段)
+            (proxy as any).timeout = 30000; // 30秒超时
+            // 更详细的错误日志
+            proxy.on('error', (err, req, res) => {
+              console.error('静态文件代理错误:', err.message, req.url);
+            });
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log('发送静态文件代理请求:', req.method, req.url, '到', apiUrl);
+            });
+            proxy.on('proxyRes', (proxyRes, req, res) => {
+              console.log('收到静态文件代理响应:', proxyRes.statusCode, req.url);
+            });
+          }
+        },
+        '/v1': {
+          target: apiUrl,
+          changeOrigin: true,
+          configure: (proxy, options) => {
+            (proxy as any).timeout = 30000; // 30秒超时
+            proxy.on('error', (err, req, res) => {
+              console.error('V1 API代理错误:', err.message, req.url);
+              console.error('代理目标:', apiUrl);
+              console.error('详细错误:', err);
+              
+              if (!res.headersSent && res.writableEnded === false) {
+                res.writeHead(500, {
+                  'Content-Type': 'application/json'
+                });
+                res.end(JSON.stringify({ 
+                  error: 'Proxy Error', 
+                  message: err.message,
+                  target: apiUrl,
+                  path: req.url
+                }));
+              }
+            });
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log('发送V1 API代理请求:', req.method, req.url, '到', apiUrl);
+            });
+            proxy.on('proxyRes', (proxyRes, req, res) => {
+              console.log('收到V1 API代理响应:', proxyRes.statusCode, req.url);
+            });
+          }
+        },
+        '/v2': {
+          target: apiUrl,
+          changeOrigin: true,
+          configure: (proxy, options) => {
+            (proxy as any).timeout = 30000; // 30秒超时
+            proxy.on('error', (err, req, res) => {
+              console.error('V2 API代理错误:', err.message, req.url);
+              console.error('代理目标:', apiUrl);
+              console.error('详细错误:', err);
+              
+              if (!res.headersSent && res.writableEnded === false) {
+                res.writeHead(500, {
+                  'Content-Type': 'application/json'
+                });
+                res.end(JSON.stringify({ 
+                  error: 'Proxy Error', 
+                  message: err.message,
+                  target: apiUrl,
+                  path: req.url
+                }));
+              }
+            });
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log('发送V2 API代理请求:', req.method, req.url, '到', apiUrl);
+            });
+            proxy.on('proxyRes', (proxyRes, req, res) => {
+              console.log('收到V2 API代理响应:', proxyRes.statusCode, req.url);
+            });
+          }
         }
       }
     },

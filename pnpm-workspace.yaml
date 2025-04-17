@@ -1,6 +1,0 @@
-packages:
-  - frontend-client
-  - frontend-admin
-ignoredBuiltDependencies:
-  - esbuild
-  - vue-demi
